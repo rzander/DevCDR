@@ -331,3 +331,6 @@ ASALocalRun/
 
 # MSI Project Folder
 MSI_Setup
+*.msi
+xLab.*
+Zander.*

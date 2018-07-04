@@ -1,0 +1,59 @@
+﻿<!-- download Modal -->
+<div class="modal fade" id="downloadModal" tabindex="-1" role="dialog" aria-labelledby="donloadModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="donloadModalLabel">Install DevCDR-Agent for the Instance: @ViewData["Instance"] </h4>
+            </div>
+            <div class="modal-body">
+                Run the following PowerShell command with administrative priviledges: <br />
+                <samp>&msiexec -i https://devcdr.azurewebsites.net/xmgmt.msi INSTANCE=@ViewData["Instance"] /qn REBOOT=REALLYSUPPRESS</samp>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UserMessage Modal -->
+<div class="modal fade" id="msgModal" tabindex="-1" role="dialog" aria-labelledby="msgModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="msgModalLabel">send Message to logged on users...</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="usr">Message:</label>
+                    <input type="text" class="form-control" id="usr">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="RunPS('msg * ' + usr.value)" data-dismiss="modal">Send</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Groups Modal -->
+<div class="modal fade" id="msgGroups" tabindex="-1" role="dialog" aria-labelledby="msgGroupsLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="msgGroupsLabel">Assign Groups separated by semicolon (e.g. LAB;DEMO )</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="usr">Groups:</label>
+                    <input type="text" title="e.g. Group1;Group2" class="form-control" id="grps">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="Command('SetGroups', grps.value)" data-dismiss="modal">Send</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

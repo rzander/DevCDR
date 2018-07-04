@@ -25,7 +25,7 @@ namespace DevCDRAgent.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("https://xmgmt.azurewebsites.net/Chat")]
+        [global::System.Configuration.DefaultSettingValueAttribute("https://devcdr.azurewebsites.net/Chat")]
         public string Endpoint {
             get {
                 return ((string)(this["Endpoint"]));

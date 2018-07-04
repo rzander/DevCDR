@@ -1,0 +1,180 @@
+﻿<script type="text/javascript">
+    $(function () {
+        $.contextMenu({
+            selector: '#test',
+            items: {
+                "foldInv": {
+                    "name": "Inventory",
+                    "items": {
+                        "invHW": {
+                            "name": "Hardware",
+                            "items": {
+                                "invHWBIOSVer": {
+                                    "name": "BIOS Version",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-CimInstance -ClassName Win32_BIOS).SMBIOSBIOSVersion', 'BIOSVersion');
+                                    }
+                                },
+                                "invHWMemory": {
+                                    "name": "Memory(GB)",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('[math]::Round((Get-WmiObject -Class Win32_ComputerSystem).TotalPhysicalMemory/1GB)', 'Memory');
+                                    }
+
+                                },
+                                "invHWModel": {
+                                    "name": "Hardware Model",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-CimInstance -ClassName Win32_ComputerSystem).Model', 'HWModel');
+                                    }
+
+                                },
+                                "invHWSerial": {
+                                    "name": "Serial Number",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-CimInstance -ClassName Win32_BIOS).SerialNumber', 'SerialNr');
+                                    }
+                                },
+                                "invHWProc": {
+                                    "name": "Processor",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-WMIObject -class Win32_Processor).Name', 'Processor');
+                                    }
+                                },
+                                "invHWUUID": {
+                                    "name": "UUID",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-CimInstance -ClassName Win32_ComputerSystemProduct).UUID', 'UUID');
+                                    }
+                                }
+                            }
+                        },
+                        "invOS": {
+                            "name": "OperatingSystem",
+                            "items": {
+                                "invOSCSize": {
+                                    "name": "Disk C: Size (GB)",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('[math]::Round((Get-WmiObject Win32_LogicalDisk -Filter "DeviceID=\'C:\'").size/1GB)', 'CSize');
+                                    }
+                                },
+                                "invOSCFree": {
+                                    "name": "Disk C: Free (GB)",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('[math]::Round((Get-WmiObject Win32_LogicalDisk -Filter "DeviceID=\'C:\'").FreeSpace/1GB)', 'CFree');
+                                    }
+                                },
+                                "invOSInstDate": {
+                                    "name": "Install Date",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-CimInstance -ClassName Win32_OperatingSystem).InstallDate.tostring("yyyy-MM-dd HH:mm")', 'InstallDate');
+                                    }
+                                },
+                                "invOSMUI": {
+                                    "name": "MUI Languages",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-CimInstance -ClassName Win32_OperatingSystem).MUILanguages | ConvertTo-Json', 'MUI');
+                                    }
+                                },
+                                "invOSPS": {
+                                    "name": "PowerShell Version",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('$PSVersionTable.PSVersion', 'PSVer');
+                                    }
+                                },
+                                "invOSUser": {
+                                    "name": "User",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-WMIObject -class Win32_ComputerSystem).Username', 'User');
+                                    }
+                                }
+                            }
+                        },
+                        "invSW": {
+                            "name": "Software",
+                            "items": {}
+                        },
+                        "invUpd": {
+                            "name": "Updates",
+                            "items": {
+                                "invUpdOS": {
+                                    "name": "missing OS Updates",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-WUList -MicrosoftUpdate) | select Title | ConvertTo-Json', 'OSUpdates');
+                                    }
+                                },
+                                "invUpdRZ": {
+                                    "name": "missing Software Updates",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Find-Package -ProviderName RuckZuck -Updates).Name | convertto-json', 'RZUpdates');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "sep1": "---------"
+            }
+        });
+
+        //$('#test').on('click', function (e) {
+        //    console.log('clicked', this);
+        //})
+    });
+</script>
