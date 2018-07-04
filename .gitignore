@@ -334,3 +334,4 @@ MSI_Setup
 *.msi
 xLab.*
 Zander.*
+Source/DevCDRServer/NET47/web.config
