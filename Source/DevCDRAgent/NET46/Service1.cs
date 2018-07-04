@@ -327,7 +327,7 @@ namespace DevCDRAgent
                                     string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
                                     XmlDocument doc = new XmlDocument();
                                     doc.Load(sConfig);
-                                    doc.SelectSingleNode("/configuration/applicationSettings/SignalRService.Properties.Settings/setting[@name='Instance']/value").InnerText = s1;
+                                    doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Instance']/value").InnerText = s1;
                                     doc.Save(sConfig);
                                     RestartService();
                                 }
@@ -346,7 +346,7 @@ namespace DevCDRAgent
                                         string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
                                         XmlDocument doc = new XmlDocument();
                                         doc.Load(sConfig);
-                                        doc.SelectSingleNode("/configuration/applicationSettings/SignalRService.Properties.Settings/setting[@name='Endpoint']/value").InnerText = s1;
+                                        doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Endpoint']/value").InnerText = s1;
                                         doc.Save(sConfig);
                                         RestartService();
                                     }
@@ -364,7 +364,7 @@ namespace DevCDRAgent
                                     string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
                                     XmlDocument doc = new XmlDocument();
                                     doc.Load(sConfig);
-                                    doc.SelectSingleNode("/configuration/applicationSettings/SignalRService.Properties.Settings/setting[@name='Groups']/value").InnerText = s1;
+                                    doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Groups']/value").InnerText = s1;
                                     doc.Save(sConfig);
 
                                     RestartService();
