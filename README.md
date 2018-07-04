@@ -11,5 +11,8 @@ a cloud based Client/Server management tool.
 * ...
 
 # DEMO
-https://xmgmt.azurewebsites.net/
+https://devcdr.azurewebsites.net/
+
+(old) https://xmgmt.azurewebsites.net/
+
 
