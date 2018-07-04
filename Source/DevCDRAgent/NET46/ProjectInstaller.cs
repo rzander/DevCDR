@@ -31,9 +31,9 @@ namespace DevCDRAgent
             // 
             // serviceInstaller1
             // 
-            this.serviceInstaller1.Description = "ManagementService by Roger Zander";
-            this.serviceInstaller1.DisplayName = "xManagement";
-            this.serviceInstaller1.ServiceName = "xMgmt";
+            this.serviceInstaller1.Description = "Management Service by Roger Zander";
+            this.serviceInstaller1.DisplayName = "Device Commander Agent";
+            this.serviceInstaller1.ServiceName = "DevCDRAgent";
             this.serviceInstaller1.StartType = System.ServiceProcess.ServiceStartMode.Automatic;
             // 
             // serviceProcessInstaller1

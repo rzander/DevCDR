@@ -32,7 +32,7 @@
             // 
             // serviceController1
             // 
-            this.serviceController1.ServiceName = "xMgmt";
+            this.serviceController1.ServiceName = "DevCDRAgent";
             // 
             // Service1
             // 

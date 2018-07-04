@@ -476,6 +476,7 @@
     <Content Include="Content\DataTables\css\mixins.scss" />
     <Content Include="Content\DataTables\css\common.scss" />
     <Content Include="Connected Services\AzureAD\ConnectedService.json" />
+    <Content Include="DevCDRAgent.msi" />
     <None Include="Properties\PublishProfiles\DevCDR - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\DevCDR - Web Deploy.pubxml" />
     <None Include="Scripts\jquery-3.3.1.intellisense.js" />
@@ -506,12 +507,6 @@
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
-    <Content Include="Web.Debug.config">
-      <DependentUpon>Web.config</DependentUpon>
-    </Content>
-    <Content Include="Web.Release.config">
-      <DependentUpon>Web.config</DependentUpon>
-    </Content>
     <Content Include="Views\Web.config" />
     <Content Include="Views\_ViewStart.cshtml" />
     <Content Include="Views\Shared\Error.cshtml" />
@@ -530,7 +525,6 @@
     <Content Include="Scripts\popper-utils.js.map" />
     <Content Include="Views\DevCDR\XLab.cshtml" />
     <Content Include="Views\DevCDR\Zander.cshtml" />
-    <Content Include="xMgmt.msi" />
     <Content Include="Views\DevCDR\Demo.cshtml" />
     <Content Include="Views\UserProfile\Index.cshtml" />
     <Content Include="Views\UserProfile\Relogin.cshtml" />

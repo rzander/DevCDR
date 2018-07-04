@@ -453,7 +453,7 @@ namespace DevCDRAgent
                 {
                     try
                     {
-                        PowerShellInstance.AddScript("powershell.exe -command stop-service xMgmt -Force;sleep 5;start-service xMgmt");
+                        PowerShellInstance.AddScript("powershell.exe -command stop-service DevCDRAgent -Force;sleep 5;start-service DevCDRAgent");
                         var PSResult = PowerShellInstance.Invoke();
                     }
                     catch { }
