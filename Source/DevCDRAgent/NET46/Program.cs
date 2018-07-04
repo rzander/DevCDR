@@ -1,0 +1,65 @@
+﻿using System;
+using System.ServiceProcess;
+using System.Configuration.Install;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
+
+namespace DevCDRAgent
+{
+    static class Program
+    {
+        /// <summary>
+        /// The main entry point for the application.
+        /// </summary>
+        static int Main(string[] args)
+        {
+            if (System.Environment.UserInteractive)
+            {
+                string parameter = string.Concat(args);
+                switch (parameter)
+                {
+                    case "--install":
+                        ManagedInstallerClass.InstallHelper(new string[] { Assembly.GetExecutingAssembly().Location });
+                        break;
+                    case "--uninstall":
+                        ManagedInstallerClass.InstallHelper(new string[] { "/u", Assembly.GetExecutingAssembly().Location });
+                        break;
+                    default:
+                        Console.WriteLine(string.Format("--- Zander Tools: xManagement Service Version: {0} ---", Assembly.GetEntryAssembly().GetName().Version));
+                        Console.WriteLine("Optional ServiceInstaller parameters: --install , --uninstall");
+                        Service1 ConsoleApp = new Service1();
+                        ConsoleApp.Start(null);
+                        MinimizeFootprint();
+                        Console.WriteLine("Press ENTER to terminate...");
+                        Console.ReadLine();
+                        ConsoleApp.Stop();
+                        break;
+                }
+
+                return 0;
+            }
+            else
+            {
+                var sService = new Service1();
+                ServiceBase.Run(new Service1());
+                return sService.ExitCode;
+            }
+        }
+
+        static public void MinimizeFootprint()
+        {
+            GC.Collect(GC.MaxGeneration);
+            GC.WaitForPendingFinalizers();
+            //SetProcessWorkingSetSize(Process.GetCurrentProcess().Handle,(UIntPtr)0xFFFFFFFF, (UIntPtr)0xFFFFFFFF);
+            EmptyWorkingSet(Process.GetCurrentProcess().Handle);
+        }
+
+        [DllImport("kernel32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetProcessWorkingSetSize(IntPtr process,UIntPtr minimumWorkingSetSize, UIntPtr maximumWorkingSetSize);
+
+        [DllImport("psapi.dll")]
+        static extern int EmptyWorkingSet(IntPtr hwProc);
+    }
+}
