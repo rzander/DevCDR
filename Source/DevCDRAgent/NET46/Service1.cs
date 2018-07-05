@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNet.SignalR.Client;
+using Microsoft.Win32;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Linq;
@@ -325,6 +326,14 @@ namespace DevCDRAgent
                                     doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Instance']/value").InnerText = s1;
                                     doc.Save(sConfig);
                                     RestartService();
+
+                                    //Update Advanced Installer Persistent Properties
+                                    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{0AC43E24-4308-4BE7-A369-D50DB4056B32}", true);
+                                    if (myKey != null)
+                                    {
+                                        myKey.SetValue("INSTANCE", s1.Trim(), RegistryValueKind.String);
+                                        myKey.Close();
+                                    }
                                 }
                             }
                             catch { }
@@ -344,6 +353,14 @@ namespace DevCDRAgent
                                         doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Endpoint']/value").InnerText = s1;
                                         doc.Save(sConfig);
                                         RestartService();
+
+                                        //Update Advanced Installer Persistent Properties
+                                        RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{0AC43E24-4308-4BE7-A369-D50DB4056B32}", true);
+                                        if (myKey != null)
+                                        {
+                                            myKey.SetValue("ENDPOINT", s1.Trim(), RegistryValueKind.String);
+                                            myKey.Close();
+                                        }
                                     }
                                 }
                             }
@@ -363,6 +380,14 @@ namespace DevCDRAgent
                                     doc.Save(sConfig);
 
                                     RestartService();
+
+                                    //Update Advanced Installer Persistent Properties
+                                    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{0AC43E24-4308-4BE7-A369-D50DB4056B32}", true);
+                                    if (myKey != null)
+                                    {
+                                        myKey.SetValue("GROUPS", s1.Trim(), RegistryValueKind.String);
+                                        myKey.Close();
+                                    }
                                 }
                             }
                             catch { }
