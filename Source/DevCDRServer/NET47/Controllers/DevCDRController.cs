@@ -210,7 +210,7 @@ namespace DevCDRServer.Controllers
             switch(sCommand)
             {
                 case "AgentVersion":
-                    RunCommand(lHostnames, "[System.Diagnostics.FileVersionInfo]::GetVersionInfo(\"C:\\Program Files\\xMgmt\\xMgmt.exe\").FileVersion", sInstance, sCommand);
+                    AgentVersion(lHostnames, sInstance);
                     break;
                 case "Inv":
                     RunCommand(lHostnames, "Invoke-RestMethod -Uri 'https://jaindb.azurewebsites.net/getps' | IEX;'Inventory complete..'", sInstance, sCommand);
@@ -241,6 +241,15 @@ namespace DevCDRServer.Controllers
                     break;
                 case "InstallUpdates":
                     RunCommand(lHostnames, "Install-WindowsUpdate -MicrosoftUpdate -IgnoreReboot -AcceptAll -Install;installing Updates...", sInstance, sCommand);
+                    break;
+                case "RestartAgent":
+                    RestartAgent(lHostnames, sInstance);
+                    break;
+                case "SetInstance":
+                    SetInstance(lHostnames, sInstance, sArgs);
+                    break;
+                case "SetEndpoint":
+                    SetEndpoint(lHostnames, sInstance, sArgs);
                     break;
             }
 
@@ -318,6 +327,112 @@ namespace DevCDRServer.Controllers
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
                     hubContext.Clients.Client(sID).setgroups(Args);
+                }
+            }
+        }
+
+        internal void AgentVersion(List<string> Hostnames, string sInstance)
+        {
+            IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext(sInstance);
+
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "get AgentVersion"); //Update Status
+            }
+            hubContext.Clients.Group("web").newData("HUB", "get AgentVersion"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    hubContext.Clients.Client(sID).version("HUB");
+                }
+            }
+        }
+
+        internal void SetInstance(List<string> Hostnames, string sInstance, string Args)
+        {
+            if (string.IsNullOrEmpty(Args))
+                return;
+
+            IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext(sInstance);
+
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "set Instance"); //Update Status
+            }
+            hubContext.Clients.Group("web").newData("HUB", "set Instance"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    hubContext.Clients.Client(sID).setinstance(Args);
+                }
+            }
+        }
+
+        internal void SetEndpoint(List<string> Hostnames, string sInstance, string Args)
+        {
+            if (string.IsNullOrEmpty(Args))
+                return;
+
+            IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext(sInstance);
+
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "set Endpoint"); //Update Status
+            }
+            hubContext.Clients.Group("web").newData("HUB", "set Endpoint"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    hubContext.Clients.Client(sID).setendpoint(Args);
+                }
+            }
+        }
+
+        internal void RestartAgent(List<string> Hostnames, string sInstance)
+        {
+            IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext(sInstance);
+
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "restart Agent"); //Update Status
+            }
+            hubContext.Clients.Group("web").newData("HUB", "restart Agent"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    hubContext.Clients.Client(sID).restartservice("HUB");
                 }
             }
         }
