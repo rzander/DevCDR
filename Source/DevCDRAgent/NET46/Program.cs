@@ -26,7 +26,7 @@ namespace DevCDRAgent
                         ManagedInstallerClass.InstallHelper(new string[] { "/u", Assembly.GetExecutingAssembly().Location });
                         break;
                     default:
-                        Console.WriteLine(string.Format("--- Zander Tools: xManagement Service Version: {0} ---", Assembly.GetEntryAssembly().GetName().Version));
+                        Console.WriteLine(string.Format("--- Zander Tools: DevCDR Service Version: {0} ---", Assembly.GetEntryAssembly().GetName().Version));
                         Console.WriteLine("Optional ServiceInstaller parameters: --install , --uninstall");
                         Service1 ConsoleApp = new Service1();
                         ConsoleApp.Start(null);
