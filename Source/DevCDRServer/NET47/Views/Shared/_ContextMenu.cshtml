@@ -6,6 +6,61 @@
                 "foldInv": {
                     "name": "Inventory",
                     "items": {
+                        "invDef": {
+                            "name": "Defender",
+                            "items": {
+                                "invDevRT": {
+                                    "name": "Realtime Scan Status",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('if((Get-MpComputerStatus).RealTimeProtectionEnabled) { "Realtime:enabled" } else { "Realtime:disabled"  }', 'DefenderStatus');
+                                    }
+                                },
+                                "invDevSig": {
+                                    "name": "Signature Version",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-MpComputerStatus).AntispywareSignatureVersion', 'SignatureVersion');
+                                    }
+                                },
+                                "invDevSigAge": {
+                                    "name": "Signature Age (days)",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-MpComputerStatus).AntispywareSignatureAge', 'SignatureAge');
+                                    }
+                                },
+                                "invDevQuickAge": {
+                                    "name": "Quick Scan Age (days)",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-MpComputerStatus).QuickScanAge', 'QuickScanAge');
+                                    }
+                                },
+                                "invDevFullAge": {
+                                    "name": "Full Scan Age (days)",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-MpComputerStatus).FullScanAge', 'FullScanAge');
+                                    }
+                                }
+                            }
+                        },
                         "invHW": {
                             "name": "Hardware",
                             "items": {
@@ -167,6 +222,46 @@
                                 }
                             }
                         }
+                    }
+                },
+                "foldActions": {
+                    "name": "Actions",
+                    "items": {
+                        "actDef": {
+                            "name": "Defender",
+                            "items": {
+                                "actDevQScan": {
+                                    "name": "Run Quick Scan",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Start-MpScan -ScanType QuickScan', 'QuickScan');
+                                    }
+                                },
+                                "actDevFScan": {
+                                    "name": "Run Full Scan",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Start-MpScan -ScanType FullScan', 'FullScan');
+                                    }
+                                },
+                                "actDevUpd": {
+                                    "name": "Update Definitions",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Update-MpSignature', 'UpdSignature');
+                                    }
+                                },
+                            }
+                        },
                     }
                 },
                 "sep1": "---------"
