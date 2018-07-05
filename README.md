@@ -14,6 +14,15 @@ As soon as the devices have internet connection (also behind a Proxy), they will
 * run custom PowerShell commands
 * ...
 
+## Agent Requirements
+* .NET4.6
+* DevCDRAgent (MSI is currently x64 only)
+
+## Server/Host Requirements
+* Azure Active Directory (Basic)
+* Azure Web App (Free F1 or bether)
+* SSL enabled
+
 # DEMO
 https://devcdr.azurewebsites.net/
 The default view is in Read-Only mode, so you will not be able to trigger something on my machines :-)
