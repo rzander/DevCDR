@@ -57,3 +57,47 @@
         </div>
     </div>
 </div>
+
+<!-- Set Instance Modal -->
+<div class="modal fade" id="msgInstance" tabindex="-1" role="dialog" aria-labelledby="msgInstanceLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="msgInstanceLabel">Assign Device(s) to a new DevCDR Instance.</h4>
+                <div class="alert alert-warning">The Devices may <strong>become unmanaged</strong> if the Instance is not available or invalid !!!</div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="usr">Instance-Name:</label>
+                    <input type="text" title="e.g. Default" class="form-control" id="instance">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="Command('SetInstance', instance.value)" data-dismiss="modal">Send</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Set Endpoint Modal -->
+<div class="modal fade" id="msgEndpoint" tabindex="-1" role="dialog" aria-labelledby="msgEndpointLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="msgEndpointLabel">Assign Device(s) to a new DevCDR Endpoint (URL).</h4>
+                <div class="alert alert-warning">The Devices may <strong>become unmanaged</strong> if the EndPoint is not available or invalid !!!</div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="usr">Endpoint-URL:</label>
+                    <input type="text" title="e.g. https://devcdr.azurewebsites.net/Chat" class="form-control" id="endpoint">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="Command('SetEndpoint', endpoint.value)" data-dismiss="modal">Send</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

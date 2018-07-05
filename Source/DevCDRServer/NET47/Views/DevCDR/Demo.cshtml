@@ -2,13 +2,13 @@
     <button type="button" class="btn btn-default pull-right" title="download Agent" data-toggle="modal" data-target="#downloadModal">
         <span class="glyphicon glyphicon-download-alt"></span> Agent
     </button>
-    <button type="button" class="btn btn-default pull-right disabled" title="reload all device data">
-        <span class="glyphicon glyphicon-refresh disabled"></span> Reload
+    <button type="button" class="btn btn-default pull-right" title="reload all device data" onclick="Command('Init')">
+        <span class="glyphicon glyphicon-refresh"></span> Reload
     </button>
     <h2>@ViewData["Title"]</h2>
 </div>
 
-<small style="position:relative; top:-15px">Instance-ID: @ViewData["Instance"]</small>
+<small style="position:relative; top:-12px">Instance-ID: @ViewData["Instance"]</small>
 
 <ul class="nav nav-tabs" id="tabs">
     <li class="active"><a href="" data-toggle="tab">All Devices</a></li>
@@ -33,21 +33,29 @@
 </table>
 
 <div class="row">
-    <input class="btn btn-light disabled" type="button" value="Agent Version" title="get the RZAgent Version" />
-    <input class="btn btn-light disabled" type="button" value="Run Inventory" title="Run JainDB inventory" />
-    <input class="btn btn-light disabled" type="button" value="Restart" title="restart selected devices" />
-    <input class="btn btn-light disabled" type="button" value="Logoff" title="Logoff all users" />
-    @*<input class="btn btn-light disabled" type="button" value="Shutdown" title="shutdown selected devices" />*@
-    <input class="btn btn-light disabled" type="button" value="User Message.." data-toggle="modal" data-target="#msgModal" title="Send a message to logged on users" />
-    <input class="btn btn-light disabled" type="button" value="RZ updates" title="get missing RuckZuck updates" />
-    <input class="btn btn-light disabled" type="button" value="missing Updates" title="show missing Updates" />
-    <input class="btn btn-light disabled" type="button" value="install Updates" title="install missing Updates" />
-    <input class="btn btn-light disabled" type="button" value="Set Groups.." data-toggle="modal" data-target="#msgGroups" title="Group selected devices" />
-
+    <input class="btn btn-default" type="button" onclick="Command('AgentVersion')" value="Agent Version" title="get the RZAgent Version" />
+    <input class="btn btn-default" type="button" onclick="Command('Inv')" value="Run Inventory" title="Run JainDB inventory" />
+    <input class="btn btn-default" type="button" onclick="Command('Restart')" value="Restart" title="restart selected devices" />
+    <input class="btn btn-default" type="button" onclick="Command('Logoff')" value="Logoff" title="Logoff all users" />
+    <input class="btn btn-default" type="button" onclick="Command('Shutdown')" value="Shutdown" title="shutdown selected devices" />
+    <input class="btn btn-default" type="button" value="User Message.." data-toggle="modal" data-target="#msgModal" title="Send a message to logged on users" />
+    <input class="btn btn-default" type="button" value="Get RZ updates" title="get missing RuckZuck updates" onclick="Command('GetRZUpdates')" />
+    <input class="btn btn-default" type="button" value="missing Updates" title="show missing Updates" onclick="Command('GetUpdates')" />
+    <input class="btn btn-default" type="button" value="install Updates" title="install missing Updates" onclick="Command('InstallUpdates')" />
+    <input class="btn btn-default" type="button" value="Get Groups" title="get Groups" onclick="Command('GetGroups')" />
+    <input class="btn btn-default" type="button" value="Set Groups.." data-toggle="modal" data-target="#msgGroups" title="Group selected devices" />
+    <input class="btn btn-default" type="button" value="Set Instance.." data-toggle="modal" data-target="#msgInstance" title="change Instance" />
+    <input class="btn btn-default" type="button" value="Set Endpoint.." data-toggle="modal" data-target="#msgEndpoint" title="change Endpoint (URL)" />
 </div>
+
 
 @Html.Partial("_CustomPS")
 @Html.Partial("_ModalMessages")
 @Html.Partial("_Table")
 @Html.Partial("_ContextMenu")
-@*@Html.Partial("_RunCommands")*@
+
+
+@if (Request.IsAuthenticated)
+{
+    @Html.Partial("_RunCommands")
+}
