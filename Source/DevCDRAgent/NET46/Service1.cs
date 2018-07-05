@@ -296,15 +296,10 @@ namespace DevCDRAgent
                         {
                             try
                             {
-                                string sResult = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                                sScriptResult = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
-                                myHub.Invoke<string>("Respond", s1, Environment.MachineName + ":" + sResult).ContinueWith(task1 =>
-                                {
-                                    if (task1.IsFaulted)
-                                    {
-                                        Console.WriteLine("There was an error calling send: {0}", task1.Exception.GetBaseException());
-                                    }
-                                });
+                                Random rnd = new Random();
+                                tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
                             }
                             catch { }
                         });
