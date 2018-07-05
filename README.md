@@ -20,7 +20,7 @@ As soon as the devices have internet connection (also behind a Proxy), they will
 
 ## Server/Host Requirements
 * Azure Active Directory (Basic)
-* Azure Web App (Free F1 or bether)
+* Azure Web App (Free F1 or better)
 * SSL enabled
 
 # DEMO
