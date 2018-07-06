@@ -6,12 +6,13 @@ As soon as the devices have internet connection (also behind a Proxy), they will
 ## Features
 * realtime cummunication
 * interactive Web frontend
-* micro Agent (400KB)
+* micro Agent (500KB)
 * Only outgoing HTTPS (443) communication
 * Proxy Support
 * multi tenancy support
 * device grouping
 * run custom PowerShell commands
+* Install Software from RuckZuck.tools
 * ...
 
 ## Agent Requirements
@@ -24,6 +25,7 @@ As soon as the devices have internet connection (also behind a Proxy), they will
 * SSL enabled
 
 # DEMO
-https://devcdr.azurewebsites.net/
+https://devcdr.azurewebsites.net/ 
+
 The default view is in Read-Only mode, so you will not be able to trigger something on my machines :-)
 
