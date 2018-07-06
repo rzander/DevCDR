@@ -58,6 +58,26 @@
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
                                         RunPS('(Get-MpComputerStatus).FullScanAge', 'FullScanAge');
                                     }
+                                },
+                                "invDevThreadHist": {
+                                    "name": "Thread History",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Get-MpThreat | ConvertTo-Json', 'GetThreadHistory');
+                                    }
+                                },
+                                "invDevMalHist": {
+                                    "name": "Thread and Malware History",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Get-MpThreatDetection | ConvertTo-Json', 'GetMalwHistory');
+                                    }
                                 }
                             }
                         },
@@ -125,7 +145,17 @@
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
                                         RunPS('(Get-CimInstance -ClassName Win32_ComputerSystemProduct).UUID', 'UUID');
                                     }
-                                }
+                                },
+                                "invHWTPM": {
+                                    "name": "TPM Status",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Get-Tpm | select TPMPresent, TPMReady, LockedOut | ConvertTo-Json', 'GetTPMStatus');
+                                    }
+                                },
                             }
                         },
                         "invOS": {
@@ -188,14 +218,56 @@
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
-                                        RunPS('(Get-WMIObject -class Win32_ComputerSystem).Username', 'User');
+                                        RunPS('(quser) -replace "\s{2,}", "," -replace "\u003e","" | ConvertFrom-Csv |  ConvertTo-Json', 'QueryUsers');
+                                    }
+                                },
+                                "invOSTimeZone": {
+                                    "name": "Time Zone",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-TimeZone).StandardName', 'GetTimeZone');
+                                    }
+                                },
+                                "invOSBitlocker": {
+                                    "name": "BitLocker Status",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Get-BitLockerVolume | select MountPoint, ProtectionStatus | ConvertTo-Json', 'GetBitLockerStatus');
+                                    }
+                                },
+                                "invOSSecBoot": {
+                                    "name": "SecureBoot Status",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('try{if(Confirm-SecureBootUEFI) { "Secureboot:Enabled" } else { "SecureBoot:Disabled" }} catch { "Non-UEFI" }', 'GetSecBootStatus');
+                                    }
+                                },
+                                "invOSBuild": {
+                                    "name": "Win10 Build",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion" -Name ReleaseID -ea SilentlyContinue).ReleaseID', 'GetW10Build');
                                     }
                                 }
                             }
                         },
                         "invSW": {
                             "name": "Software",
-                            "items": {}
+                            "items": {
+
+                            }
                         },
                         "invUpd": {
                             "name": "Updates",
@@ -208,16 +280,6 @@
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
                                         RunPS('(Get-WUList -MicrosoftUpdate) | select Title | ConvertTo-Json', 'OSUpdates');
-                                    }
-                                },
-                                "invUpdRZ": {
-                                    "name": "missing Software Updates",
-                                    icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
-                                        return 'context-menu-icon-updated';
-                                    },
-                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
-                                        RunPS('(Find-Package -ProviderName RuckZuck -Updates).Name | convertto-json', 'RZUpdates');
                                     }
                                 }
                             }
@@ -259,9 +321,79 @@
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
                                         RunPS('Update-MpSignature', 'UpdSignature');
                                     }
-                                },
+                                }
                             }
                         },
+                        "actOS": {
+                            "name": "OS",
+                            "items": {
+                                "actOSLogoff": {
+                                    "name": "Logoff all users",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(gwmi win32_operatingsystem).Win32Shutdown(4);""', 'Logoff...');
+                                    }
+                                },
+                                "actOSRestart": {
+                                    "name": "Restart Computer",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Restart-Computer -Force', 'Restarting...');
+                                    }
+                                },
+                                "actOSShutdown": {
+                                    "name": "Shutdown Computer",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Stop-Computer -Force', 'Shutdown...');
+                                    }
+                                }
+                            }
+                        },
+                        "actRZ": {
+                            "name": "RuckZuck",
+                            "items": {
+                                "actRZScan": {
+                                    "name": "List missing Updates",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        Command('GetRZUpdates', '');
+                                    }
+                                },
+                                "actRZUpdate": {
+                                    "name": "Install missing Updates",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        Command('InstallRZUpdates', '');
+                                    }
+                                },
+                                "actRZInstall": {
+                                    "name": "Install a RuckZuck Package...",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        $('#msgRZ').modal('show');
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
                 "sep1": "---------"

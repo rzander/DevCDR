@@ -37,7 +37,7 @@
     <input class="btn btn-default" type="button" onclick="Command('Inv')" value="Run Inventory" title="Run JainDB inventory" />
     <input class="btn btn-default" type="button" onclick="Command('Restart')" value="Restart" title="restart selected devices" />
     <input class="btn btn-default" type="button" onclick="Command('Logoff')" value="Logoff" title="Logoff all users" />
-    <input class="btn btn-default" type="button" onclick="Command('Shutdown')" value="Shutdown" title="shutdown selected devices" />
+    <input class="btn btn-default disabled" type="button" onclick="Command('Shutdown')" value="Shutdown" title="shutdown selected devices" />
     <input class="btn btn-default" type="button" value="User Message.." data-toggle="modal" data-target="#msgModal" title="Send a message to logged on users" />
     <input class="btn btn-default" type="button" value="Get RZ updates" title="get missing RuckZuck updates" onclick="Command('GetRZUpdates')" />
     <input class="btn btn-default" type="button" value="missing Updates" title="show missing Updates" onclick="Command('GetUpdates')" />
@@ -57,5 +57,5 @@
 
 @if (Request.IsAuthenticated)
 {
-    @Html.Partial("_RunCommands")
+    @*@Html.Partial("_RunCommands")*@
 }

@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
@@ -22,7 +24,7 @@ namespace DevCDRServer.Controllers
         public ActionResult Demo()
         {
             ViewBag.Title = "Demo Environment";
-            ViewBag.Instance = "Default";
+            ViewBag.Instance = "xLab";
             ViewBag.Route = "/Chat";
             return View();
         }
@@ -40,10 +42,15 @@ namespace DevCDRServer.Controllers
         [System.Web.Mvc.Authorize]
         public ActionResult XLab()
         {
-            ViewBag.Title = "itnetX - Lab";
-            ViewBag.Instance = "xLab";
-            ViewBag.Route = "/Chat";
-            return View();
+            if (User.Identity.Name.EndsWith("@zander.ch") || User.Identity.Name.EndsWith("@itnetx.ch"))
+            {
+                ViewBag.Title = "itnetX - Lab";
+                ViewBag.Instance = "xLab";
+                ViewBag.Route = "/Chat";
+                return View();
+            }
+            else
+                return Redirect("DevCDR/Default");
         }
 
         //[AllowAnonymous]
@@ -119,6 +126,26 @@ namespace DevCDRServer.Controllers
             return new ContentResult
             {
                 Content = JsonConvert.SerializeObject(lGroups, Formatting.None),
+                ContentType = "application/json",
+                ContentEncoding = Encoding.UTF8
+            };
+        }
+
+        [AllowAnonymous]
+        public ActionResult GetRZCatalog(string Instance)
+        {
+            List<string> lRZCat = new List<string>();
+            try
+            {
+                string sCat = SWResults("");
+                JArray oCat = JArray.Parse(sCat);
+                lRZCat = JArray.Parse(sCat).SelectTokens("..Shortname").Values<string>().OrderBy(t => t).ToList();
+            }
+            catch { }
+
+            return new ContentResult
+            {
+                Content = JsonConvert.SerializeObject(lRZCat, Formatting.None),
                 ContentType = "application/json",
                 ContentEncoding = Encoding.UTF8
             };
@@ -228,7 +255,13 @@ namespace DevCDRServer.Controllers
                     Reload(sInstance);
                     break;
                 case "GetRZUpdates":
-                    RunCommand(lHostnames, "(Find-Package -ProviderName RuckZuck -Updates).Name | convertto-json", sInstance, sCommand);
+                    RZScan(lHostnames, sInstance);
+                    break;
+                case "InstallRZUpdates":
+                    RZUpdate(lHostnames, sInstance);
+                    break;
+                case "InstallRZSW":
+                    InstallRZSW(lHostnames, sInstance, sArgs);
                     break;
                 case "GetGroups":
                     GetGroups(lHostnames, sInstance);
@@ -437,6 +470,84 @@ namespace DevCDRServer.Controllers
             }
         }
 
+        internal void InstallRZSW(List<string> Hostnames, string sInstance, string Args)
+        {
+            if (string.IsNullOrEmpty(Args))
+                return;
+
+            IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext(sInstance);
+
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "Install SW"); //Update Status
+            }
+            hubContext.Clients.Group("web").newData("HUB", "Install SW"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    hubContext.Clients.Client(sID).rzinstall(Args);
+                }
+            }
+        }
+
+        internal void RZScan(List<string> Hostnames, string sInstance)
+        {
+            IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext(sInstance);
+
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "get RZ Updates"); //Update Status
+            }
+            hubContext.Clients.Group("web").newData("HUB", "get RZ Updates"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    hubContext.Clients.Client(sID).rzscan("HUB");
+                }
+            }
+        }
+
+        internal void RZUpdate(List<string> Hostnames, string sInstance)
+        {
+            IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext(sInstance);
+
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "install RZ Updates"); //Update Status
+            }
+            hubContext.Clients.Group("web").newData("HUB", "install RZ Updates"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    hubContext.Clients.Client(sID).rzupdate("HUB");
+                }
+            }
+        }
+
         [System.Web.Mvc.Authorize]
         [HttpPost]
         public object RunPS()
@@ -492,6 +603,71 @@ namespace DevCDRServer.Controllers
             }
 
             return new ContentResult();
+        }
+
+        internal string SWResults(string Searchstring)
+        {
+            string sCatFile = @"/App_Data/rzcat.json";
+            string sResult = "";
+            string sURL = "https://ruckzuck.azurewebsites.net/wcf/RZService.svc";
+            
+            sCatFile = HttpContext.Server.MapPath("~/App_Data/rzcat.json");
+            //if (_cache.TryGetValue("SWResult-" + Searchstring, out sResult))
+            //{
+            //    return sResult;
+            //}
+            try
+            {
+                if (string.IsNullOrEmpty(Searchstring))
+                {
+                    if (System.IO.File.Exists(sCatFile))
+                    {
+                        if (DateTime.Now.ToUniversalTime() - System.IO.File.GetCreationTime(sCatFile).ToUniversalTime() <= new TimeSpan(1, 0, 1))
+                        {
+                            sResult = System.IO.File.ReadAllText(sCatFile);
+                            if (sResult.StartsWith("[") & sResult.Length > 64) //check if it's JSON
+                            {
+                                return sResult;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+
+                }
+
+                HttpClient oClient = new HttpClient();
+                oClient.DefaultRequestHeaders.Accept.Clear();
+                oClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                var response = oClient.GetStringAsync(sURL + "/rest/SWResults?search=" + Searchstring);
+                response.Wait(10000); //10s max.
+                if (response.IsCompleted)
+                {
+                    sResult = response.Result;
+                    if (sResult.StartsWith("[") & sResult.Length > 64)
+                    {
+                        if (string.IsNullOrEmpty(Searchstring))
+                            System.IO.File.WriteAllText(sCatFile, sResult);
+
+                        return sResult;
+                    }
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            //return old File
+            if (System.IO.File.Exists(sCatFile))
+            {
+                return System.IO.File.ReadAllText(sCatFile);
+            }
+
+            return "";
         }
 
     }

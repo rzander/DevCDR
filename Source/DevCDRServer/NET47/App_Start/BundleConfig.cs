@@ -49,6 +49,12 @@ namespace DevCDRServer
             bundles.Add(new ScriptBundle("~/bundles/contextmenu").Include(
            "~/Scripts/ContextMenu/jquery.contextMenu.js",
            "~/Scripts/ContextMenu/jquery.ui.position.min.js"));
+
+            bundles.Add(new ScriptBundle("~/bundles/jquery-ui").Include(
+            "~/Scripts/jquery-ui-{version}.js"));
+
+            bundles.Add(new StyleBundle("~/Content/jquery-ui").Include(
+           "~/Content/themes/base/jquery-ui.css"));
         }
     }
 }
