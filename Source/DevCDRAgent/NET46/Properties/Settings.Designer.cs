@@ -34,7 +34,7 @@ namespace DevCDRAgent.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("default")]
+        [global::System.Configuration.DefaultSettingValueAttribute("Default")]
         public string Instance {
             get {
                 return ((string)(this["Instance"]));

@@ -28,7 +28,7 @@ namespace DevCDRAgent
                     default:
                         Console.WriteLine(string.Format("--- Zander Tools: DevCDR Service Version: {0} ---", Assembly.GetEntryAssembly().GetName().Version));
                         Console.WriteLine("Optional ServiceInstaller parameters: --install , --uninstall");
-                        Service1 ConsoleApp = new Service1();
+                        Service1 ConsoleApp = new Service1(parameter);
                         ConsoleApp.Start(null);
                         MinimizeFootprint();
                         Console.WriteLine("Press ENTER to terminate...");
@@ -41,8 +41,8 @@ namespace DevCDRAgent
             }
             else
             {
-                var sService = new Service1();
-                ServiceBase.Run(new Service1());
+                var sService = new Service1(Environment.MachineName);
+                ServiceBase.Run(sService);
                 return sService.ExitCode;
             }
         }
