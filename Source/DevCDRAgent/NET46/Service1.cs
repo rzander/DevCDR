@@ -1,11 +1,16 @@
 ﻿using Microsoft.AspNet.SignalR.Client;
 using Microsoft.Win32;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RZUpdate;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Management.Automation;
 using System.Reflection;
 using System.ServiceProcess;
+using System.Threading.Tasks;
 using System.Timers;
 using System.Xml;
 
@@ -16,6 +21,7 @@ namespace DevCDRAgent
         private System.Timers.Timer tReCheck = new System.Timers.Timer(61000); //1min
         private System.Timers.Timer tReInit = new System.Timers.Timer(120100); //2min
 
+        private static string Hostname = Environment.MachineName;
         private static HubConnection connection;
         private static IHubProxy myHub;
         private static string sScriptResult = "";
@@ -23,8 +29,11 @@ namespace DevCDRAgent
 
         public string Instance { get; set; } = Properties.Settings.Default.Instance;
         
-        public Service1()
+        public Service1(string Host)
         {
+            if (!string.IsNullOrEmpty(Host))
+                Hostname = Host;
+
             InitializeComponent();
         }
 
@@ -41,7 +50,7 @@ namespace DevCDRAgent
                     {
                         if (myHub != null)
                         {
-                            myHub.Invoke<string>("Init", Environment.MachineName).ContinueWith(task1 =>
+                            myHub.Invoke<string>("Init", Hostname).ContinueWith(task1 =>
                             {
                                 if (task1.IsFaulted)
                                 {
@@ -140,38 +149,6 @@ namespace DevCDRAgent
                     else
                     {
                         //Obsolete
-                        myHub.On<string>("runPS", (s1) =>
-                        {
-                            try
-                            {
-                                //using (PowerShell PowerShellInstance = PowerShell.Create())
-                                //{
-                                //    PowerShellInstance.AddScript(s1);
-                                //    Console.WriteLine(s1);
-                                //    PSDataCollection<PSObject> outputCollection = new PSDataCollection<PSObject>();
-                                //    IAsyncResult result = PowerShellInstance.BeginInvoke<PSObject, PSObject>(null, outputCollection);
-                                //    foreach (PSObject pres in outputCollection)
-                                //    {
-                                //        try
-                                //        {
-                                //            Console.WriteLine(pres.BaseObject.ToString());
-                                //        }
-                                //        catch(Exception ex)
-                                //        {
-                                //            Console.WriteLine(ex.Message);
-                                //        }
-                                //    }
-                                //}
-
-                                //Program.MinimizeFootprint();
-                            }
-                            catch(Exception ex)
-                            {
-                                Console.WriteLine(ex.Message);
-                            }
-                        });
-
-                        //Obsolete
                         myHub.On<string, string>("getPS", (s1, s2) =>
                         {
                             //using (PowerShell PowerShellInstance = PowerShell.Create())
@@ -240,7 +217,7 @@ namespace DevCDRAgent
                         {
                             try
                             {
-                                myHub.Invoke<string>("Init", Environment.MachineName).ContinueWith(task1 =>
+                                myHub.Invoke<string>("Init", Hostname).ContinueWith(task1 =>
                                 {
                                 });
 
@@ -285,7 +262,7 @@ namespace DevCDRAgent
                                     }
                                 }
 
-                                myHub.Invoke("Status", new object[] { Environment.MachineName, sResult }).ContinueWith(task1 =>
+                                myHub.Invoke("Status", new object[] { Hostname, sResult }).ContinueWith(task1 =>
                                 {
                                 });
                                 Program.MinimizeFootprint();
@@ -297,7 +274,8 @@ namespace DevCDRAgent
                         {
                             try
                             {
-                                sScriptResult = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                                //Get File-Version
+                                sScriptResult = (FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location)).FileVersion.ToString();
 
                                 Random rnd = new Random();
                                 tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
@@ -418,7 +396,74 @@ namespace DevCDRAgent
                             catch { }
                         });
 
-                        myHub.Invoke<string>("Init", Environment.MachineName).ContinueWith(task1 => {
+                        myHub.On<string>("rzinstall", (s1) =>
+                        {
+                            RZInst(s1);
+                        });
+
+                        myHub.On<string>("rzupdate", (s1) =>
+                        {
+                            var tSWScan = Task.Run(() =>
+                            {
+                                try
+                                {
+                                    sScriptResult = "Detecting RZ updates...";
+                                    Random rnd = new Random();
+                                    tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+
+                                    RZUpdater oUpdate = new RZUpdater();
+                                    RZScan oScan = new RZScan(false, false);
+
+                                    oScan.GetSWRepository().Wait(30000);
+                                    oScan.SWScan().Wait(30000);
+                                    oScan.CheckUpdates(null).Wait(30000);
+
+                                    sScriptResult = oScan.NewSoftwareVersions.Count.ToString() + " RZ updates found";
+                                    rnd = new Random();
+                                    tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+
+                                    List<string> lSW = new List<string>();
+                                    foreach (var oSW in oScan.NewSoftwareVersions)
+                                    {
+                                        RZInst(oSW.Shortname);
+                                    }
+                                }
+                                catch { }
+                            });
+                        });
+
+                        myHub.On<string>("rzscan", (s1) =>
+                        {
+                            var tSWScan = Task.Run(() =>
+                            {
+                                try
+                                {
+                                    sScriptResult = "Detecting updates...";
+                                    Random rnd = new Random();
+                                    tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+
+                                    RZUpdater oUpdate = new RZUpdater();
+                                    RZScan oScan = new RZScan(false, false);
+
+                                    oScan.GetSWRepository().Wait(30000);
+                                    oScan.SWScan().Wait(30000);
+                                    oScan.CheckUpdates(null).Wait(30000);
+
+                                    List<string> lSW = new List<string>();
+                                    foreach (var SW in oScan.NewSoftwareVersions)
+                                    {
+                                        lSW.Add(SW.Shortname + " " + SW.ProductVersion + " (old:" + SW.MSIProductID + ")");
+                                    }
+
+                                    sScriptResult = JsonConvert.SerializeObject(lSW);
+                                    rnd = new Random();
+                                    tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                                }
+                                catch { }
+                            });
+                        });
+
+                        myHub.Invoke<string>("Init", Hostname).ContinueWith(task1 => {
                             if (task1.IsFaulted)
                             {
                                 Console.WriteLine("There was an error calling send: {0}", task1.Exception.GetBaseException());
@@ -445,6 +490,84 @@ namespace DevCDRAgent
             catch(Exception ex)
             {
                 Console.WriteLine("There was an error: {0}", ex.Message);
+            }
+        }
+
+        public void RZInst(string s1)
+        {
+            try
+            {
+                Random rnd = new Random();
+                RZUpdater oRZSW = new RZUpdater();
+                oRZSW.SoftwareUpdate = new SWUpdate(s1);
+                if (string.IsNullOrEmpty(oRZSW.SoftwareUpdate.SW.ProductName))
+                {
+                    sScriptResult = "'" + s1 + "' is NOT available in RuckZuck...!";
+                    rnd = new Random();
+                    tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                }
+
+                foreach (string sPreReq in oRZSW.SoftwareUpdate.SW.PreRequisites)
+                {
+                    if (!string.IsNullOrEmpty(sPreReq))
+                    {
+                        RZUpdater oRZSWPreReq = new RZUpdater();
+                        oRZSWPreReq.SoftwareUpdate = new SWUpdate(sPreReq);
+
+                        sScriptResult = "..downloading dependencies (" + oRZSWPreReq.SoftwareUpdate.SW.Shortname + ")";
+                        rnd = new Random();
+                        tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+
+                        if (oRZSWPreReq.SoftwareUpdate.Download().Result)
+                        {
+                            sScriptResult =  "..installing dependencies (" + oRZSWPreReq.SoftwareUpdate.SW.Shortname + ")";
+                            rnd = new Random();
+                            tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+
+                            if (oRZSWPreReq.SoftwareUpdate.Install(false, true).Result)
+                            {
+
+                            }
+                            else
+                            {
+                                sScriptResult = oRZSWPreReq.SoftwareUpdate.SW.Shortname + " failed.";
+                                rnd = new Random();
+                                tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                            }
+                        }
+                    }
+
+                }
+
+                sScriptResult = "..downloading " + oRZSW.SoftwareUpdate.SW.Shortname;
+                rnd = new Random();
+                tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+
+                if (oRZSW.SoftwareUpdate.Download().Result)
+                {
+                    sScriptResult = "..installing " + oRZSW.SoftwareUpdate.SW.Shortname;
+                    rnd = new Random();
+                    tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+
+                    if (oRZSW.SoftwareUpdate.Install(false, true).Result)
+                    {
+                        sScriptResult = "Installed: " + oRZSW.SoftwareUpdate.SW.Shortname;
+                        rnd = new Random();
+                        tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                    }
+                    else
+                    {
+                        sScriptResult = "Failed: " + oRZSW.SoftwareUpdate.SW.Shortname;
+                        rnd = new Random();
+                        tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                sScriptResult = s1 + " : " + ex.Message;
+                Random rnd = new Random();
+                tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
             }
         }
 
