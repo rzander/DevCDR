@@ -213,6 +213,38 @@ namespace DevCDRAgent
                             Program.MinimizeFootprint();
                         });
 
+                        //New 0.9.0.6
+                        myHub.On<string, string>("returnPSAsync", (s1, s2) =>
+                        {
+                            var tSWScan = Task.Run(() =>
+                            {
+                                using (PowerShell PowerShellInstance = PowerShell.Create())
+                                {
+                                    try
+                                    {
+                                        PowerShellInstance.AddScript(s1);
+                                        var PSResult = PowerShellInstance.Invoke();
+                                        if (PSResult.Count() > 0)
+                                        {
+                                            string sResult = PSResult.Last().BaseObject.ToString();
+                                            if (sResult != sScriptResult)
+                                            {
+                                                sScriptResult = sResult;
+                                                Random rnd = new Random();
+                                                tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                                            }
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine("There was an error: {0}", ex.Message);
+                                    }
+                                }
+
+                                Program.MinimizeFootprint();
+                            });
+                        });
+
                         myHub.On<string>("init", (s1) =>
                         {
                             try
@@ -250,6 +282,7 @@ namespace DevCDRAgent
                                         if (PSResult.Count() > 0)
                                         {
                                             sResult = PSResult.Last().BaseObject.ToString();
+                                            sResult = sResult.Replace(Environment.MachineName, Hostname);
                                             JObject jRes = JObject.Parse(sResult);
                                             jRes.Add("ScriptResult", sScriptResult);
                                             jRes.Add("Groups", Properties.Settings.Default.Groups);
@@ -287,7 +320,13 @@ namespace DevCDRAgent
                         {
                             try
                             {
-                                WOL.WakeUp(s1);
+                                if (!string.IsNullOrEmpty(s1))
+                                {
+                                    foreach (string sMAC in s1.Split(';'))
+                                    {
+                                        WOL.WakeUp(sMAC);
+                                    }
+                                }                                
                             }
                             catch { }
                         });
@@ -580,10 +619,13 @@ namespace DevCDRAgent
         {
             try
             {
+                tReCheck.Enabled = false;
+                tReInit.Enabled = false;
                 tReCheck.Stop();
                 tReInit.Stop();
 
-                connection.Stop();
+                connection.Stop(new TimeSpan(0, 0, 30));
+                connection.Dispose();
             }
             catch { }
         }
