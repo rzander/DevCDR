@@ -605,6 +605,71 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
+        [System.Web.Mvc.Authorize]
+        [HttpPost]
+        public object RunPSFile()
+        {
+            string sParams = "";
+            //Load response
+            using (StreamReader reader = new StreamReader(Request.InputStream, Encoding.UTF8))
+                sParams = reader.ReadToEnd();
+
+            if (string.IsNullOrEmpty(sParams))
+                return new ContentResult(); ;
+
+            //Parse response as JSON
+            JObject oParams = JObject.Parse(sParams);
+
+            string sFile = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.file").Value<string>()); //get command
+            string sInstance = oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
+            string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
+            string sFilePath = HttpContext.Server.MapPath(sFile);
+            if (System.IO.File.Exists(sFilePath))
+            {
+                if (!sFilePath.StartsWith(HttpContext.Server.MapPath("~/App_Data/PSScripts/")))
+                    return new ContentResult();
+
+                string sCommand = System.IO.File.ReadAllText(sFilePath);
+
+                if (string.IsNullOrEmpty(sInstance)) //Skip if instance is null
+                    return new ContentResult();
+
+                List<string> lHostnames = new List<string>();
+                IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext(sInstance);
+
+                foreach (var oRow in oParams["rows"])
+                {
+                    string sHost = oRow.Value<string>("Hostname");
+                    SetResult(sInstance, sHost, "triggered:" + sTitle); //Update Status
+                }
+                hubContext.Clients.Group("web").newData("HUB", sCommand); //Enforce PageUpdate
+
+                foreach (var oRow in oParams["rows"])
+                {
+                    try
+                    {
+                        //Get Hostname from Row
+                        string sHost = oRow.Value<string>("Hostname");
+
+                        if (string.IsNullOrEmpty(sHost))
+                            continue;
+
+                        //Get ConnectionID from HostName
+                        string sID = GetID(sInstance, sHost);
+
+                        if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                        {
+
+                            hubContext.Clients.Client(sID).returnPS(sCommand, "Host");
+                        }
+                    }
+                    catch { }
+                }
+            }
+
+            return new ContentResult();
+        }
+
         internal string SWResults(string Searchstring)
         {
             string sCatFile = @"/App_Data/rzcat.json";

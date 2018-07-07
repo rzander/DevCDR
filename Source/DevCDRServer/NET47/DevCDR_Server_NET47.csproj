@@ -518,6 +518,8 @@
     <Content Include="Content\DataTables\css\common.scss" />
     <Content Include="Connected Services\AzureAD\ConnectedService.json" />
     <Content Include="DevCDRAgent.msi" />
+    <Content Include="App_Data\PSScripts\GetDriverUpdates.ps1" />
+    <Content Include="App_Data\PSScripts\GetMissingOSUpdates.ps1" />
     <None Include="Properties\PublishProfiles\DevCDR - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\DevCDR - Web Deploy.pubxml" />
     <None Include="Scripts\jquery-3.3.1.intellisense.js" />
@@ -581,7 +583,6 @@
     <Content Include="Views\DevCDR\Default.cshtml" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="App_Data\" />
     <Folder Include="Content\Images\" />
     <Folder Include="Models\" />
   </ItemGroup>
