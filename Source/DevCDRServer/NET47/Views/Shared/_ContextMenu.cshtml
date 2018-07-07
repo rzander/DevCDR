@@ -279,7 +279,17 @@
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
-                                        RunPS('(Get-WUList -MicrosoftUpdate) | select Title | ConvertTo-Json', 'OSUpdates');
+                                        RunPSFile('~/App_Data/PSScripts/GetMissingOSUpdates.ps1', 'GetMissingOSUpdates');
+                                    }
+                                },
+                            "invUpdDrv": {
+                                    "name": "missing Driver Updates",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPSFile('~/App_Data/PSScripts/GetDriverUpdates.ps1', 'GetDriverUpdates');
                                     }
                                 }
                             }
