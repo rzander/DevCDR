@@ -10,4 +10,4 @@ if(Get-InstalledModule -Name PSWindowsUpdate -MinimumVersion "2.0.0.4" -ea Silen
 Install-WindowsUpdate -MicrosoftUpdate -IgnoreReboot -AcceptAll -Install
 "Updates installed..."
 }
-catch { "Error, unable to detect Updates" }
+catch { "Error, unable to detect updates" }

@@ -46,9 +46,12 @@
                     <li>@Html.ActionLink("Demo (read-only)", "Demo", "DevCDR")</li>
                     @if (Request.IsAuthenticated)
                     {
-                    <li>@Html.ActionLink("Default", "Default", "DevCDR")</li>
-                    <li>@Html.ActionLink("itnetX-Lab", "xLab", "DevCDR")</li>
-                    <li>@Html.ActionLink("Zander", "Zander", "DevCDR")</li>
+                        <li>@Html.ActionLink("Default", "Default", "DevCDR")</li>
+                        @if(@User.Identity.Name.EndsWith("@zander.ch")  )
+                        {
+                            <li>@Html.ActionLink("itnetX-Lab", "xLab", "DevCDR")</li>
+                            <li>@Html.ActionLink("Zander", "Zander", "DevCDR")</li>
+                        }
                     }
                     <li>@Html.ActionLink("About", "About", "DevCDR")</li>
                     <li>@Html.ActionLink("Contact", "Contact", "DevCDR")</li>
