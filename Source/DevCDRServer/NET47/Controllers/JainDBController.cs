@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNet.SignalR;
+﻿using jaindb;
+using Microsoft.AspNet.SignalR;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -19,11 +20,31 @@ namespace DevCDRServer.Controllers
     {
         [AllowAnonymous]
         [HttpGet]
+        public ActionResult Index()
+        {
+            ViewBag.Message = "JainDB running on Device Commander";
+            return View("About");
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        [Route("upload/{param}")]
+        public string Upload(string param)
+        {
+            jDB.FilePath = HttpContext.Server.MapPath("~/App_Data/JainDB");
+            Stream req = Request.InputStream;
+            req.Seek(0, System.IO.SeekOrigin.Begin);
+            string sParams = new StreamReader(req).ReadToEnd();
+
+            return jDB.UploadFull(sParams, param);
+        }
+
+        [AllowAnonymous]
+        [HttpGet]
         public ActionResult About()
         {
             ViewBag.Message = "JainDB running on Device Commander";
             return View();
         }
-
     }
 }

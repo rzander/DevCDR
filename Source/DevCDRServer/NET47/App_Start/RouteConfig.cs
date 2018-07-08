@@ -13,11 +13,13 @@ namespace DevCDRServer
         {
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
 
-            routes.MapRoute(
-                name: "JaindB",
-                url: "JainDB/{action}/{id}",
-                defaults: new { controller = "JainDB", action = "About", id = UrlParameter.Optional }
-            );
+            //routes.MapMvcAttributeRoutes();
+
+            //routes.MapRoute(
+            //    name: "JaindB",
+            //    url: "jaindb/{action}/{param}",
+            //    defaults: new { controller = "JainDB", action = "About", param = UrlParameter.Optional }
+            //);
 
             routes.MapRoute(
                 name: "Default",
