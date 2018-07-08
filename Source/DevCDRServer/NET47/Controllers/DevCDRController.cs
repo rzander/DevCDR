@@ -23,7 +23,7 @@ namespace DevCDRServer.Controllers
         [AllowAnonymous]
         public ActionResult Demo()
         {
-            ViewBag.Title = "Demo Environment";
+            ViewBag.Title = "Demo (read-only)";
             ViewBag.Instance = "xLab";
             ViewBag.Route = "/Chat";
             return View();
@@ -659,8 +659,7 @@ namespace DevCDRServer.Controllers
 
                         if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                         {
-
-                            hubContext.Clients.Client(sID).returnPS(sCommand, "Host");
+                            hubContext.Clients.Client(sID).returnPSAsync(sCommand, "Host");
                         }
                     }
                     catch { }

@@ -520,6 +520,8 @@
     <Content Include="DevCDRAgent.msi" />
     <Content Include="App_Data\PSScripts\GetDriverUpdates.ps1" />
     <Content Include="App_Data\PSScripts\GetMissingOSUpdates.ps1" />
+    <Content Include="App_Data\PSScripts\UpdateDrivers.ps1" />
+    <Content Include="App_Data\PSScripts\UpdateWindows.ps1" />
     <None Include="Properties\PublishProfiles\DevCDR - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\DevCDR - Web Deploy.pubxml" />
     <None Include="Scripts\jquery-3.3.1.intellisense.js" />

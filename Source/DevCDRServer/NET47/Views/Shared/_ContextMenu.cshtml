@@ -403,6 +403,31 @@
                                     }
                                 }
                             }
+                        },
+                        "actUpd": {
+                            "name": "Updates",
+                            "items": {
+                                "actUpdDrv": {
+                                    "name": "Update Drivers",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPSFile('~/App_Data/PSScripts/UpdateDrivers.ps1', 'UpdateDrivers');
+                                    }
+                                },
+                                "actUpdOS": {
+                                    "name": "Update Windows",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPSFile('~/App_Data/PSScripts/UpdateWindows.ps1', 'UpdateWindows');
+                                    }
+                                }
+                            }
                         }
                     }
                 },
