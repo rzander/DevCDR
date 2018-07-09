@@ -1,6 +1,8 @@
 # Device Commander (DevCDR)
 a cloud based Client/Server management tool. 
 
+Summary: https://rzander.azurewebsites.net/device-commander/
+
 As soon as the devices have internet connection (also behind a Proxy), they will pop up in the Web-Console. Now can run some predefined commands or any custom PowerShell code and the Devices will respond in Realtime.
 
 ## Features
