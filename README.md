@@ -7,12 +7,13 @@ As soon as the devices have internet connection (also behind a Proxy), they will
 * realtime cummunication
 * interactive Web frontend
 * micro Agent (500KB)
-* Only outgoing HTTPS (443) communication
+* Only outgoing HTTPS (443) communication (agent)
 * Proxy Support
 * multi tenancy support
 * device grouping
-* run custom PowerShell commands
+* right click activities and custom PowerShell commands
 * Install Software from RuckZuck.tools
+* Azure AD Authentication (Management-Interface)
 * ...
 
 ## Agent Requirements
