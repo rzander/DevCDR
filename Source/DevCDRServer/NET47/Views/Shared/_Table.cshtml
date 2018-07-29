@@ -96,10 +96,21 @@
     $(function () {
         var connection = $.hubConnection('@ViewData["Route"].ToString()');
         var HubProxy = connection.createHubProxy('@ViewData["Instance"].ToString()');
+        var tTimer;
+        var iCount = 0;
+        var lastReload = new Date();
         HubProxy.on('newData', function (Name, Status) {
-            var table = $('#test').DataTable();
-            //table.ajax.url('/Home/GetData').load();
-            table.ajax.reload();
+            //2s queue but 10s max
+            if ((new Date() - lastReload) < 10000) { clearTimeout(tTimer); } else { lastReload = new Date(); iCount = 0 };
+            //load first request
+            if (iCount > 1) {
+                tTimer = setTimeout(reloadData, 2000); //2s queue
+                //console.log("set Timer");
+            } else {
+                reloadData();
+            }
+            iCount++;
+
         });
         connection.start()
             .done(function () {
@@ -109,6 +120,11 @@
             .fail(function () { console.log('Could not connect'); });
     });
 
+    function reloadData() {
+        //console.log("reload Data");
+        var table = $('#test').DataTable();
+        table.ajax.reload();
+    }
     Number.prototype.pad = function (size) {
         var s = String(this);
         while (s.length < (size || 2)) { s = "0" + s; }

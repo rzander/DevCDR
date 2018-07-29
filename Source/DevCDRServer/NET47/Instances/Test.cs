@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DevCDRServer
 {
-    public class Demo : Hub
+    public class Test: Hub
     {
         private readonly static ConnectionMapping<string> _connections = new ConnectionMapping<string>();
         public static List<string> lClients = new List<string>();

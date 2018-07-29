@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DevCDRServer
 {
-    public class Default : Hub
+    public class Default: Hub
     {
         private readonly static ConnectionMapping<string> _connections = new ConnectionMapping<string>();
         public static List<string> lClients = new List<string>();
@@ -61,7 +61,7 @@ namespace DevCDRServer
             {
                 if (jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").Count() == 0) //Prevent Duplicates
                 {
-                    lock(jData)
+                    lock (jData)
                     {
                         jData.Add(J1);
                     }
@@ -80,7 +80,7 @@ namespace DevCDRServer
                     }
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 ex.Message.ToString();
             }
@@ -91,9 +91,9 @@ namespace DevCDRServer
                 {
                     Clients.Group("web").newData(name, jData.ToString()); //Enforce PageUpdate
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
-                    ex.Message.ToString(); 
+                    ex.Message.ToString();
                 }
             }
         }
@@ -273,7 +273,7 @@ namespace DevCDRServer
                 _connections.Add(name, Context.ConnectionId);
             }
 
-            Clients.Group("web").newData(Context.ConnectionId, "OnConnected"); //Enforce PageUpdate?
+            //Clients.Group("web").newData(Context.ConnectionId, "OnConnected"); //Enforce PageUpdate?
 
             return base.OnConnected();
         }
@@ -291,7 +291,7 @@ namespace DevCDRServer
 
                 if (lClients.Count > 0)
                 {
-                    foreach(var oObj in jData.Children().ToArray())
+                    foreach (var oObj in jData.Children().ToArray())
                     {
                         if (!lClients.Contains(oObj.Value<string>("Hostname")))
                         {
@@ -324,7 +324,7 @@ namespace DevCDRServer
             }
             lClients = _connections.GetNames();
 
-            Clients.Group("web").newData(Context.ConnectionId, "OnReconnected"); //Enforce PageUpdate?
+            //Clients.Group("web").newData(Context.ConnectionId, "OnReconnected"); //Enforce PageUpdate?
 
             return base.OnReconnected();
         }

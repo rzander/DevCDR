@@ -224,6 +224,7 @@
     <Compile Include="App_Start\Startup.Auth.cs" />
     <Compile Include="Controllers\AccountController.cs" />
     <Compile Include="Controllers\JainDBController.cs" />
+    <Compile Include="Instances\Test.cs" />
     <Compile Include="Instances\Demo.cs" />
     <Compile Include="Instances\Default.cs" />
     <Compile Include="Instances\Zander.cs" />
@@ -615,6 +616,7 @@
     <Content Include="Views\Shared\_ContextMenu.cshtml" />
     <Content Include="Views\JainDB\About.cshtml" />
     <Content Include="Views\DevCDR\Default.cshtml" />
+    <Content Include="Views\DevCDR\Test.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\JainDB\" />

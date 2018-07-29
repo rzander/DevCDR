@@ -29,6 +29,15 @@ namespace DevCDRServer.Controllers
             return View();
         }
 
+        [AllowAnonymous]
+        public ActionResult Test()
+        {
+            ViewBag.Title = "Test Environment";
+            ViewBag.Instance = "Test";
+            ViewBag.Route = "/Chat";
+            return View();
+        }
+
         [System.Web.Mvc.Authorize]
         public ActionResult Default()
         {
@@ -597,6 +606,63 @@ namespace DevCDRServer.Controllers
                     {
                         
                         hubContext.Clients.Client(sID).returnPS(sCommand, "Host");
+                    }
+                }
+                catch { }
+            }
+
+            return new ContentResult();
+        }
+
+        [System.Web.Mvc.Authorize]
+        [HttpPost]
+        public object RunPSAsync()
+        {
+            string sParams = "";
+            //Load response
+            using (StreamReader reader = new StreamReader(Request.InputStream, Encoding.UTF8))
+                sParams = reader.ReadToEnd();
+
+            if (string.IsNullOrEmpty(sParams))
+                return new ContentResult(); ;
+
+            //Parse response as JSON
+            JObject oParams = JObject.Parse(sParams);
+
+            string sCommand = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.psscript").Value<string>()); //get command
+            string sInstance = oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
+            string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
+
+            if (string.IsNullOrEmpty(sInstance)) //Skip if instance is null
+                return new ContentResult();
+
+            List<string> lHostnames = new List<string>();
+            IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext(sInstance);
+
+            foreach (var oRow in oParams["rows"])
+            {
+                string sHost = oRow.Value<string>("Hostname");
+                SetResult(sInstance, sHost, "triggered:" + sTitle); //Update Status
+            }
+            hubContext.Clients.Group("web").newData("HUB", sCommand); //Enforce PageUpdate
+
+            foreach (var oRow in oParams["rows"])
+            {
+                try
+                {
+                    //Get Hostname from Row
+                    string sHost = oRow.Value<string>("Hostname");
+
+                    if (string.IsNullOrEmpty(sHost))
+                        continue;
+
+                    //Get ConnectionID from HostName
+                    string sID = GetID(sInstance, sHost);
+
+                    if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                    {
+
+                        hubContext.Clients.Client(sID).returnPSAsync(sCommand, "Host");
                     }
                 }
                 catch { }
