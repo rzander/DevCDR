@@ -217,6 +217,7 @@ namespace DevCDRServer.Controllers
             catch { }
         }
 
+        [AllowAnonymous]
         [System.Web.Mvc.Authorize]
         [HttpPost]
         public object Command()
@@ -292,6 +293,9 @@ namespace DevCDRServer.Controllers
                     break;
                 case "SetEndpoint":
                     SetEndpoint(lHostnames, sInstance, sArgs);
+                    break;
+                case "DevCDRUser":
+                    runUserCmd(lHostnames, sInstance, "", "");
                     break;
             }
 
@@ -557,6 +561,32 @@ namespace DevCDRServer.Controllers
             }
         }
 
+        internal void runUserCmd(List<string> Hostnames, string sInstance, string cmd, string args)
+        {
+            IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext(sInstance);
+
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "run command as User..."); //Update Status
+            }
+            hubContext.Clients.Group("web").newData("HUB", "run command as User"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    hubContext.Clients.Client(sID).userprocess(cmd, args);
+                }
+            }
+        }
+
+        [AllowAnonymous]
         [System.Web.Mvc.Authorize]
         [HttpPost]
         public object RunPS()
@@ -614,6 +644,65 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
+        [AllowAnonymous]
+        [System.Web.Mvc.Authorize]
+        [HttpPost]
+        public object RunUserPS()
+        {
+            string sParams = "";
+            //Load response
+            using (StreamReader reader = new StreamReader(Request.InputStream, Encoding.UTF8))
+                sParams = reader.ReadToEnd();
+
+            if (string.IsNullOrEmpty(sParams))
+                return new ContentResult(); ;
+
+            //Parse response as JSON
+            JObject oParams = JObject.Parse(sParams);
+
+            string sCommand = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.psscript").Value<string>()); //get command
+            string sInstance = oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
+            string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
+
+            if (string.IsNullOrEmpty(sInstance)) //Skip if instance is null
+                return new ContentResult();
+
+            List<string> lHostnames = new List<string>();
+            IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext(sInstance);
+
+            foreach (var oRow in oParams["rows"])
+            {
+                string sHost = oRow.Value<string>("Hostname");
+                SetResult(sInstance, sHost, "triggered:" + sTitle); //Update Status
+            }
+            hubContext.Clients.Group("web").newData("HUB", sCommand); //Enforce PageUpdate
+
+            foreach (var oRow in oParams["rows"])
+            {
+                try
+                {
+                    //Get Hostname from Row
+                    string sHost = oRow.Value<string>("Hostname");
+
+                    if (string.IsNullOrEmpty(sHost))
+                        continue;
+
+                    //Get ConnectionID from HostName
+                    string sID = GetID(sInstance, sHost);
+
+                    if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                    {
+                        hubContext.Clients.Client(sID).userprocess("powershell.exe", "-command \"& { " + sCommand + " }\"");
+                        //hubContext.Clients.Client(sID).returnPS(sCommand, "Host");
+                    }
+                }
+                catch { }
+            }
+
+            return new ContentResult();
+        }
+
+        [AllowAnonymous]
         [System.Web.Mvc.Authorize]
         [HttpPost]
         public object RunPSAsync()
@@ -671,6 +760,7 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
+        [AllowAnonymous]
         [System.Web.Mvc.Authorize]
         [HttpPost]
         public object RunPSFile()

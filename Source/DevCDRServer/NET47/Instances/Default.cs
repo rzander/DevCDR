@@ -238,7 +238,7 @@ namespace DevCDRServer
 
         public static string GetID(string who)
         {
-            foreach (var connectionId in _connections.GetConnections(who))
+            foreach (var connectionId in _connections.GetConnections(who.ToUpper()))
             {
                 return connectionId;
             }

@@ -217,7 +217,7 @@ namespace DevCDRServer
                 sender = Context.ConnectionId;
             }
 
-            foreach (var connectionId in _connections.GetConnections(who))
+            foreach (var connectionId in _connections.GetConnections(who.ToUpper()))
             {
                 Clients.Client(connectionId).getPS(ps, sender);
             }
@@ -230,7 +230,7 @@ namespace DevCDRServer
                 sender = Context.ConnectionId;
             }
 
-            foreach (var connectionId in _connections.GetConnections(who))
+            foreach (var connectionId in _connections.GetConnections(who.ToUpper()))
             {
                 Clients.Client(connectionId).version("");
             }
@@ -238,7 +238,7 @@ namespace DevCDRServer
 
         public static string GetID(string who)
         {
-            foreach (var connectionId in _connections.GetConnections(who))
+            foreach (var connectionId in _connections.GetConnections(who.ToUpper()))
             {
                 return connectionId;
             }
@@ -322,6 +322,7 @@ namespace DevCDRServer
             {
                 _connections.Add(name, Context.ConnectionId);
             }
+
             lClients = _connections.GetNames();
 
             //Clients.Group("web").newData(Context.ConnectionId, "OnReconnected"); //Enforce PageUpdate?
