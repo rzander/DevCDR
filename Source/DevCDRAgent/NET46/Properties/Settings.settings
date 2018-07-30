@@ -6,7 +6,7 @@
       <Value Profile="(Default)">https://devcdr.azurewebsites.net/Chat</Value>
     </Setting>
     <Setting Name="Instance" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">Default</Value>
+      <Value Profile="(Default)">Test</Value>
     </Setting>
     <Setting Name="PSStatus" Type="System.String" Scope="Application">
       <Value Profile="(Default)">

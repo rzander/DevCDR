@@ -190,6 +190,7 @@ namespace DevCDRAgent
                         {
                             using (PowerShell PowerShellInstance = PowerShell.Create())
                             {
+                                Trace.Write("run PS..." + s1);
                                 try
                                 {
                                     PowerShellInstance.AddScript(s1);
@@ -200,9 +201,14 @@ namespace DevCDRAgent
                                         if (sResult != sScriptResult)
                                         {
                                             sScriptResult = sResult;
+                                            Trace.WriteLine("done. Result: " + sResult);
                                             Random rnd = new Random();
                                             tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
                                         }
+                                    }
+                                    else
+                                    {
+                                        Trace.WriteLine("done. no result.");
                                     }
                                 }
                                 catch (Exception ex)
@@ -250,10 +256,11 @@ namespace DevCDRAgent
                         {
                             try
                             {
+                                Trace.Write("Agent init...");
                                 myHub.Invoke<string>("Init", Hostname).ContinueWith(task1 =>
                                 {
                                 });
-
+                                Trace.WriteLine("done.");
                             }
                             catch { }
                             try
@@ -273,6 +280,7 @@ namespace DevCDRAgent
                         {
                             try
                             {
+                                Trace.Write("send status...");
                                 string sResult = "{}";
                                 using (PowerShell PowerShellInstance = PowerShell.Create())
                                 {
@@ -299,22 +307,31 @@ namespace DevCDRAgent
                                 myHub.Invoke("Status", new object[] { Hostname, sResult }).ContinueWith(task1 =>
                                 {
                                 });
+                                Trace.WriteLine("done.");
                                 Program.MinimizeFootprint();
                             }
-                            catch { }
+                            catch(Exception ex)
+                            {
+                                Trace.WriteLine("ERROR: " + ex.Message);
+                            }
                         });
 
                         myHub.On<string>("version", (s1) =>
                         {
                             try
                             {
+                                Trace.Write("Get Version...");
                                 //Get File-Version
                                 sScriptResult = (FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location)).FileVersion.ToString();
+                                Trace.WriteLine(sScriptResult);
 
                                 Random rnd = new Random();
                                 tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
                             }
-                            catch { }
+                            catch (Exception ex)
+                            {
+                                Trace.WriteLine("ERROR: " + ex.Message);
+                            }
                         });
 
                         myHub.On<string>("wol", (s1) =>
@@ -524,6 +541,35 @@ namespace DevCDRAgent
                             });
                         });
 
+                        myHub.On<string, string>("userprocess", (cmd, arg) =>
+                        {
+                            var tSWScan = Task.Run(() =>
+                            {
+                                if (string.IsNullOrEmpty(cmd))
+                                {
+                                    cmd = Assembly.GetExecutingAssembly().Location;
+                                    arg = Environment.MachineName + ":" + "%USERNAME%";
+                                }
+
+                                try
+                                {
+                                    if (string.IsNullOrEmpty(arg))
+                                    {
+                                        ProcessExtensions.StartProcessAsCurrentUser(cmd);
+                                    }
+                                    else
+                                    {
+                                        ProcessExtensions.StartProcessAsCurrentUser(null, cmd + " " + arg);
+                                    }
+                                }
+                                catch(Exception ex)
+                                {
+                                    Console.WriteLine(ex.Message);
+                                }
+                            });
+
+                        });
+
                         myHub.Invoke<string>("Init", Hostname).ContinueWith(task1 => {
                             if (task1.IsFaulted)
                             {
@@ -645,8 +691,9 @@ namespace DevCDRAgent
                 tReInit.Enabled = false;
                 tReCheck.Stop();
                 tReInit.Stop();
-
+                
                 connection.Stop(new TimeSpan(0, 0, 30));
+                System.Threading.Thread.Sleep(1000);
                 connection.Dispose();
             }
             catch { }

@@ -109,6 +109,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Modules\InvokeAsUser.cs" />
     <Compile Include="Modules\RunCode.cs" />
     <Compile Include="ProjectInstaller.cs">
       <SubType>Component</SubType>

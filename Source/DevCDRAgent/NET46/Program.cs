@@ -16,6 +16,12 @@ namespace DevCDRAgent
         /// </summary>
         static int Main(string[] args)
         {
+            Trace.Listeners.Add(new TextWriterTraceListener(Environment.ExpandEnvironmentVariables("%temp%\\devcdr.log")));
+            Trace.AutoFlush = true;
+            Trace.WriteLine("Starting DevCDRAgent... " + DateTime.Now.ToString());
+            Trace.Indent();
+            Trace.Flush();
+
             if (System.Environment.UserInteractive)
             {
                 string parameter = string.Concat(args);
@@ -28,13 +34,13 @@ namespace DevCDRAgent
                         ManagedInstallerClass.InstallHelper(new string[] { "/u", Assembly.GetExecutingAssembly().Location });
                         break;
                     default:
-                        var bytes = File.ReadAllBytes(@"D:\OneDrive\Dokumente\GitHub\DevCDR\Source\DevCDRAgent\NET46\ExampleAddOn\bin\Debug\ExampleAddOn.exe");
-                        var b64 = Convert.ToBase64String(bytes);
-                        ManagedInjection.Inject(b64);
-
                         Console.WriteLine(string.Format("--- Zander Tools: DevCDR Service Version: {0} ---", Assembly.GetEntryAssembly().GetName().Version));
                         Console.WriteLine("Optional ServiceInstaller parameters: --install , --uninstall");
-                        Service1 ConsoleApp = new Service1(parameter);
+                        if (string.IsNullOrEmpty(parameter))
+                            parameter = Environment.MachineName.ToUpper() + ":" + Environment.UserName.ToUpper();
+                        Trace.WriteLine("Startup Parameter: " + parameter);
+
+                        Service1 ConsoleApp = new Service1(Environment.ExpandEnvironmentVariables(parameter));
                         ConsoleApp.Start(null);
                         MinimizeFootprint();
                         Console.WriteLine("Press ENTER to terminate...");
