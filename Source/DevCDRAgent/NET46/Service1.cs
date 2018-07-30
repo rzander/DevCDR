@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNet.SignalR.Client;
+﻿using DevCDRAgent.Modules;
+using Microsoft.AspNet.SignalR.Client;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -497,6 +498,27 @@ namespace DevCDRAgent
                                     sScriptResult = JsonConvert.SerializeObject(lSW);
                                     rnd = new Random();
                                     tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                                }
+                                catch { }
+                            });
+                        });
+
+                        myHub.On<string>("inject", (s1) =>
+                        {
+                            var tSWScan = Task.Run(() =>
+                            {
+                                try
+                                {
+                                    sScriptResult = "Inject external code...";
+                                    try
+                                    {
+                                        ManagedInjection.Inject(s1);
+                                        sScriptResult = "External code executed.";
+                                    }
+                                    catch(Exception ex)
+                                    {
+                                        sScriptResult = "Injection error:" + ex.Message;
+                                    }
                                 }
                                 catch { }
                             });

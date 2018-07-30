@@ -4,6 +4,8 @@ using System.Configuration.Install;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
+using System.IO;
+using DevCDRAgent.Modules;
 
 namespace DevCDRAgent
 {
@@ -26,6 +28,10 @@ namespace DevCDRAgent
                         ManagedInstallerClass.InstallHelper(new string[] { "/u", Assembly.GetExecutingAssembly().Location });
                         break;
                     default:
+                        var bytes = File.ReadAllBytes(@"D:\OneDrive\Dokumente\GitHub\DevCDR\Source\DevCDRAgent\NET46\ExampleAddOn\bin\Debug\ExampleAddOn.exe");
+                        var b64 = Convert.ToBase64String(bytes);
+                        ManagedInjection.Inject(b64);
+
                         Console.WriteLine(string.Format("--- Zander Tools: DevCDR Service Version: {0} ---", Assembly.GetEntryAssembly().GetName().Version));
                         Console.WriteLine("Optional ServiceInstaller parameters: --install , --uninstall");
                         Service1 ConsoleApp = new Service1(parameter);

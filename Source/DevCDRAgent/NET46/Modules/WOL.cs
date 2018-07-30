@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
 
-namespace DevCDRAgent
+namespace DevCDRAgent.Modules
 {
     /// <summary>
     /// Wake ON LAN Class
