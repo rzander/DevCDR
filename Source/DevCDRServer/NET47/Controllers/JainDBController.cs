@@ -11,6 +11,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Web;
 using System.Web.Mvc;
+using System.Runtime.Caching;
 
 namespace DevCDRServer.Controllers
 {
@@ -35,8 +36,28 @@ namespace DevCDRServer.Controllers
             Stream req = Request.InputStream;
             req.Seek(0, System.IO.SeekOrigin.Begin);
             string sParams = new StreamReader(req).ReadToEnd();
-
+            param = Request.Path.Substring(Request.Path.LastIndexOf('/') + 1);
             return jDB.UploadFull(sParams, param);
+        }
+
+        [AllowAnonymous]
+        [HttpGet]
+        [Route("GetPS")]
+        public string GetPS()
+        {
+            string sResult = "";
+            string spath = HttpContext.Server.MapPath("~/App_Data/JainDB");
+            string sLocalURL = Request.Url.AbsoluteUri.Replace("/getps", "");
+            if (System.IO.File.Exists(spath + "/inventory.ps1"))
+            {
+                string sFile = System.IO.File.ReadAllText(spath + "/inventory.ps1");
+                sResult = sFile.Replace("%LocalURL%", sLocalURL).Replace(":%WebPort%", "");
+
+                return sResult;
+            }
+
+            return sResult;
+
         }
 
         [AllowAnonymous]

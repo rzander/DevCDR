@@ -162,6 +162,7 @@
     <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
     </Reference>
+    <Reference Include="System.Runtime.Caching" />
     <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>packages\System.Runtime.CompilerServices.Unsafe.4.5.1\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
@@ -557,6 +558,7 @@
     <Content Include="App_Data\PSScripts\GetMissingOSUpdates.ps1" />
     <Content Include="App_Data\PSScripts\UpdateDrivers.ps1" />
     <Content Include="App_Data\PSScripts\UpdateWindows.ps1" />
+    <Content Include="App_Data\JainDB\inventory.ps1" />
     <None Include="Properties\PublishProfiles\DevCDR - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\DevCDR - Web Deploy.pubxml" />
     <None Include="Scripts\jquery-3.3.1.intellisense.js" />
@@ -621,7 +623,6 @@
     <Content Include="Views\DevCDR\Test.cshtml" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="App_Data\JainDB\" />
     <Folder Include="Content\Images\" />
     <Folder Include="Models\" />
   </ItemGroup>
