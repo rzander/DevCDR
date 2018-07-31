@@ -646,8 +646,8 @@
     <Content Include="Views\DevCDR\About.cshtml" />
     <Content Include="Views\DevCDR\Contact.cshtml" />
     <Content Include="Views\Shared\_LoginPartial.cshtml" />
-    <Content Include="Views\DevCDR\XLab.cshtml" />
-    <Content Include="Views\DevCDR\Zander.cshtml" />
+    <Content Condition="Exists('XLab.cshtmli')" Include="Views\DevCDR\XLab.cshtml" />
+    <Content Condition="Exists('Zander.cshtml')" Include="Views\DevCDR\Zander.cshtml" />
     <Content Include="Views\DevCDR\Demo.cshtml" />
     <Content Include="Views\UserProfile\Index.cshtml" />
     <Content Include="Views\UserProfile\Relogin.cshtml" />
