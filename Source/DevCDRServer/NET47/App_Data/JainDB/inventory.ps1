@@ -153,6 +153,10 @@ function SetID {
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#Name" -Value (getinv -Name "Computer" -WMIClass "win32_ComputerSystem" -Properties @("Name"))."Name" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#SerialNumber" -Value (getinv -Name "Computer" -WMIClass "win32_SystemEnclosure" -Properties @("SerialNumber"))."SerialNumber" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#MAC" -Value (get-wmiobject -class "Win32_NetworkAdapterConfiguration" | Where {($_.IpEnabled -Match "True")}).MACAddress.Replace(':', '-')
+		
+		[xml]$xml = Get-Content "$($env:programfiles)\DevCDRAgent\DevCDRAgent.exe.config"
+		$inst = $xml.configuration.applicationSettings.'DevCDRAgent.Properties.Settings'.setting | ? { $_.name -eq 'Instance' }
+		$AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRInstance" -Value $inst.value
         return $null
     }   
 }
