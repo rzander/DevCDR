@@ -14,6 +14,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Numerics;
+using System.Runtime.Caching;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -33,7 +34,7 @@ namespace jaindb
         public static bool UseFileStore = true;
         public static string FilePath = "";
 
-        internal static IMemoryCache _cache;
+        internal static ObjectCache _cache;
 
         public static hashType HashType = hashType.MD5;
 
@@ -67,25 +68,30 @@ namespace jaindb
             string sResult = "";
             try
             {
+                if (_cache == null)
+                    _cache = System.Runtime.Caching.MemoryCache.Default;
                 //Check in MemoryCache
-                if (_cache.TryGetValue("ID-" + name, out sResult))
+                sResult = _cache["ID-" + name + value] as string;
+                if (sResult != null)
                 {
                     return sResult;
                 }
-                else
+            }
+            catch { }
+            try
+            {
+                sResult = File.ReadAllText(FilePath + "\\_Key" + "\\" + name.TrimStart('#', '@') + "\\" + value + ".json");
+
+                //Cache result in Memory
+                if (!string.IsNullOrEmpty(sResult))
                 {
-                    sResult = File.ReadAllText(FilePath + "\\_Key" + "\\" + name.TrimStart('#', '@') + "\\" + value + ".json");
+                    CacheItemPolicy policy = new CacheItemPolicy();
+                    policy.AbsoluteExpiration =
+                    DateTimeOffset.Now.AddSeconds(300.0); //cache for 300s
 
-                    //Cache result in Memory
-                    if (!string.IsNullOrEmpty(sResult))
-                    {
-                        var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(300)); //cache ID for 5min
-                        _cache.Set("ID-" + name, sResult, cacheEntryOptions);
-                    }
-
-                    return sResult;
-
+                    _cache.Set("ID-" + name + value, sResult, policy);
                 }
+                return sResult;
             }
             catch (Exception ex)
             {
@@ -138,8 +144,11 @@ namespace jaindb
                 //Cache result in Memory
                 if (!string.IsNullOrEmpty(Data))
                 {
-                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(60)); //cache hash for 60s
-                    _cache.Set("RH-" + Collection + "-" + Hash, Data, cacheEntryOptions);
+                    CacheItemPolicy policy = new CacheItemPolicy();
+                    policy.AbsoluteExpiration =
+                    DateTimeOffset.Now.AddSeconds(60.0); 
+
+                    _cache.Set("RH-" + Collection + "-" + Hash, Data, policy);
                 }
 
                 if (string.IsNullOrEmpty(Data) || Data == "null")
@@ -296,11 +305,12 @@ namespace jaindb
                 //Check if MemoryCache is initialized
                 if (_cache == null)
                 {
-                    _cache = new MemoryCache(new MemoryCacheOptions());
+                    _cache = System.Runtime.Caching.MemoryCache.Default;
                 }
 
+                sResult = _cache["RH-" + Collection + "-" + Hash] as string;
                 //Try to get value from Memory
-                if (_cache.TryGetValue("RH-" + Collection + "-" + Hash, out sResult))
+                if (sResult != null)
                 {
                     return sResult;
                 }
@@ -343,8 +353,10 @@ namespace jaindb
                         //Cache result in Memory
                         if (!string.IsNullOrEmpty(sResult))
                         {
-                            var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(60)); //cache hash for 60s
-                            _cache.Set("RH-" + Collection + "-" + Hash, sResult, cacheEntryOptions);
+                            CacheItemPolicy policy = new CacheItemPolicy();
+                            policy.AbsoluteExpiration =
+                            DateTimeOffset.Now.AddSeconds(60.0);
+                            _cache.Set("RH-" + Collection + "-" + Hash, sResult, policy);
                         }
 
                         return sResult;
@@ -1092,7 +1104,7 @@ namespace jaindb
             return lNames.Union(lNames).ToList();
         }
 
-        public static JArray Query(string paths, string select, string exclude)
+        public static async Task<JArray> QueryAsync(string paths, string select, string exclude)
         {
             paths = System.Net.WebUtility.UrlDecode(paths);
             select = System.Net.WebUtility.UrlDecode(select);
@@ -1111,7 +1123,7 @@ namespace jaindb
             DateTime dStart = DateTime.Now;
             //JObject lRes = new JObject();
             JArray aRes = new JArray();
-            List<string> lLatestHash = GetAllChainsAsync().Result;
+            List<string> lLatestHash = await GetAllChainsAsync();
             foreach (string sHash in lLatestHash)
             {
                 bool foundData = false;

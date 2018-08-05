@@ -47,6 +47,7 @@ namespace DevCDRServer.Controllers
         {
             string sResult = "";
             string spath = HttpContext.Server.MapPath("~/App_Data/JainDB");
+            jaindb.jDB.FilePath = spath;
             string sLocalURL = Request.Url.AbsoluteUri.Replace("/getps", "");
             if (System.IO.File.Exists(spath + "/inventory.ps1"))
             {
@@ -58,6 +59,55 @@ namespace DevCDRServer.Controllers
 
             return sResult;
 
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("full")]
+        public JObject Full()
+        {
+            //string sPath = this.Request.Path;
+            string spath = HttpContext.Server.MapPath("~/App_Data/JainDB");
+            jaindb.jDB.FilePath = spath;
+
+            string sQuery = this.Request.QueryString.ToString();
+
+            var query = System.Web.HttpUtility.ParseQueryString(sQuery);
+            string sKey = query["id"];
+
+            if (string.IsNullOrEmpty(sKey))
+                sKey = jDB.LookupID(query.Keys[0], query.GetValues(0)[0]);
+            //int index = -1;
+            if (!int.TryParse(query["index"], out int index))
+                index = -1;
+            if (!string.IsNullOrEmpty(sKey))
+                return jDB.GetFull(sKey, index);
+            else
+                return null;
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("query")]
+        public async System.Threading.Tasks.Task<JArray> Query()
+        {
+            DateTime dStart = DateTime.Now;
+
+            string sPath = HttpContext.Server.MapPath("~/App_Data/JainDB");
+            jaindb.jDB.FilePath = sPath;
+
+            string sQuery = this.Request.QueryString.ToString();
+            if (sPath != "/favicon.ico")
+            {
+                //string sUri = Microsoft.AspNetCore.Http.Extensions.UriHelper.GetDisplayUrl(Request);
+                var query = System.Web.HttpUtility.ParseQueryString(sQuery);
+                string qpath = (query[null] ?? "").Replace(',',';');
+                string qsel = (query["$select"] ?? "").Replace(',', ';');
+                string qexc = (query["$exclude"] ?? "").Replace(',', ';');
+                //string qwhe = (query["$where"] ?? "").Replace(',', ';');
+                return await jDB.QueryAsync(qpath, qsel, qexc);
+            }
+            return null;
         }
 
         [AllowAnonymous]
