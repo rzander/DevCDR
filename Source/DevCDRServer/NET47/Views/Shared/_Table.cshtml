@@ -3,7 +3,7 @@
         var ajaxurl = '/DevCDR/GetData?Instance=@ViewData["Instance"].ToString()';
 
         var table = $('#test').DataTable({
-            "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+            "lengthMenu": [[15, 25, 50, -1], [15, 25, 50, "All"]],
             buttons: [
                 {
                     text: '<span class="glyphicon glyphicon-ok-circle"></span>',
@@ -70,7 +70,8 @@
                 { "data": "Arch" },
                 { "data": "Lang" },
                 { "data": "ScriptResult" },
-                { "data": "Groups", "visible": false }
+                { "data": "Groups", "visible": false },
+                { "data": "id", "visible": false }
             ],
             rowId: 'Hostname',
             select: true,
