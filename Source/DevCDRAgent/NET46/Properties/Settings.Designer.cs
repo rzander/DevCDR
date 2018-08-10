@@ -52,20 +52,44 @@ namespace DevCDRAgent.Properties {
             "}\r\n\tif($FileRenamePending -or $ComponentRebootPending) { return $true };\r\n\tretur" +
             "n $false;\r\n}\r\n\r\n\r\nfunction UsersOnline\r\n{\r\n\t$proc = @(Get-WmiObject win32_proces" +
             "s -Filter \"Name = \'explorer.exe\'\");\r\n\tif($proc.Length -gt 0) { return $true } el" +
-            "se { return $false };\r\n}\r\n\r\n$OS = (OS)\r\n$UBR = (Get-ItemProperty \'HKLM:\\SOFTWARE" +
-            "\\Microsoft\\Windows NT\\CurrentVersion\' -Name UBR).UBR\r\n$object = New-Object -Type" +
-            "Name PSObject\r\n$object | Add-Member -MemberType NoteProperty -Name \"Hostname\" -V" +
-            "alue (hostname).ToUpper()\r\n$object | Add-Member -MemberType NoteProperty -Name \"" +
-            "Internal IP\" -Value ((Test-Connection (hostname) -Count 1).IPV4Address.IPAddress" +
-            "ToString)\r\n$object | Add-Member -MemberType NoteProperty -Name \"Last Reboot\" -Va" +
-            "lue $OS.LastBootUpTime\r\n$object | Add-Member -MemberType NoteProperty -Name \"Reb" +
-            "oot Pending\" -Value (RebootPending)\r\n$object | Add-Member -MemberType NoteProper" +
-            "ty -Name \"Users Online\" -Value (UsersOnline)\r\n$object | Add-Member -MemberType N" +
-            "oteProperty -Name \"OS\" -Value $OS.Caption\r\n$object | Add-Member -MemberType Note" +
-            "Property -Name \"Version\" -Value ($OS.Version + \'.\' + $UBR)\r\n$object | Add-Member" +
-            " -MemberType NoteProperty -Name \"Arch\" -Value $OS.OSArchitecture\r\n$object | Add-" +
-            "Member -MemberType NoteProperty -Name \"Lang\" -Value $OS.OSLanguage\r\n$object | Co" +
-            "nvertTo-Json")]
+            "se { return $false };\r\n}\r\n\r\nfunction GetMyID {\r\n    $object = New-Object -TypeNa" +
+            "me PSObject\r\n    $object | Add-Member -MemberType NoteProperty -Name \"Domain\" -V" +
+            "alue ((get-wmiobject -ClassName \"win32_ComputerSystem\").Domain)\r\n    $object | A" +
+            "dd-Member -MemberType NoteProperty -Name \"#Name\" -Value ($env:computername) \r\n  " +
+            "  $object | Add-Member -MemberType NoteProperty -Name \"#UUID\" -Value ((get-wmiob" +
+            "ject -ClassName \"win32_ComputerSystemProduct\").UUID)\r\n    return GetHash($object" +
+            " | ConvertTo-Json -Compress)\r\n}\r\n\r\nfunction GetHash([string]$txt) {\r\n    return " +
+            "GetMD5($txt)\r\n}\r\n\r\nfunction GetMD5([string]$txt) {\r\n    $md5 = new-object -TypeN" +
+            "ame System.Security.Cryptography.MD5CryptoServiceProvider\r\n    $utf8 = new-objec" +
+            "t -TypeName System.Text.ASCIIEncoding\r\n    return Base58(@(0xd5, 0x10) + $md5.Co" +
+            "mputeHash($utf8.GetBytes($txt))) #To store hash in Miltihash format, we add a 0x" +
+            "D5 to make it an MD5 and an 0x10 means 10Bytes length\r\n}\r\n\r\nfunction GetSHA2_256" +
+            "([string]$txt) {\r\n    $sha = new-object -TypeName System.Security.Cryptography.S" +
+            "HA256CryptoServiceProvider\r\n    $utf8 = new-object -TypeName System.Text.ASCIIEn" +
+            "coding\r\n    return Base58(@(0x12, 0x20) + $sha.ComputeHash($utf8.GetBytes($txt))" +
+            ") #To store hash in Miltihash format, we add a 0x12 to make it an SHA256 and an " +
+            "0x20 means 32Bytes length\r\n}\r\n\r\nfunction Base58([byte[]]$data) {\r\n    $Digits = " +
+            "\"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz\"\r\n    [bigint]$intDa" +
+            "ta = 0\r\n    for ($i = 0; $i -lt $data.Length; $i++) {\r\n        $intData = ($intD" +
+            "ata * 256) + $data[$i]; \r\n    }\r\n    [string]$result = \"\";\r\n    while ($intData " +
+            "-gt 0) {\r\n        $remainder = ($intData % 58);\r\n        $intData /= 58;\r\n      " +
+            "  $result = $Digits[$remainder] + $result;\r\n    }\r\n\r\n    for ($i = 0; ($i -lt $d" +
+            "ata.Length) -and ($data[$i] -eq 0); $i++) {\r\n        $result = \'1\' + $result;\r\n " +
+            "   }\r\n\r\n    return $result\r\n}\r\n\r\n$OS = (OS)\r\n$UBR = (Get-ItemProperty \'HKLM:\\SOF" +
+            "TWARE\\Microsoft\\Windows NT\\CurrentVersion\' -Name UBR).UBR\r\n$object = New-Object " +
+            "-TypeName PSObject\r\n$object | Add-Member -MemberType NoteProperty -Name \"Hostnam" +
+            "e\" -Value (hostname).ToUpper()\r\n$object | Add-Member -MemberType NoteProperty -N" +
+            "ame \"id\" -Value (GetMyID).ToUpper()\r\n$object | Add-Member -MemberType NoteProper" +
+            "ty -Name \"Internal IP\" -Value ((Test-Connection (hostname) -Count 1).IPV4Address" +
+            ".IPAddressToString)\r\n$object | Add-Member -MemberType NoteProperty -Name \"Last R" +
+            "eboot\" -Value $OS.LastBootUpTime\r\n$object | Add-Member -MemberType NoteProperty " +
+            "-Name \"Reboot Pending\" -Value (RebootPending)\r\n$object | Add-Member -MemberType " +
+            "NoteProperty -Name \"Users Online\" -Value (UsersOnline)\r\n$object | Add-Member -Me" +
+            "mberType NoteProperty -Name \"OS\" -Value $OS.Caption\r\n$object | Add-Member -Membe" +
+            "rType NoteProperty -Name \"Version\" -Value ($OS.Version + \'.\' + $UBR)\r\n$object | " +
+            "Add-Member -MemberType NoteProperty -Name \"Arch\" -Value $OS.OSArchitecture\r\n$obj" +
+            "ect | Add-Member -MemberType NoteProperty -Name \"Lang\" -Value $OS.OSLanguage\r\n$o" +
+            "bject | ConvertTo-Json")]
         public string PSStatus {
             get {
                 return ((string)(this["PSStatus"]));
