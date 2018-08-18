@@ -1104,16 +1104,24 @@ namespace jaindb
             return lNames.Union(lNames).ToList();
         }
 
-        public static async Task<JArray> QueryAsync(string paths, string select, string exclude)
+        public static async Task<JArray> QueryAsync(string paths, string select, string exclude, string where)
         {
             paths = System.Net.WebUtility.UrlDecode(paths);
             select = System.Net.WebUtility.UrlDecode(select);
             exclude = System.Net.WebUtility.UrlDecode(exclude);
+            where = System.Net.WebUtility.UrlDecode(where);
+
             List<string> lExclude = new List<string>();
+            List<string> lWhere = new List<string>();
 
             if (!string.IsNullOrEmpty(exclude))
             {
                 lExclude = exclude.Split(';').ToList();
+            }
+
+            if (!string.IsNullOrEmpty(where))
+            {
+                lWhere = where.Split(';').ToList();
             }
 
             if (string.IsNullOrEmpty(select))
@@ -1130,6 +1138,71 @@ namespace jaindb
                 try
                 {
                     var jObj = GetFull(sHash);
+
+                    //Where filter..
+                    if (lWhere.Count > 0)
+                    {
+                        bool bWhere = false;
+                        foreach (string sWhere in lWhere)
+                        {
+                            try
+                            {
+                                string sPath = sWhere;
+                                string sVal = "";
+                                string sOp = "";
+                                if (sWhere.Contains("=="))
+                                {
+                                    int i = sWhere.IndexOf("==");
+                                    sVal = sWhere.Substring(i + 2);
+                                    sOp = "eq";
+                                    sPath = sWhere.Substring(0, i);
+                                }
+                                if (sWhere.Contains("!="))
+                                {
+                                    int i = sWhere.IndexOf("!=");
+                                    sVal = sWhere.Substring(i + 2);
+                                    sOp = "ne";
+                                    sPath = sWhere.Substring(0, i);
+                                }
+
+                                var jRes = jObj.SelectToken(sPath.Trim());
+                                if (jRes == null)
+                                {
+                                    bWhere = true;
+                                    continue;
+                                }
+                                else
+                                {
+                                    switch (sOp)
+                                    {
+                                        case "eq":
+                                            if (sVal.Trim() != jRes.ToString())
+                                            {
+                                                bWhere = true;
+                                                continue;
+                                            }
+                                            break;
+                                        case "ne":
+                                            if (sVal.Trim() == jRes.ToString())
+                                            {
+                                                bWhere = true;
+                                                continue;
+                                            }
+                                            break;
+                                        default:
+                                            bWhere = true;
+                                            continue;
+                                    }
+                                }
+                            }
+                            catch { }
+                        }
+
+                        if (bWhere)
+                        {
+                            continue;
+                        }
+                    }
 
                     JObject oRes = new JObject();
                     foreach (string sAttrib in select.Split(';'))

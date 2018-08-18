@@ -104,8 +104,8 @@ namespace DevCDRServer.Controllers
                 string qpath = (query[null] ?? "").Replace(',',';');
                 string qsel = (query["$select"] ?? "").Replace(',', ';');
                 string qexc = (query["$exclude"] ?? "").Replace(',', ';');
-                //string qwhe = (query["$where"] ?? "").Replace(',', ';');
-                return await jDB.QueryAsync(qpath, qsel, qexc);
+                string qwhe = (query["$where"] ?? "").Replace(',', ';');
+                return await jDB.QueryAsync(qpath, qsel, qexc, qwhe);
             }
             return null;
         }
