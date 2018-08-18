@@ -190,7 +190,7 @@ namespace DevCDRAgent
                         {
                             using (PowerShell PowerShellInstance = PowerShell.Create())
                             {
-                                Trace.Write("run PS..." + s1);
+                                Trace.Write(DateTime.Now.ToString() +  "\t run PS..." + s1);
                                 try
                                 {
                                     PowerShellInstance.AddScript(s1);
@@ -256,7 +256,7 @@ namespace DevCDRAgent
                         {
                             try
                             {
-                                Trace.Write("Agent init...");
+                                Trace.Write(DateTime.Now.ToString() + " Agent init...");
                                 myHub.Invoke<string>("Init", Hostname).ContinueWith(task1 =>
                                 {
                                 });
@@ -280,7 +280,7 @@ namespace DevCDRAgent
                         {
                             try
                             {
-                                Trace.Write("send status...");
+                                Trace.Write(DateTime.Now.ToString() + " send status...");
                                 string sResult = "{}";
                                 using (PowerShell PowerShellInstance = PowerShell.Create())
                                 {
@@ -312,7 +312,7 @@ namespace DevCDRAgent
                             }
                             catch(Exception ex)
                             {
-                                Trace.WriteLine("ERROR: " + ex.Message);
+                                Trace.Write(DateTime.Now.ToString() + " ERROR: " + ex.Message);
                             }
                         });
 
@@ -320,7 +320,7 @@ namespace DevCDRAgent
                         {
                             try
                             {
-                                Trace.Write("Get Version...");
+                                Trace.Write(DateTime.Now.ToString() + "\t Get Version...");
                                 //Get File-Version
                                 sScriptResult = (FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location)).FileVersion.ToString();
                                 Trace.WriteLine(sScriptResult);
@@ -330,7 +330,7 @@ namespace DevCDRAgent
                             }
                             catch (Exception ex)
                             {
-                                Trace.WriteLine("ERROR: " + ex.Message);
+                                Trace.Write(DateTime.Now.ToString() + " ERROR: " + ex.Message);
                             }
                         });
 

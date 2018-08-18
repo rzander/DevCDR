@@ -89,7 +89,71 @@ namespace DevCDRAgent.Properties {
             "rType NoteProperty -Name \"Version\" -Value ($OS.Version + \'.\' + $UBR)\r\n$object | " +
             "Add-Member -MemberType NoteProperty -Name \"Arch\" -Value $OS.OSArchitecture\r\n$obj" +
             "ect | Add-Member -MemberType NoteProperty -Name \"Lang\" -Value $OS.OSLanguage\r\n$o" +
-            "bject | ConvertTo-Json")]
+            "bject | ConvertTo-Json\r\n# SIG # Begin signature block\r\n# MIIOEgYJKoZIhvcNAQcCoII" +
+            "OAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB\r\n# gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgI" +
+            "DAQAABBAfzDtgWUsITrck0sYpfvNR\r\n# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU4tvM1su" +
+            "BqmsIbrHV0ot7Nf5h\r\n# TCugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZ" +
+            "IhvcN\r\n# AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl\r\n# cjE" +
+            "QMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx\r\n# IzAhBgNVBAMTGkN" +
+            "PTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw\r\n# MDAwMFoXDTIxMDUyMTIzNTk1OVo" +
+            "wgawxCzAJBgNVBAYTAkNIMQ0wCwYDVQQRDAQ4\r\n# NDgzMQswCQYDVQQIDAJaSDESMBAGA1UEBwwJS29" +
+            "sbGJydW5uMRkwFwYDVQQJDBBI\r\n# YWxkZW5zdHJhc3NlIDMxMQ0wCwYDVQQSDAQ4NDgzMRUwEwYDVQQ" +
+            "KDAxSb2dlciBa\r\n# YW5kZXIxFTATBgNVBAsMDFphbmRlciBUb29sczEVMBMGA1UEAwwMUm9nZXIgWmF" +
+            "u\r\n# ZGVyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1ujnILmAULVtVv3b\r\n# /CDpM6R" +
+            "CdLV9Zjg+CDJFWLBzzjwAcHueV0mv4YgF4WoOhuc3o7GcIvl3P1DqxW97\r\n# ex8cCfFcqdObZszKpP9" +
+            "OyeU5ft4c/rmfPC6PD2sKEWIIvLHAw/RXFS4RFoHngyGo\r\n# 4070NFEMfFdQOSvBwHodsa128FG8hTh" +
+            "Rn8lXlWJG3327o39kLfawFAaCtfqEBVDd\r\n# k4lYLl2aRpvuobfEATZ016qAHhxkExtuI007gGH58ao" +
+            "kxpX+QWJI6T/Bj5eBO4Lt\r\n# IqS6JjJdkRZPNc4Pa98OA+91nxoY5uZdrCrKReDeZ8qNZcyobgqAaCL" +
+            "tBS2esDFN\r\n# 8HMByQIDAQABo4IBqTCCAaUwHwYDVR0jBBgwFoAUKZFg/4pN+uv5pmq4z/nmS71J\r\n#" +
+            " zhIwHQYDVR0OBBYEFE+rkhTxw3ewJzXsZWbrdnRwy7y0MA4GA1UdDwEB/wQEAwIH\r\n# gDAMBgNVHRM" +
+            "BAf8EAjAAMBMGA1UdJQQMMAoGCCsGAQUFBwMDMBEGCWCGSAGG+EIB\r\n# AQQEAwIEEDBGBgNVHSAEPzA" +
+            "9MDsGDCsGAQQBsjEBAgEDAjArMCkGCCsGAQUFBwIB\r\n# Fh1odHRwczovL3NlY3VyZS5jb21vZG8ubmV" +
+            "0L0NQUzBDBgNVHR8EPDA6MDigNqA0\r\n# hjJodHRwOi8vY3JsLmNvbW9kb2NhLmNvbS9DT01PRE9SU0F" +
+            "Db2RlU2lnbmluZ0NB\r\n# LmNybDB0BggrBgEFBQcBAQRoMGYwPgYIKwYBBQUHMAKGMmh0dHA6Ly9jcnQ" +
+            "uY29t\r\n# b2RvY2EuY29tL0NPTU9ET1JTQUNvZGVTaWduaW5nQ0EuY3J0MCQGCCsGAQUFBzAB\r\n# hhh" +
+            "odHRwOi8vb2NzcC5jb21vZG9jYS5jb20wGgYDVR0RBBMwEYEPcm9nZXJAemFu\r\n# ZGVyLmNoMA0GCSq" +
+            "GSIb3DQEBCwUAA4IBAQBHs/5P4BiQqAuF83Z4R0fFn7W4lvfE\r\n# 6KJOKpXajK+Fok+I1bDl1pVC9JI" +
+            "qhdMt3tdOFwvSl0/qQ9Sp2cZnMovaxT8Bhc7s\r\n# +PDbzRlklGGRlnVg6i7RHnJ90bRdxPTFUBbEMLy" +
+            "7UAjQ4iPPfRoxaR4rzF3BLaaz\r\n# b7BoGc/oEPIMo/WmXWFngeHAVQ6gVlr2WXrKwHo8UlN0jmgzR7Q" +
+            "rD3ZHbhR4yRNq\r\n# M97TgVp8Fdw3o+PnwMRj4RIeFiIr9KGockQWqth+W9CDRlTgnxE8MhKl1PbUGUF" +
+            "M\r\n# DcG3cV+dFTI8P2/sYD+aQHdBr0nDT2RWSgeEchQ1s/isFwOVBrYEqqf7MIIF4DCC\r\n# A8igAwI" +
+            "BAgIQLnyHzA6TSlL+lP0ct800rzANBgkqhkiG9w0BAQwFADCBhTELMAkG\r\n# A1UEBhMCR0IxGzAZBgN" +
+            "VBAgTEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UEBxMH\r\n# U2FsZm9yZDEaMBgGA1UEChMRQ09NT0R" +
+            "PIENBIExpbWl0ZWQxKzApBgNVBAMTIkNP\r\n# TU9ETyBSU0EgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHk" +
+            "wHhcNMTMwNTA5MDAwMDAw\r\n# WhcNMjgwNTA4MjM1OTU5WjB9MQswCQYDVQQGEwJHQjEbMBkGA1UECBM" +
+            "SR3JlYXRl\r\n# ciBNYW5jaGVzdGVyMRAwDgYDVQQHEwdTYWxmb3JkMRowGAYDVQQKExFDT01PRE8g\r\n#" +
+            " Q0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2RlIFNpZ25pbmcgQ0Ew\r\n# ggEiMA0GCSq" +
+            "GSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCmmJBjd5E0f4rR3elnMRHr\r\n# zB79MR2zuWJXP5O8W+OfHiQ" +
+            "yESdrvFGRp8+eniWzX4GoGA8dHiAwDvthe4YJs+P9\r\n# omidHCydv3Lj5HWg5TUjjsmK7hoMZMfYQqF" +
+            "7tVIDSzqwjiNLS2PgIpQ3e9V5kAoU\r\n# GFEs5v7BEvAcP2FhCoyi3PbDMKrNKBh1SMF5WgjNu4xVjPf" +
+            "UdpA6M0ZQc5hc9IVK\r\n# aw+A3V7Wvf2pL8Al9fl4141fEMJEVTyQPDFGy3CuB6kK46/BAW+QGiPiXzj" +
+            "bxghd\r\n# R7ODQfAuADcUuRKqeZJSzYcPe9hiKaR+ML0btYxytEjy4+gh+V5MYnmLAgaff9UL\r\n# AgM" +
+            "BAAGjggFRMIIBTTAfBgNVHSMEGDAWgBS7r34CPfqm8TyEjq3uOJjs2TIy1DAd\r\n# BgNVHQ4EFgQUKZF" +
+            "g/4pN+uv5pmq4z/nmS71JzhIwDgYDVR0PAQH/BAQDAgGGMBIG\r\n# A1UdEwEB/wQIMAYBAf8CAQAwEwY" +
+            "DVR0lBAwwCgYIKwYBBQUHAwMwEQYDVR0gBAow\r\n# CDAGBgRVHSAAMEwGA1UdHwRFMEMwQaA/oD2GO2h" +
+            "0dHA6Ly9jcmwuY29tb2RvY2Eu\r\n# Y29tL0NPTU9ET1JTQUNlcnRpZmljYXRpb25BdXRob3JpdHkuY3J" +
+            "sMHEGCCsGAQUF\r\n# BwEBBGUwYzA7BggrBgEFBQcwAoYvaHR0cDovL2NydC5jb21vZG9jYS5jb20vQ09" +
+            "N\r\n# T0RPUlNBQWRkVHJ1c3RDQS5jcnQwJAYIKwYBBQUHMAGGGGh0dHA6Ly9vY3NwLmNv\r\n# bW9kb2N" +
+            "hLmNvbTANBgkqhkiG9w0BAQwFAAOCAgEAAj8COcPu+Mo7id4MbU2x8U6S\r\n# T6/COCwEzMVjEasJY6+" +
+            "rotcCP8xvGcM91hoIlP8l2KmIpysQGuCbsQciGlEcOtTh\r\n# 6Qm/5iR0rx57FjFuI+9UUS1SAuJ1CAV" +
+            "M8bdR4VEAxof2bO4QRHZXavHfWGshqknU\r\n# fDdOvf+2dVRAGDZXZxHNTwLk/vPa/HUX2+y392UJI0k" +
+            "fQ1eD6n4gd2HITfK7ZU2o\r\n# 94VFB696aSdlkClAi997OlE5jKgfcHmtbUIgos8MbAOMTM1zB5TnWo4" +
+            "6BLqioXwf\r\n# y2M6FafUFRunUkcyqfS/ZEfRqh9TTjIwc8Jvt3iCnVz/RrtrIh2IC/gbqjSm/Iz1\r\n#" +
+            " 3X9ljIwxVzHQNuxHoc/Li6jvHBhYxQZ3ykubUa9MCEp6j+KjUuKOjswm5LLY5TjC\r\n# qO3GgZw1a6l" +
+            "YYUoKl7RLQrZVnb6Z53BtWfhtKgx/GWBfDJqIbDCsUgmQFhv/K53b\r\n# 0CDKieoofjKOGd97SDMe12X" +
+            "4rsn4gxSTdn1k0I7OvjV9/3IxTZ+evR5sL6iPDAZQ\r\n# +4wns3bJ9ObXwzTijIchhmH+v1V04SF3Awp" +
+            "obLvkyanmz1kl63zsRQ55ZmjoIs24\r\n# 75iFTZYRPAmK0H+8KCgT+2rKVI2SXM3CZZgGns5IW9S1N5N" +
+            "GQXwH3c/6Q++6Z2H/\r\n# fUnguzB9XIDj5hY5S6cxggI0MIICMAIBATCBkjB9MQswCQYDVQQGEwJHQjE" +
+            "bMBkG\r\n# A1UECBMSR3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHEwdTYWxmb3JkMRowGAYD\r\n# VQQ" +
+            "KExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl\r\n# IFNpZ25pbmcgQ0E" +
+            "CEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor\r\n# BgEEAYI3AgEMMQowCKACgAChAoA" +
+            "AMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE\r\n# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgE" +
+            "VMCMGCSqGSIb3DQEJBDEWBBQO\r\n# InR1F4Rb0B5l9OQjKZ+lVIIuvzANBgkqhkiG9w0BAQEFAASCAQC" +
+            "X6LlPCR/482Qs\r\n# gnC5N0wWIFEt/bs4AAW/HVNcTc6E9FKssFZBs1rW6rUS+j2g5AiZTYHbnVSHUPz" +
+            "v\r\n# YPMfFCrw8jTcDPBqqlz/AIveSpnhNscJBuCt5a3UnuD1w5er4YN/wncIC7x4R3yX\r\n# c/risgx" +
+            "bhzr5fw4OKrAli+LYfiQ5mP9co6koS+qCoMzZ2AWFSKsb2D4YDT7G5C87\r\n# UMDIiHfHIVvLH7l3UUQ" +
+            "KtryqyVVRdkm785oXuSSLTPkYKgY7KCnAIcK1CENtZoDT\r\n# WvZtiEHVK8Bn+qdPDF3JRL6CBq851Zc" +
+            "wXfJtiVM6wSIuJDoxf98ahxadwfyUfwat\r\n# yaaCTNFv\r\n# SIG # End signature block")]
         public string PSStatus {
             get {
                 return ((string)(this["PSStatus"]));
