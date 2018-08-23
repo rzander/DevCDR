@@ -250,7 +250,8 @@ namespace DevCDRServer.Controllers
                     AgentVersion(lHostnames, sInstance);
                     break;
                 case "Inv":
-                    RunCommand(lHostnames, "Invoke-RestMethod -Uri 'https://jaindb.azurewebsites.net/getps' | IEX;'Inventory complete..'", sInstance, sCommand);
+                    string sEndPoint = Request.Url.Authority;
+                    RunCommand(lHostnames, "Invoke-RestMethod -Uri 'https://" + sEndPoint  + "/ jaindb/getps' | IEX;'Inventory complete..'", sInstance, sCommand);
                     break;
                 case "Restart":
                     RunCommand(lHostnames, "restart-computer -force", sInstance, sCommand);

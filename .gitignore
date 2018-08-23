@@ -338,3 +338,5 @@ Zander.*
 DevCDRBulk
 Source/DevCDRServer/NET47/App_Data/rzcat.json
 Core21
+Source/DevCDRServer/NET47/signFiles.ps1
+Source/DevCDRAgent/NET46/PSStatus.ps1
