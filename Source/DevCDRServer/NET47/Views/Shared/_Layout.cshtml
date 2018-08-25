@@ -39,10 +39,11 @@
                     <span class="icon-bar"></span>
                 </button>
                 @*<a href="/Home/Demo" class="navbar-brand"> <img src="~/Content/Images/logo.png" alt="Device Commander" /></a>*@
-                @Html.ActionLink("Device Commander", "Demo", "DevCDR", new { area = "" }, new { @class = "navbar-brand" })
+                @Html.ActionLink("Device Commander", "Dashboard", "DevCDR", new { area = "" }, new { @class = "navbar-brand" })
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
+                    @*<li>@Html.ActionLink("Summary", "Dashboard", "DevCDR")</li>*@
                     <li>@Html.ActionLink("Demo (read-only)", "Demo", "DevCDR")</li>
                     <li>@Html.ActionLink("Test", "Test", "DevCDR")</li>
                     @if (Request.IsAuthenticated)

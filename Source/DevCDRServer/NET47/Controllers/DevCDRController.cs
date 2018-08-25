@@ -11,11 +11,11 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using System.Web;
+using System.Web.Caching;
 using System.Web.Mvc;
 
 namespace DevCDRServer.Controllers
 {
-
     [System.Web.Mvc.Authorize]
 
     public class DevCDRController : Controller
@@ -26,6 +26,42 @@ namespace DevCDRServer.Controllers
             ViewBag.Title = "Demo (read-only)";
             ViewBag.Instance = "xLab";
             ViewBag.Route = "/Chat";
+            return View();
+        }
+
+        [AllowAnonymous]
+        public ActionResult Dashboard()
+        {
+            ViewBag.Title = "Dashboard";
+            ViewBag.Instance = "";
+            ViewBag.Route = "/Chat";
+            var cCache = new Cache();
+            var itotalDeviceCount = (int)(cCache.Get("totalDeviceCount") ?? -1);
+            if (itotalDeviceCount == -1)
+            {
+                itotalDeviceCount = new JainDBController().totalDeviceCount(HttpContext.Server.MapPath("~/App_Data/JainDB/Chain"));
+            }
+
+            int iZander = ClientCount("Zander");
+            int ixLab = ClientCount("xLab");
+            int iTest = ClientCount("Test");
+            int iDefault = ClientCount("Default");
+            int iOnlineCount = iZander + ixLab + iTest + iDefault;
+            int iOfflineCount = itotalDeviceCount - iOnlineCount;
+
+            if (iOfflineCount < 0)
+                iOfflineCount = 0;
+
+            if (iOnlineCount > itotalDeviceCount)
+                itotalDeviceCount = iOnlineCount;
+
+            ViewBag.TotalDeviceCount = itotalDeviceCount;
+            ViewBag.OnlineDeviceCount = iOnlineCount;
+            ViewBag.OfflineDeviceCount = iOfflineCount;
+            ViewBag.TotalZander = iZander;
+            ViewBag.TotalxLab = ixLab;
+            ViewBag.TotalTest = iTest;
+            ViewBag.TotalDefault = iDefault;
             return View();
         }
 
@@ -113,6 +149,27 @@ namespace DevCDRServer.Controllers
                 ContentType = "application/json",
                 ContentEncoding = Encoding.UTF8
             };
+        }
+
+        public int ClientCount(string Instance)
+        {
+            int iCount = 0;
+            try
+            {
+                Type xType = Type.GetType("DevCDRServer." + Instance);
+
+                MemberInfo[] memberInfos = xType.GetMember("ClientCount", BindingFlags.Public | BindingFlags.Static);
+
+                var oCount = ((PropertyInfo)memberInfos[0]).GetValue(new int());
+
+                if (oCount == null)
+                    iCount = 0;
+                else
+                    iCount = (int)oCount;
+            }
+            catch { }
+
+            return iCount;
         }
 
         [AllowAnonymous]

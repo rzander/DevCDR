@@ -665,6 +665,7 @@
     <Content Include="Scripts\popper-utils.min.js.map" />
     <Content Include="Scripts\popper-utils.js.map" />
     <None Include="signFiles.ps1" />
+    <Content Include="Views\DevCDR\Dashboard.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Content\Images\" />

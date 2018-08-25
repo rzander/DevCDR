@@ -8,12 +8,13 @@ using System.Threading.Tasks;
 
 namespace DevCDRServer
 {
-    public class Test: Hub
+    public class Test : Hub
     {
         private readonly static ConnectionMapping<string> _connections = new ConnectionMapping<string>();
         public static List<string> lClients = new List<string>();
         public static List<string> lGroups = new List<string>();
         public static JArray jData = new JArray();
+        public static int ClientCount { get { return lClients.Count(); } }
 
         public void Init(string name)
         {

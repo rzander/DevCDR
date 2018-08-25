@@ -24,7 +24,7 @@ namespace DevCDRServer
             routes.MapRoute(
                 name: "Default",
                 url: "{controller}/{action}/{id}",
-                defaults: new { controller = "DevCDR", action = "Demo", id = UrlParameter.Optional }
+                defaults: new { controller = "DevCDR", action = "Dashboard", id = UrlParameter.Optional }
             );
 
 

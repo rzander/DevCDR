@@ -12,6 +12,7 @@ using System.Text;
 using System.Web;
 using System.Web.Mvc;
 using System.Runtime.Caching;
+using System.Web.Caching;
 
 namespace DevCDRServer.Controllers
 {
@@ -108,6 +109,20 @@ namespace DevCDRServer.Controllers
                 return await jDB.QueryAsync(qpath, qsel, qexc, qwhe);
             }
             return null;
+        }
+
+        public int totalDeviceCount(string sPath = "")
+        {
+            if(string.IsNullOrEmpty(sPath))
+                sPath = HttpContext.Server.MapPath("~/App_Data/JainDB/Chain");
+            int iCount = 0;
+            if (Directory.Exists(sPath))
+                iCount = Directory.GetFiles(sPath).Count(); //count Blockchain Files
+
+            var cCache = new Cache();
+            cCache.Add("totalDeviceCount", iCount, null, DateTime.Now.AddSeconds(90), Cache.NoSlidingExpiration, System.Web.Caching.CacheItemPriority.High, null);
+
+            return iCount;
         }
 
         [AllowAnonymous]
