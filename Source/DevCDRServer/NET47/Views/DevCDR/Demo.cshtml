@@ -53,7 +53,7 @@
 @Html.Partial("_ContextMenu")
 
 
-@if (Request.IsAuthenticated)
+@if (Request.IsAuthenticated && User.IsInRole("administrator"))
 {
     @*@Html.Partial("_RunCommands")*@
 }

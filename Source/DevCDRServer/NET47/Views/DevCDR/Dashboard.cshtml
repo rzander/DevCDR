@@ -3,7 +3,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.js"></script>
-<div id="canvas-holder" style="width:40%">
+@*<div id="canvas-holder2" style="width:50%">
     <div class="chartjs-size-monitor" style="left: 0px; top: 0px; right: 0px; bottom: 0px; overflow: hidden; visibility: hidden; position: absolute; z-index: -1; pointer-events: none;">
         <div class="chartjs-size-monitor-expand" style="position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;pointer-events:none;visibility:hidden;z-index:-1;">
             <div style="position:absolute;width:1000000px;height:1000000px;left:0;top:0">
@@ -11,11 +11,25 @@
         </div>
         <div class="chartjs-size-monitor-shrink" style="position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;pointer-events:none;visibility:hidden;z-index:-1;"><div style="position:absolute;width:200%;height:200%;left:0; top:0"></div></div>
     </div>
-    <canvas width="400" height="200" class="chartjs-render-monitor" id="chart-area" style="width: 400px; height: 200px; display: block;"></canvas>
+    <canvas width="400" height="200" class="chartjs-render-monitor" id="chart-area2" style="width: 400px; height: 200px; display: block;"></canvas>
+</div>*@
+<div id="canvas-holder" style="width:50%">
+    <div class="chartjs-size-monitor" style="left: 0px; top: 0px; right: 0px; bottom: 0px; overflow: hidden; visibility: hidden; position: absolute; z-index: -1; pointer-events: none;">
+        <div class="chartjs-size-monitor-expand" style="position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;pointer-events:none;visibility:hidden;z-index:-1;">
+            <div style="position:absolute;width:1000000px;height:1000000px;left:0;top:0">
+            </div>
+        </div>
+        <div class="chartjs-size-monitor-shrink" style="position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;pointer-events:none;visibility:hidden;z-index:-1;"><div style="position:absolute;width:200%;height:200%;left:0; top:0"></div></div>
+    </div>
+    @*<canvas width="400" height="200" class="chartjs-render-monitor" id="chart-area" style="width: 400px; height: 200px; display: block;"></canvas>*@
+<canvas class="chartjs-render-monitor" id="chart-area" style="width: 50%; height: 50%; display: block;"></canvas>
 </div>
 
 <script>
     var ctx = document.getElementById("chart-area").getContext('2d');
+    //var ctx2 = document.getElementById("chart-area2").getContext('2d');
+    //var dataPoints = []
+
     Chart.pluginService.register({
         beforeDraw: function (chart) {
             if (chart.config.options.elements.center) {
@@ -57,20 +71,21 @@
             }
         }
     });
+
     var myChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ["Offline", "Zander", "xLab", "Test", "Default"],
+            labels: ["Offline", "Other", "xLab", "Test", "Default"],
             datasets: [{
                 label: '# of Devices',
-                data: [@ViewData["OfflineDeviceCount"] , @ViewData["TotalZander"], @ViewData["TotalxLab"], @ViewData["TotalTest"], @ViewData["TotalDefault"]],
+                data: [@ViewData["OfflineDeviceCount"], @ViewData["TotalZander"], @ViewData["TotalxLab"], @ViewData["TotalTest"], @ViewData["TotalDefault"]],
     backgroundColor: [
-        'rgba(54, 162, 235, 0.2)',
-        'rgba(255, 99, 132, 0.2)',
-        'rgba(255, 206, 86, 0.2)',
-        'rgba(75, 192, 192, 0.2)',
-        'rgba(153, 102, 255, 0.2)',
-        'rgba(255, 159, 64, 0.2)'
+        'rgba(54, 162, 235, 0.1)',
+        'rgba(255, 99, 132, 0.25)',
+        'rgba(255, 206, 86, 0.25)',
+        'rgba(75, 192, 192, 0.25)',
+        'rgba(153, 102, 255, 0.25)',
+        'rgba(255, 159, 64, 0.25)'
     ],
         borderColor: [
             'rgba(54, 162, 235, 1)',
@@ -99,7 +114,43 @@
 
     }
     });
+//    var myChart2 = new Chart(ctx2, {
+//        label: 'test',
+//        type: 'line',
+//        data: {
+//            labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
+//            datasets: [
+//                {
+//                    label: '# of Votes',
+//                    data: [],
+//                    borderWidth: 1
+//                },
+//                {
+//                    label: '# of Points',
+//                    data: [],
+//                    borderWidth: 1
+//                }
+//            ]
+//        },
+//        options: {
+//            responsive: true,
+//            title: {
+//                display: true,
+//                text: 'Chart.js Line Chart'
+//            }
+//        }
+//    });
+//    $.getJSON("https://canvasjs.com/services/data/datapoints.php?xstart=1&ystart=10&length=100&type=json&callback=?", function (data) {
+//        $.each(data, function (key, value) {
+//            //myChart2.dataPoints[0].data.push({ x: value[0], y: parseInt(value[1]) });
+//            myChart2.data.datasets[0].data.push(value[0]);
+//myChart2.data.datasets[1].data.push(value[1]);
+//        });
+//        myChart2.update();
+//    });
 </script>
+
+
 
 
 

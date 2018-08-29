@@ -43,18 +43,19 @@
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
-                    @*<li>@Html.ActionLink("Summary", "Dashboard", "DevCDR")</li>*@
+                    @*
+                    <li>@Html.ActionLink("Summary", "Dashboard", "DevCDR")</li>*@
                     <li>@Html.ActionLink("Demo (read-only)", "Demo", "DevCDR")</li>
                     <li>@Html.ActionLink("Test", "Test", "DevCDR")</li>
                     @if (Request.IsAuthenticated)
                     {
                     <li>@Html.ActionLink("Default", "Default", "DevCDR")</li>
                     }
-                    @if (Request.IsAuthenticated && @User.Identity.Name.EndsWith("@zander.ch"))
+                    @if (Request.IsAuthenticated && @User.IsInRole("administrator"))
                     {
                     <li>@Html.ActionLink("Zander", "Zander", "DevCDR")</li>
                     }
-                    @if (Request.IsAuthenticated && ( @User.Identity.Name.EndsWith("@zander.ch") ||  @User.Identity.Name.EndsWith("@itnetx.ch")))
+                    @if (Request.IsAuthenticated && ( @User.IsInRole("administrator") ||  @User.IsInRole("readonly")))
                     {
                     <li>@Html.ActionLink("itnetX-Lab", "xLab", "DevCDR")</li>
                     }

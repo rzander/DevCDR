@@ -71,6 +71,7 @@ namespace DevCDRServer.Controllers
             ViewBag.Title = "Test Environment";
             ViewBag.Instance = "Test";
             ViewBag.Route = "/Chat";
+
             return View();
         }
 
@@ -87,7 +88,7 @@ namespace DevCDRServer.Controllers
         [System.Web.Mvc.Authorize]
         public ActionResult XLab()
         {
-            if (User.Identity.Name.EndsWith("@zander.ch") || User.Identity.Name.EndsWith("@itnetx.ch"))
+            if (User.IsInRole("administrator") || User.IsInRole("readonly") || User.Identity.Name.EndsWith("@itnetx.ch"))
             {
                 ViewBag.Title = "itnetX - Lab";
                 ViewBag.Instance = "xLab";
@@ -99,13 +100,18 @@ namespace DevCDRServer.Controllers
         }
 
         //[AllowAnonymous]
-        [System.Web.Mvc.Authorize(Users = "live.com#roger@zander.ch,roger@zander.ch,roger.zander@itnetx.ch")]
+        [System.Web.Mvc.Authorize]
         public ActionResult Zander()
         {
-            ViewBag.Title = "Zander Devices";
-            ViewBag.Instance = "Zander";
-            ViewBag.Route = "/Chat";
-            return View();
+            if (User.IsInRole("administrator"))
+            {
+                ViewBag.Title = "Zander Devices";
+                ViewBag.Instance = "Zander";
+                ViewBag.Route = "/Chat";
+                return View();
+            }
+            else
+                return Redirect("DevCDR/Dashboard");
         }
 
         [AllowAnonymous]
