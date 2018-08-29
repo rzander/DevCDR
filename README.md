@@ -17,6 +17,7 @@ As soon as the devices have internet connection (also behind a Proxy), they will
 * right click activities and custom PowerShell commands
 * Install Software directly from https://RuckZuck.tools
 * Azure AD Authentication (Management-Interface)
+* Hardware/Software Inventory based on JainDB ( https://github.com/rzander/jaindb )
 * ...
 
 ## Agent Requirements
