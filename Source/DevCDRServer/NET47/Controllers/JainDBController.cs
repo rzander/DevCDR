@@ -16,8 +16,6 @@ using System.Web.Caching;
 
 namespace DevCDRServer.Controllers
 {
-    [AllowAnonymous]
-    [System.Web.Mvc.Authorize]
     public class JainDBController : Controller
     {
         [AllowAnonymous]
@@ -63,7 +61,7 @@ namespace DevCDRServer.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous]
+        [BasicAuthenticationAttribute("DEMO", "password")]
         [Route("full")]
         public JObject Full()
         {
@@ -88,7 +86,7 @@ namespace DevCDRServer.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous]
+        [BasicAuthenticationAttribute("DEMO", "password")]
         [Route("query")]
         public async System.Threading.Tasks.Task<JArray> Query()
         {
@@ -131,6 +129,35 @@ namespace DevCDRServer.Controllers
         {
             ViewBag.Message = "JainDB running on Device Commander";
             return View();
+        }
+    }
+
+
+    public class BasicAuthenticationAttribute : ActionFilterAttribute
+    {
+        public string BasicRealm { get; set; }
+        protected string Username { get; set; }
+        protected string Password { get; set; }
+
+        public BasicAuthenticationAttribute(string username, string password)
+        {
+            this.Username = username;
+            this.Password = password;
+        }
+
+        public override void OnActionExecuting(ActionExecutingContext filterContext)
+        {
+            var req = filterContext.HttpContext.Request;
+            var auth = req.Headers["Authorization"];
+            if (!String.IsNullOrEmpty(auth))
+            {
+                var cred = System.Text.ASCIIEncoding.ASCII.GetString(Convert.FromBase64String(auth.Substring(6))).Split(':');
+                var user = new { Name = cred[0], Pass = cred[1] };
+                if (user.Name == Username && user.Pass == Password) return;
+            }
+            filterContext.HttpContext.Response.AddHeader("WWW-Authenticate", String.Format("Basic realm=\"{0}\"", BasicRealm ?? "devcdr"));
+            /// thanks to eismanpat for this line: http://www.ryadel.com/en/http-basic-authentication-asp-net-mvc-using-custom-actionfilter/#comment-2507605761
+            filterContext.Result = new HttpUnauthorizedResult();
         }
     }
 }
