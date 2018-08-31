@@ -282,7 +282,7 @@
                                         RunPSFile('~/App_Data/PSScripts/GetMissingOSUpdates.ps1', 'GetMissingOSUpdates');
                                     }
                                 },
-                            "invUpdDrv": {
+                                "invUpdDrv": {
                                     "name": "missing Driver Updates",
                                     icon: function (opt, $itemElement, itemKey, item) {
                                         $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
@@ -438,10 +438,77 @@
                                     }
                                 }
                             }
+                        },
+                        "actSec": {
+                            "name": "Security",
+                            "items": {
+                                "actSecGetUser": {
+                                    "name": "Get active User",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('"User: " +(get-process -includeusername explorer).UserName', 'Get User...');
+                                    }
+                                },
+                                "sep1": "---------",
+                                "actSecAddAdmin": {
+                                    "name": "Make active User an Admin",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Add-LocalGroupMember -SID "S-1-5-32-544" -Member ((get-process -includeusername explorer).UserName);(get-process -includeusername explorer).UserName + " is now Admin.."', 'Add User to Admins');
+                                    }
+                                },
+                                "actSecRemAdmin": {
+                                    "name": "Remove all local Admins",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Get-LocalGroupMember -SID  "S-1-5-32-544" | % { Remove-LocalGroupMember -SID "S-1-5-32-544" -Member $_.Name };"local Admins cleaned"', 'remove Admins...');
+                                    }
+                                },
+                                "sep2": "---------",
+                                "actSecDisAdmin": {
+                                    "name": "Disable local Administrator",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Disable-LocalUser -SID S-1-5-21-2353998497-988216273-596580639-500;"Admin disabled"', 'disable local Admin...');
+                                    }
+                                },
+                                "actSecEnAdmin": {
+                                    "name": "Enable local Administrator",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Enable-LocalUser -SID S-1-5-21-2353998497-988216273-596580639-500;"Admin enabled"', 'enable local Admin...');
+                                    }
+                                },
+                                "actSecAdminPW": {
+                                    "name": "Change Admin PW",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('$pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | % -begin { $aa = $null } -process {$aa += [char]$_} -end {$aa};Set-LocalUser -SID S-1-5-21-2353998497-988216273-596580639-500 -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force);$pw', 'generate PW...');
+                                    }
+                                }
+                            }
                         }
                     }
                 },
-                "sep1": "---------"
+                "sepx": "---------"
             }
         });
 
