@@ -130,6 +130,114 @@ namespace DevCDRServer.Controllers
             ViewBag.Message = "JainDB running on Device Commander";
             return View();
         }
+
+        [System.Web.Mvc.Authorize]
+        [HttpGet]
+        public ActionResult Inv(string id)
+        {
+            string spath = HttpContext.Server.MapPath("~/App_Data/JainDB");
+            jaindb.jDB.FilePath = spath;
+            var oInv = jDB.GetFull(id, -1);
+            ViewBag.Id = id;
+
+            try
+            {
+                ViewBag.LastInv = oInv["_date"];
+
+                ViewBag.OS = oInv["OS"]["Caption"];
+                ViewBag.Name = oInv["Computer"]["#Name"];
+                ViewBag.Title = oInv["Computer"]["#Name"];
+                ViewBag.Vendor = oInv["Computer"]["Manufacturer"] ?? oInv["BIOS"]["Manufacturer"];
+                ViewBag.Serial = oInv["Computer"]["#SerialNumber"] ?? oInv["BIOS"]["#SerialNumber"] ?? "unknown";
+                ViewBag.Version = oInv["OS"]["Version"];
+                ViewBag.InstDate = oInv["OS"]["#InstallDate"];
+                ViewBag.LastBoot = oInv["OS"]["@LastBootUpTime"];
+                ViewBag.Model = oInv["Computer"]["Model"] ?? "unknown";
+                ViewBag.Language = oInv["OS"]["OSLanguage"].ToString();
+                ViewBag.Arch = oInv["OS"]["OSArchitecture"];
+                ViewBag.CPU = oInv["Processor"]["Name"] ?? oInv["Processor"][0]["Name"];
+                ViewBag.Memory = ((long)oInv["Computer"]["TotalPhysicalMemory"] * 1.073741824) / 1024 / 1024 / 1024;
+                int chassis = int.Parse(oInv["Computer"]["ChassisTypes"][0].ToString() ?? "2");
+
+                //if (ViewBag.Memory == 17)
+                //    ViewBag.Memory = 16;
+
+                //if (ViewBag.Memory == 34)
+                //    ViewBag.Memory = 32;
+
+                //if (ViewBag.Memory == 51)
+                //    ViewBag.Memory = 48;
+
+                //if (ViewBag.Memory == 68)
+                //    ViewBag.Memory = 64;
+
+                //https://docs.microsoft.com/en-us/previous-versions/tn-archive/ee156537(v=technet.10)
+                switch (chassis)
+                {
+                    case 1:
+                        ViewBag.Type = "Other";
+                        break;
+                    case 2:
+                        ViewBag.Type = "Unknwon";
+                        break;
+                    case 3:
+                        ViewBag.Type = "Dekstop";
+                        break;
+                    case 4:
+                        ViewBag.Type = "Low Profile Desktop";
+                        break;
+                    case 6:
+                        ViewBag.Type = "Mini Tower";
+                        break;
+                    case 7:
+                        ViewBag.Type = "Tower";
+                        break;
+                    case 9:
+                        ViewBag.Type = "Laptop";
+                        break;
+                    case 10:
+                        ViewBag.Type = "Notebook";
+                        break;
+                    case 13:
+                        ViewBag.Type = "All in One";
+                        break;
+                    case 14:
+                        ViewBag.Type = "Sub Notebook";
+                        break;
+                    default:
+                        ViewBag.Type = "Other";
+                        break;
+                }
+
+                switch(ViewBag.Language)
+                {
+                    case "1033":
+                        ViewBag.Language = "English - United States";
+                        break;
+                    case "2057":
+                        ViewBag.Language = "English - Great Britain";
+                        break;
+                    case "1031":
+                        ViewBag.Language = "German";
+                        break;
+                    case "1036":
+                        ViewBag.Language = "French";
+                        break;
+                    case "1040":
+                        ViewBag.Language = "Italian";
+                        break;
+                    case "1034":
+                        ViewBag.Language = "Spanish";
+                        break;
+                }
+
+                if(ViewBag.Model == "Virtual Machine")
+                    ViewBag.Type = "VM";
+            }
+            catch { }
+
+            return View();
+        }
     }
 
 

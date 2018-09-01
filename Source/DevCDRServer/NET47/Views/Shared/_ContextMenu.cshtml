@@ -3,6 +3,17 @@
         $.contextMenu({
             selector: '#test',
             items: {
+                "invExp": {
+                    "name": "Inventory Explorer",
+                    icon: function (opt, $itemElement, itemKey, item) {
+                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                        return 'context-menu-icon-updated';
+                    },
+                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                        InvExp();
+                    }
+
+                },
                 "foldInv": {
                     "name": "Inventory",
                     "items": {

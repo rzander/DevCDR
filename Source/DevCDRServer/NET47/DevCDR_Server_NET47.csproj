@@ -666,6 +666,7 @@
     <Content Include="Scripts\popper-utils.js.map" />
     <None Include="signFiles.ps1" />
     <Content Include="Views\DevCDR\Dashboard.cshtml" />
+    <Content Include="Views\JainDB\Inv.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Content\Images\" />
