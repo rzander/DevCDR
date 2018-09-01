@@ -470,7 +470,7 @@
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
-                                        RunPS('Get-LocalGroupMember -SID  "S-1-5-32-544" | % { Remove-LocalGroupMember -SID "S-1-5-32-544" -Member $_.Name };"local Admins cleaned"', 'remove Admins...');
+                                        RunPS('Get-LocalGroupMember -SID  "S-1-5-32-544" | ? { $_.SID -NotLike "S-1-5-21-*-500" -and $_.SID -NotLike "S-1-5-21-*-512" } | % { Remove-LocalGroupMember -SID "S-1-5-32-544" -Member $_.Name };"Admin removed"', 'remove Admins...');
                                     }
                                 },
                                 "sep2": "---------",
@@ -481,7 +481,7 @@
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
-                                        RunPS('Disable-LocalUser -SID S-1-5-21-2353998497-988216273-596580639-500;"Admin disabled"', 'disable local Admin...');
+                                        RunPS('(Get-LocalUser | ? { $_.SID -like "S-1-5-21-*-500" })  | Disable-LocalUser;"Admin disabled"', 'disable local Admin...');
                                     }
                                 },
                                 "actSecEnAdmin": {
@@ -491,7 +491,7 @@
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
-                                        RunPS('Enable-LocalUser -SID S-1-5-21-2353998497-988216273-596580639-500;"Admin enabled"', 'enable local Admin...');
+                                        RunPS('(Get-LocalUser | ? { $_.SID -like "S-1-5-21-*-500" })  | Enable-LocalUser;"Admin enabled"', 'enable local Admin...');
                                     }
                                 },
                                 "actSecAdminPW": {
@@ -501,7 +501,7 @@
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
-                                        RunPS('$pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | % -begin { $aa = $null } -process {$aa += [char]$_} -end {$aa};Set-LocalUser -SID S-1-5-21-2353998497-988216273-596580639-500 -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force);$pw', 'generate PW...');
+                                        RunPS('$pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | % -begin { $aa = $null } -process {$aa += [char]$_} -end {$aa};(Get-LocalUser | ? { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force);$pw', 'generate PW...');
                                     }
                                 }
                             }
