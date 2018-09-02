@@ -1,0 +1,2 @@
+﻿$.Software[?(@.DisplayName=='7-Zip 18.05 (x64)')]
+$.Software[?(@.DisplayName=='Advanced Installer 15.1')]

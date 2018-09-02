@@ -1,85 +1,105 @@
 ﻿<p></p>
-<div class="container">
-    <div class="col-sm-6">
-        <div class="row">
-            <div class="col form-group">
-                <label class="control-label col-sm-2 text-right">Name:</label>
-                <input style="font-weight: bold;" class="form-control col" id="tbType" type="text" value="@ViewBag.Name" readonly>
+<form  class="form-horizontal">
+    <div class="container">
+
+        <div class="col-sm-5">
+            <div class="form-group">
+                <label class="control-label col-sm-2 ">Name:</label>
+                <div class="col-sm-10">
+                    <input style="font-weight: bold;" class="form-control" id="tbType" type="text" value="@ViewBag.Name" readonly>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col form-group">
-                <label class="control-label col-sm-2 text-right">Vendor:</label>
-                <input class="form-control col" id="tbVendor" type="text" value="@ViewBag.Vendor" readonly>
+            <div class="form-group">
+                <label class="control-label col-sm-2 ">Vendor:</label>
+                <div class="col-sm-10">
+                    <input class="form-control" id="tbVendor" type="text" value="@ViewBag.Vendor" readonly>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col form-group">
+            <div class="form-group">
                 <label class="control-label col-sm-2 text-right">Model:</label>
-                <input class="form-control col" id="tbVendor" type="text" value="@ViewBag.Model" readonly>
+                <div class="col-sm-10">
+                    <input class="form-control" id="tbVendor" type="text" value="@ViewBag.Model" readonly>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col form-group">
+            <div class="form-group">
                 <label class="control-label col-sm-2 text-right">Type:</label>
-                <input class="form-control col" id="tbVendor" type="text" value="@ViewBag.Type" readonly>
+                <div class="col-sm-10">
+                    <input class="form-control" id="tbVendor" type="text" value="@ViewBag.Type" readonly>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col form-group">
+            <div class="form-group">
                 <label class="control-label col-sm-2 text-right">SerialNr:</label>
-                <input class="form-control col" id="tbVendor" type="text" value="@ViewBag.Serial" readonly>
+                <div class="col-sm-10">
+                    <input class="form-control" id="tbVendor" type="text" value="@ViewBag.Serial" readonly>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col form-group">
+            <div class="form-group">
                 <label class="control-label col-sm-2 text-right">Memory (GB):</label>
-                <input class="form-control col" id="tbVendor" type="text" value="@ViewBag.Memory" readonly>
+                <div class="col-sm-10">
+                    <input class="form-control" id="tbVendor" type="text" value="@ViewBag.Memory" readonly>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col form-group">
+            <div class="form-group">
                 <label class="control-label col-sm-2 text-right">CPU:</label>
-                <input class="form-control col" id="tbVendor" type="text" value="@ViewBag.CPU" readonly>
+                <div class="col-sm-10">
+                    <input class="form-control" id="tbVendor" type="text" value="@ViewBag.CPU" readonly>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <button class="btn @ViewBag.CoreStyle col-sm-12" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+                    Core Applications
+                </button>
+                <div class="collapse" id="collapseExample">
+                    <div class="card card-body">
+                        @foreach (var app in ViewBag.data)
+                        {
+                        @*<p class="@ViewBag.CoreStyle">@app</p>*@
+@Html.Raw(app)
+                        }
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-sm-6">
-        <div class="row">
-            <div class="col form-group">
+        <div class="col-sm-5 col-sm-offset-1">
+            <div class="form-group">
                 <label class="control-label col-sm-2 text-right">OS:</label>
-                <input class="form-control col" id="tbOS" type="text" value="@ViewBag.OS" readonly>
+                <div class="col-sm-10">
+                    <input class="form-control" id="tbOS" type="text" value="@ViewBag.OS" readonly>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col form-group">
+            <div class="form-group">
                 <label class="control-label col-sm-2 text-right">Version:</label>
-                <input class="form-control col" id="tbStatus" type="text" value="@ViewBag.Version" readonly>
+                <div class="col-sm-10">
+                    <input class="form-control" id="tbStatus" type="text" value="@ViewBag.Version" readonly>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col form-group">
+            <div class="form-group">
                 <label class="control-label col-sm-2 text-right">Language:</label>
-                <input class="form-control col" id="tbStatus" type="text" value="@ViewBag.Language" readonly>
+                <div class="col-sm-10">
+                    <input class="form-control" id="tbStatus" type="text" value="@ViewBag.Language" readonly>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col form-group">
+            <div class="form-group">
                 <label class="control-label col-sm-2 text-right">Architecture:</label>
-                <input class="form-control col" id="tbStatus" type="text" value="@ViewBag.Arch" readonly>
+                <div class="col-sm-10">
+                    <input class="form-control" id="tbStatus" type="text" value="@ViewBag.Arch" readonly>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col form-group">
+            <div class="form-group">
                 <label class="control-label col-sm-2 text-right">Install date:</label>
-                <input class="form-control col" id="tbStatus" type="text" value="@ViewBag.InstDate (UTC)" readonly>
+                <div class="col-sm-10">
+                    <input class="form-control" id="tbStatus" type="text" value="@ViewBag.InstDate (UTC)" readonly>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col form-group">
+            <div class="form-group">
                 <label class="control-label col-sm-2 text-right">Inventory:</label>
-                <input class="form-control col" id="tbStatus" type="text" value="@ViewBag.LastInv (UTC)" readonly>
+                <div class="col-sm-10">
+                    <input class="form-control" id="tbStatus" type="text" value="@ViewBag.LastInv (UTC)" readonly>
+                </div>
             </div>
         </div>
+
     </div>
-</div>
+</form>
+
