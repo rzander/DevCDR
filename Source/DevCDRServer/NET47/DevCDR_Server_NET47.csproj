@@ -283,6 +283,10 @@
     <Content Include="App_Data\JainDB\CoreApps_test.txt" />
     <Content Include="App_Data\JainDB\CoreApps_xlab.txt" />
     <Content Include="App_Data\JainDB\CoreApps_default.txt" />
+    <Content Include="App_Data\JainDB\IndSW_xlab.txt" />
+    <Content Include="App_Data\JainDB\IndSW_test.txt" />
+    <Content Include="App_Data\JainDB\IndSW_default.txt" />
+    <Content Include="App_Data\JainDB\IndSW_zander.txt" />
     <Content Include="App_Data\JainDB\CoreApps_zander.txt" />
     <Content Include="Content\bootstrap-theme.css" />
     <Content Include="Content\bootstrap-theme.min.css" />

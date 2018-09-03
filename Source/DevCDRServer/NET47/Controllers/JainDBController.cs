@@ -131,18 +131,20 @@ namespace DevCDRServer.Controllers
             return View();
         }
 
-        public List<string> ShipNames = new List<string>() { "A", "A B", "A B C" };
-
         //[AllowAnonymous]
         [System.Web.Mvc.Authorize]
         [HttpGet]
-        public ActionResult Inv(string id)
+        public ActionResult Inv(string id, string name = "")
         {
-            if(string.IsNullOrEmpty(id))
-                return Redirect("../DevCdr/Dashboard");
-
             string spath = HttpContext.Server.MapPath("~/App_Data/JainDB");
             jaindb.jDB.FilePath = spath;
+
+            if (!string.IsNullOrEmpty(name))
+                id = jDB.LookupID("name", name);
+
+            if (string.IsNullOrEmpty(id))
+                return Redirect("../DevCdr/Dashboard");
+
             var oInv = jDB.GetFull(id, -1);
 
             if (oInv != new JObject())
@@ -167,11 +169,32 @@ namespace DevCDRServer.Controllers
                     ViewBag.Arch = oInv["OS"]["OSArchitecture"];
                     ViewBag.CPU = oInv["Processor"]["Name"] ?? oInv["Processor"][0]["Name"];
                     ViewBag.Memory = Convert.ToInt32((long)oInv["Computer"]["TotalPhysicalMemory"] / 1000 / 1000 / 1000);
+                    switch (ViewBag.Memory)
+                    {
+                        case 17:
+                            ViewBag.Memory = 16;
+                            break;
+                        case 34:
+                            ViewBag.Memory = 32;
+                            break;
+                        case 35:
+                            ViewBag.Memory = 32;
+                            break;
+                        case 68:
+                            ViewBag.Memory = 64;
+                            break;
+                        case 69:
+                            ViewBag.Memory = 64;
+                            break;
+                    }
                     int chassis = int.Parse(oInv["Computer"]["ChassisTypes"][0].ToString() ?? "2");
 
                     var oSW = oInv["Software"];
+                    var oIndSW = oInv.DeepClone()["Software"];
 
                     List<string> lCoreApps = new List<string>();
+                    List<string> lIndSW = new List<string>();
+                    List<string> lUnknSW = new List<string>();
 
                     //Check if device has all required SW installed
                     #region CoreApplications 
@@ -182,22 +205,60 @@ namespace DevCDRServer.Controllers
                         ViewBag.CoreStyle = "alert-success";
                         foreach (string sCoreApp in aCoreApps)
                         {
-                            var oRes = oInv.SelectToken(sCoreApp);
-                            if (oRes != null)
+                            try
                             {
-                                lCoreApps.Add("<p class=\"alert-success\">" + oRes["DisplayName"].ToString() + "</p>");
+                                var oRes = oInv.SelectTokens(sCoreApp);
+                                if (oRes.Count() > 0)
+                                {
+                                    lCoreApps.Add("<p class=\"col-xs-offset-1 alert-success\">" + oRes.First()["DisplayName"].ToString() + "</p>");
+
+                                    foreach(var oItem in oRes.ToList())
+                                    {
+                                        oItem.Remove();
+                                    }
+                                }
+                                else
+                                {
+                                    ViewBag.CoreStyle = "alert-warning";
+                                    lCoreApps.Add("<p class=\"col-xs-offset-1 alert-warning\">" + sCoreApp + "</p>");
+                                }
                             }
-                            else
+                            catch
                             {
                                 ViewBag.CoreStyle = "alert-warning";
-                                lCoreApps.Add("<p class=\"alert-warning\">" + sCoreApp + "</p>");
+                                lCoreApps.Add("<p class=\"col-xs-offset-1 alert-warning\">" + sCoreApp + "</p>");
                             }
                         }
                     }
                     catch { }
-                    ViewBag.data = lCoreApps;
                     #endregion
 
+                    #region IndividualSW 
+                    try
+                    {
+                        var aIndApps = System.IO.File.ReadAllLines(Path.Combine(spath, "IndSW_" + sInstance + ".txt")).ToList();
+                        foreach(var xSW in oInv["Software"])
+                        {
+                            if(aIndApps.Contains(xSW["DisplayName"].ToString().TrimEnd()))
+                            {
+                                lIndSW.Add("<p class=\"col-xs-offset-1 alert-info\">" + xSW["DisplayName"].ToString().TrimEnd() + " ; " + (xSW["DisplayVersion"] ?? "").ToString().Trim() + "</p>");
+                            }
+                            else
+                            {
+                                lUnknSW.Add("<p class=\"col-xs-offset-1 alert-danger\">" + xSW["DisplayName"].ToString().TrimEnd() + " ; " + (xSW["DisplayVersion"] ?? "").ToString().Trim() + "</p>");
+                            }
+                        }
+                    }
+                    catch { }
+
+
+                    #endregion
+
+                    ViewBag.CoreSW = lCoreApps.Distinct().OrderBy(t => t);
+                    ViewBag.IndSW = lIndSW.Distinct().OrderBy(t=>t);
+                    ViewBag.UnknSW = lUnknSW.Distinct().OrderBy(t => t);
+                    ViewBag.IndSWc = lIndSW.Distinct().OrderBy(t => t).Count();
+                    ViewBag.UnknSWc = lUnknSW.Distinct().OrderBy(t => t).Count();
 
                     //https://docs.microsoft.com/en-us/previous-versions/tn-archive/ee156537(v=technet.10)
                     switch (chassis)
