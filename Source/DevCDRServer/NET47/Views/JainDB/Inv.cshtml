@@ -2,10 +2,10 @@
 <form class="form-horizontal">
     <div class="container">
         <div class="col-sm-5">
-            <div class="form-group">
+            <div class="form-group has-success">
                 <label class="control-label col-sm-2 ">Name:</label>
                 <div class="col-sm-10">
-                    <input style="font-weight: bold;" class="form-control" id="tbType" type="text" value="@ViewBag.Name" readonly>
+                    <input style="font-weight: bold;" class="form-control" id="tbType" type="text" value="@ViewBag.Name" readonly style="background-color:transparent">
                 </div>
             </div>
             <div class="form-group">
@@ -33,9 +33,9 @@
                 </div>
             </div>
             <div class="form-group">
-                <label class="control-label col-sm-2 text-right">Memory (GB):</label>
+                <label class="control-label col-sm-2 text-right">Memory:</label>
                 <div class="col-sm-10">
-                    <input class="form-control" id="tbVendor" type="text" value="@ViewBag.Memory" readonly>
+                    <input class="form-control" id="tbVendor" type="text" value="@ViewBag.Memory (GB)" readonly>
                 </div>
             </div>
             <div class="form-group">
@@ -45,46 +45,52 @@
                 </div>
             </div>
         </div>
-        <div class="col-sm-5 col-sm-offset-1">
+        <div class="col-sm-6">
             <div class="form-group">
-                <label class="control-label col-sm-2 text-right">OS:</label>
-                <div class="col-sm-10">
+                <label class="control-label col-sm-3 text-right">OS:</label>
+                <div class="col-sm-9">
                     <input class="form-control" id="tbOS" type="text" value="@ViewBag.OS" readonly>
                 </div>
             </div>
             <div class="form-group">
-                <label class="control-label col-sm-2 text-right">Version:</label>
-                <div class="col-sm-10">
+                <label class="control-label col-sm-3 text-right">Version:</label>
+                <div class="col-sm-9">
                     <input class="form-control" id="tbStatus" type="text" value="@ViewBag.Version" readonly>
                 </div>
             </div>
             <div class="form-group">
-                <label class="control-label col-sm-2 text-right">Language:</label>
-                <div class="col-sm-10">
+                <label class="control-label col-sm-3 text-right">Language:</label>
+                <div class="col-sm-9">
                     <input class="form-control" id="tbStatus" type="text" value="@ViewBag.Language" readonly>
                 </div>
             </div>
             <div class="form-group">
-                <label class="control-label col-sm-2 text-right">Architecture:</label>
-                <div class="col-sm-10">
+                <label class="control-label col-sm-3 text-right">Architecture:</label>
+                <div class="col-sm-9">
                     <input class="form-control" id="tbStatus" type="text" value="@ViewBag.Arch" readonly>
                 </div>
             </div>
             <div class="form-group">
-                <label class="control-label col-sm-2 text-right">Installdate:</label>
-                <div class="col-sm-10">
+                <label class="control-label col-sm-3 text-right">Installdate:</label>
+                <div class="col-sm-9">
                     <input class="form-control" id="tbStatus" type="text" value="@ViewBag.InstDate (UTC)" readonly>
                 </div>
             </div>
             <div class="form-group">
-                <label class="control-label col-sm-2 text-right">Inventory:</label>
-                <div class="col-sm-10">
-                    <input class="form-control" id="tbStatus" type="text" value="@ViewBag.LastInv (UTC)" readonly>
+                <label class="control-label col-sm-3 text-right">Inventory age:</label>
+                <div class="col-sm-9">
+                    <input class="form-control" id="tbStatus" type="text" value="@ViewBag.LastInv" readonly>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-sm-3 text-right">UserName:</label>
+                <div class="col-sm-9">
+                    <input class="form-control" id="tbStatus" type="text" value="@ViewBag.UserName" readonly>
                 </div>
             </div>
         </div>
 
-        <hr />
+        <hr style="width: 100%; color: black; height: 1px; background-color:darkgray;" />
 
         <div class="col-sm-8 col-sm-offset-2">
             <div class="form-group">
@@ -102,7 +108,7 @@
             </div>
 
             <div class="form-group">
-                <button class="btn alert-info col-sm-10" type="button" data-toggle="collapse" data-target="#collapseIndSW" aria-expanded="false" aria-controls="collapseIndSW">
+                <button class="btn alert-info col-sm-10 fa fa-bars" type="button" data-toggle="collapse" data-target="#collapseIndSW" aria-expanded="false" aria-controls="collapseIndSW">
                     Individual Software (@ViewBag.IndSWc)
                 </button>
                 <div class="collapse col-sm-8" id="collapseIndSW">
@@ -116,7 +122,7 @@
             </div>
 
             <div class="form-group">
-                <button class="btn alert-danger col-sm-10" type="button" data-toggle="collapse" data-target="#collapseUnknSW" aria-expanded="false" aria-controls="collapseUnknSW">
+                <button class="btn alert-danger col-sm-10 fa fa-bars" type="button" data-toggle="collapse" data-target="#collapseUnknSW" aria-expanded="false" aria-controls="collapseUnknSW">
                     Unknown Software (@ViewBag.UnknSWc)
                 </button>
                 <div class="collapse col-sm-8" id="collapseUnknSW">
@@ -129,6 +135,8 @@
                 </div>
             </div>
         </div>
+
+        <hr style="width: 100%; color: black; height: 1px; background-color:darkgray;" />
     </div>
 </form>
 

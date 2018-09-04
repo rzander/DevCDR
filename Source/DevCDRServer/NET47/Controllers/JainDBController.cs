@@ -154,11 +154,28 @@ namespace DevCDRServer.Controllers
                 try
                 {
                     string sInstance = oInv["DevCDRInstance"].ToString();
+                    try
+                    {
+                        TimeSpan tDiff = DateTime.Now.ToUniversalTime() - (DateTime)oInv["_date"];
+                        if (tDiff.TotalDays >= 2)
+                            ViewBag.LastInv = tDiff.Days.ToString() + " days"; 
+                        else
+                        {
+                            if((tDiff.TotalHours > 0))
+                                ViewBag.LastInv = tDiff.Hours.ToString() + " hours";
+                            else
+                                ViewBag.LastInv = tDiff.Minutes.ToString() + " minutes";
+                        }
+                    }
+                    catch
+                    {
+                        ViewBag.LastInv = oInv["_date"];
+                    }
 
-                    ViewBag.LastInv = oInv["_date"];
                     ViewBag.OS = oInv["OS"]["Caption"];
                     ViewBag.Name = oInv["Computer"]["#Name"];
                     ViewBag.Title = oInv["Computer"]["#Name"];
+                    ViewBag.UserName = oInv["Computer"]["#UserName"] ?? "";
                     ViewBag.Vendor = oInv["Computer"]["Manufacturer"] ?? oInv["BIOS"]["Manufacturer"];
                     ViewBag.Serial = oInv["Computer"]["#SerialNumber"] ?? oInv["BIOS"]["#SerialNumber"] ?? "unknown";
                     ViewBag.Version = oInv["OS"]["Version"];
@@ -322,6 +339,9 @@ namespace DevCDRServer.Controllers
 
                     if (ViewBag.Model == "Virtual Machine")
                         ViewBag.Type = "VM";
+
+                    if ((ViewBag.Vendor as string).ToLower() == "lenovo")
+                        ViewBag.Model = oInv["Computer"]["SystemFamily"] ?? "unknown";
                 }
                 catch { }
 

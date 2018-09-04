@@ -325,3 +325,8 @@ ZyWALL SecuExtender
 Microsoft .NET Core SDK - 2.1.100 (x64)
 Microsoft .NET Core SDK - 2.1.2 (x64)
 SurfaceBook Update 18_010_00 (64 bit)
+WinSCP 5.13.4
+Sysinternals Suite
+Sunny Explorer
+Steam
+SketchUp 2018
