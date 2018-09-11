@@ -165,7 +165,7 @@ function SetID {
 $object = New-Object PSObject
 getinv -Name "Battery" -WMIClass "win32_Battery" -Properties @("BatteryStatus", "Caption", "Chemitry", "#Name", "Status", "PowerManagementCapabilities", "#DeviceID") -AppendObject ([ref]$object)
 $bios = getinv -Name "BIOS" -WMIClass "win32_BIOS" -Properties @("Name", "Manufacturer", "Version", "#SerialNumber") #-AppendObject ([ref]$object)
-$bios | Add-Member -MemberType NoteProperty -Name "#DeviceHardwareData" -Value ((Get-WMIObject -Namespace root/cimv2/mdm/dmmap -Class MDM_DevDetail_Ext01 -Filter "InstanceID='Ext' AND ParentID='./DevDetail'").DeviceHardwareData) -ea SilentlyContinue
+$bios | Add-Member -MemberType NoteProperty -Name "@DeviceHardwareData" -Value ((Get-WMIObject -Namespace root/cimv2/mdm/dmmap -Class MDM_DevDetail_Ext01 -Filter "InstanceID='Ext' AND ParentID='./DevDetail'").DeviceHardwareData) -ea SilentlyContinue
 $object | Add-Member -MemberType NoteProperty -Name "BIOS" -Value $bios -ea SilentlyContinue
 getinv -Name "Processor" -WMIClass "win32_Processor" -Properties @("Name", "Manufacturer", "Family", "NumberOfCores", "NumberOfEnabledCore", "NumberOfLogicalProcessors", "L2CacheSize", "L3CacheSize", "#ProcessorId") -AppendObject ([ref]$object)
 getinv -Name "Memory" -WMIClass "win32_PhysicalMemory" -Properties @("Manufacturer", "ConfiguredClockSpeed", "ConfiguredVoltage", "PartNumber", "FormFactor", "DataWidth", "Speed", "SMBIOSMemoryType", "Name" , "Capacity" , "#SerialNumber") -AppendObject ([ref]$object)
@@ -241,11 +241,12 @@ $id = $object."#id"
 $con = $object | ConvertTo-Json -Compress
 Write-Host "Device ID: $($id)"
 Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" -Method Post -Body $con -ContentType "application/json; charset=utf-8")
+
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURcQEiTD/I8K5meEdRtXhgyxr
-# h9OgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUp/vPGDFwP2lH8IHDhz+IiSeE
+# gTigggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -310,12 +311,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR9
-# SzKiOQpIFq3EMuYmz0qP/2wiVTANBgkqhkiG9w0BAQEFAASCAQCkJFOnYL8h7GX3
-# g3llkVSkQsmGQIvcFQMP4/soaVvMTS9rkFtbmvz3WXWIO+Xw8uMwbsaBgJReRWsN
-# w94N1kRYFzo+b0ocu8tVLU0kCD5Qx7wCpbIjYRmM5KpV58Xo9aW3tKDh9Mx4qydL
-# S3GxFpiPF17hREq4DKRxgNji0Qnnw3E1TfqQIZUjFkxaVc0EkVVUIy1ts9Zg7g6i
-# y1HtXHW0oU44pcOHvPKAmpOOzJV0IxgxKpacsR75Z1wFtt7kryLz+/DmRXmff0nI
-# cV6dWdSAMT6APngEXjCTPwy/Jy4RdzHLFZKLqgJilvJWyqaArV8nB2FxbHhVb9F1
-# +TvhLl3d
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRX
+# 08OWeEJZmQjjqJ7m7DzKHnkEyjANBgkqhkiG9w0BAQEFAASCAQB691WQusbWnde+
+# NpSYD3LaJZxTATyx5VraYqM7CHeGEzbME0pQTMHU0VUydc5HwKMLIbWBHjmQyjKN
+# RC7zNm6LPC6InJ2Mc0fZx46nVfHHDNcfhn+nowbRjnynvep4HTq9i/zk5Mpi/IU8
+# vMFL7Akc+vlOC4IFJKpEyKqk0Lrm59NkZLHQD7FoPzDL4sBRcK3aK3LUWBBUGvsq
+# IynvCDpg+d2dZYIEwoRAJaN77KoYwUFun+M4tlP8k6rSKvZszz8HWivZKhMFLkKi
+# x2MISWTdrmSCVpC63MMmp74UEk/Qs1BXZPRDFeinOMqrDsrq0CEOYJHa4esYEajL
+# Q/+UBnLz
 # SIG # End signature block
