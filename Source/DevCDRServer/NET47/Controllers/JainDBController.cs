@@ -158,13 +158,13 @@ namespace DevCDRServer.Controllers
                     {
                         TimeSpan tDiff = DateTime.Now.ToUniversalTime() - (DateTime)oInv["_date"];
                         if (tDiff.TotalDays >= 2)
-                            ViewBag.LastInv = tDiff.Days.ToString() + " days"; 
+                            ViewBag.LastInv = ((int)tDiff.TotalDays).ToString() + " days"; 
                         else
                         {
-                            if((tDiff.TotalHours > 0))
-                                ViewBag.LastInv = tDiff.Hours.ToString() + " hours";
+                            if((tDiff.TotalHours >= 1))
+                                ViewBag.LastInv = ((int)tDiff.TotalHours).ToString() + " hours";
                             else
-                                ViewBag.LastInv = tDiff.Minutes.ToString() + " minutes";
+                                ViewBag.LastInv = ((int)tDiff.TotalMinutes).ToString() + " minutes";
                         }
                     }
                     catch
@@ -340,7 +340,7 @@ namespace DevCDRServer.Controllers
                     if (ViewBag.Model == "Virtual Machine")
                         ViewBag.Type = "VM";
 
-                    if ((ViewBag.Vendor as string).ToLower() == "lenovo")
+                    if (((string)ViewBag.Vendor).ToLower() == "lenovo")
                         ViewBag.Model = oInv["Computer"]["SystemFamily"] ?? "unknown";
                 }
                 catch { }

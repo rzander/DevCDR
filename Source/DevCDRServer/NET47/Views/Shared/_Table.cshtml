@@ -92,6 +92,7 @@
     $('#tabs').on('shown.bs.tab', function (e) {
         var group = e.target.hash
         $('#test').DataTable().search(e.target.hash.replace('#', '')).draw();
+        }
     })
 
     $(function () {

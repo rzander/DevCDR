@@ -152,10 +152,10 @@ function SetID {
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#UUID" -Value (getinv -Name "Computer" -WMIClass "win32_ComputerSystemProduct" -Properties @("#UUID"))."#UUID" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#Name" -Value (getinv -Name "Computer" -WMIClass "win32_ComputerSystem" -Properties @("Name"))."Name" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#SerialNumber" -Value (getinv -Name "Computer" -WMIClass "win32_SystemEnclosure" -Properties @("SerialNumber"))."SerialNumber" -ea SilentlyContinue
-        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#MAC" -Value (get-wmiobject -class "Win32_NetworkAdapterConfiguration" | Where {($_.IpEnabled -Match "True")}).MACAddress.Replace(':', '-')
+        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#MAC" -Value (get-wmiobject -class "Win32_NetworkAdapterConfiguration" | Where-Object {($_.IpEnabled -Match "True")}).MACAddress.Replace(':', '-')
 		
 		[xml]$xml = Get-Content "$($env:programfiles)\DevCDRAgent\DevCDRAgent.exe.config"
-		$inst = $xml.configuration.applicationSettings.'DevCDRAgent.Properties.Settings'.setting | ? { $_.name -eq 'Instance' }
+		$inst = $xml.configuration.applicationSettings.'DevCDRAgent.Properties.Settings'.setting | Where-Object { $_.name -eq 'Instance' }
 		$AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRInstance" -Value $inst.value
         return $null
     }   
@@ -195,12 +195,10 @@ getinv -Name "CDROM" -WMIClass "Win32_CDROMDrive" -Properties @("Capabilities", 
 #getinv -Name "Driver" -WMIClass "Win32_PnPSignedDriver" -Properties @("DeviceID","DeviceName", "DriverDate", "DriverProviderName", "DriverVersion", "FriendlyName", "HardWareID", "InfName" ) -AppendObject ([ref]$object)
 getinv -Name "Printer" -WMIClass "Win32_Printer" -Properties @("DeviceID","CapabilityDescriptions","DriverName", "Local" , "Network", "PrinterPaperNames") -AppendObject ([ref]$object)
 
-
-
 $user = Get-LocalUser | Select-Object Description, Enabled, UserMayChangePassword, PasswordRequired, Name, @{N = '@PasswordLastSet'; E = {[System.DateTime](($_.PasswordLastSet).ToUniversalTime())}}, @{N = 'id'; E = {$_.SID}} | Sort-Object -Property Name
 $object | Add-Member -MemberType NoteProperty -Name "LocalUsers" -Value ($user)
 
-$locAdmin = Get-LocalGroupMember -SID S-1-5-32-544 | Select-Object @{N = 'Name'; E = {$_.Name.Replace($($env:Computername) + "\", "")}}, PrincipalSource, ObjectClass | Sort-Object -Property Name
+$locAdmin = Get-LocalGroupMember -SID S-1-5-32-544 | Select-Object @{N = 'Name'; E = {$_.Name.Replace($($env:Computername) + "\", "")}}, ObjectClass, @{Name = 'id'; Expression = {$_.SID.Value}} | Sort-Object -Property Name
 $object | Add-Member -MemberType NoteProperty -Name "LocalAdmins" -Value ($locAdmin)
 
 $locGroup = Get-LocalGroup | Select-Object Description, Name, PrincipalSource, ObjectClass, @{N = 'id'; E = {$_.SID}}  | Sort-Object -Property Name
@@ -224,15 +222,15 @@ $SW = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall
 $SW += Get-ItemProperty HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* -ea SilentlyContinue | Where-Object { $_.DisplayName -ne $null -and $_.SystemComponent -ne 0x1 -and $_.ParentDisplayName -eq $null } | Select-Object DisplayName, DisplayVersion, Publisher, Language, WindowsInstaller,  @{N = '@InstallDate'; E = { $_.InstallDate }}, HelpLink, UninstallString,  @{N = 'Architecture'; E = {"X86"}}, @{N = 'id'; E = {GetHash($_.DisplayName + $_.DisplayVersion + $_.Publisher + "X86")}}
 $object | Add-Member -MemberType NoteProperty -Name "Software" -Value ($SW| Sort-Object -Property DisplayName )
 
-#Services
-$Services = get-service | Select-Object -ExcludeProperty MachineName, Site, Container, @{N = 'id'; E = { $_.Name}}
+#Services ( Exlude services with repeating numbers like BluetoothUserService_62541)
+$Services = get-service | Where-Object { $_.Name -notmatch "_\d\d\d\d\d"} | Select-Object -Property @{N = 'id'; E = { $_.Name}}, DisplayName, Status,StartType 
 $object | Add-Member -MemberType NoteProperty -Name "Services" -Value ($Services )
 
 #OS Version details
 $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
 
 #Cleanup
-$object."LogicalDisk" | % { $_."@FreeSpace" = normalize($_."@FreeSpace")}
+$object."LogicalDisk" | ForEach-Object { $_."@FreeSpace" = normalize($_."@FreeSpace")}
 $object.Computer."TotalPhysicalMemory" = normalize($object.Computer."TotalPhysicalMemory")
 $object.OS.Version = $object.OS.Version + "." + $UBR
 
@@ -246,8 +244,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUM1LOb/KPWZrBARKiwJpbuXHE
-# 9hCgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURcQEiTD/I8K5meEdRtXhgyxr
+# h9OgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -312,12 +310,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRY
-# IKnnSh3NjV/VVUwq1+RVKuE7CzANBgkqhkiG9w0BAQEFAASCAQALIb8R56gpegDI
-# U7SnRlGhh3H+wWCM32CwnMxfagioOKcV5xP5GtNDjumQwjuQ1sG4gnPFYSVOcnsB
-# ZwqR1TbWv795rrDMu9q7y0NGwhU8we5YkqE7+FYmxkfBm6U3TtiMU6D2gUT8dX+v
-# qJWCXjJ43dVSAjcGASDvCWm/Ca6BN9sfyCjHmN9ykTl0HN/MEMhhRmjpVJvqDYut
-# Rx/pPBgzh4PYpReXpTA8q6mP9OtX2B6s5r0YD9fHYRkj41h+YgpyQn1LdClYuty5
-# JHHo+qmVpkmtBvWz/tGv04ts/RZQ6bKWEzIYGXZ3Fat+x6O09jUWSGdZBorDv5us
-# eKqKTmxu
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR9
+# SzKiOQpIFq3EMuYmz0qP/2wiVTANBgkqhkiG9w0BAQEFAASCAQCkJFOnYL8h7GX3
+# g3llkVSkQsmGQIvcFQMP4/soaVvMTS9rkFtbmvz3WXWIO+Xw8uMwbsaBgJReRWsN
+# w94N1kRYFzo+b0ocu8tVLU0kCD5Qx7wCpbIjYRmM5KpV58Xo9aW3tKDh9Mx4qydL
+# S3GxFpiPF17hREq4DKRxgNji0Qnnw3E1TfqQIZUjFkxaVc0EkVVUIy1ts9Zg7g6i
+# y1HtXHW0oU44pcOHvPKAmpOOzJV0IxgxKpacsR75Z1wFtt7kryLz+/DmRXmff0nI
+# cV6dWdSAMT6APngEXjCTPwy/Jy4RdzHLFZKLqgJilvJWyqaArV8nB2FxbHhVb9F1
+# +TvhLl3d
 # SIG # End signature block
