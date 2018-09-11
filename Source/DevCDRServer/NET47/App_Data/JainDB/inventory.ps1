@@ -223,7 +223,7 @@ $SW += Get-ItemProperty HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVers
 $object | Add-Member -MemberType NoteProperty -Name "Software" -Value ($SW| Sort-Object -Property DisplayName )
 
 #Services ( Exlude services with repeating numbers like BluetoothUserService_62541)
-$Services = get-service | Where-Object { $_.Name -notmatch "_\d\d\d\d\d"} | Select-Object -Property @{N = 'id'; E = { $_.Name}}, DisplayName, Status,StartType 
+$Services = get-service | Where-Object { ($_.Name.length - $_.Name.LastIndexOf("_")) -ne 6 } | Select-Object -Property @{N = 'id'; E = { $_.Name}}, DisplayName, Status,StartType 
 $object | Add-Member -MemberType NoteProperty -Name "Services" -Value ($Services )
 
 #OS Version details
@@ -245,8 +245,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUp/vPGDFwP2lH8IHDhz+IiSeE
-# gTigggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSnqdgV0fnJWa6rTqd5WtftYW
+# FCGgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -311,12 +311,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRX
-# 08OWeEJZmQjjqJ7m7DzKHnkEyjANBgkqhkiG9w0BAQEFAASCAQB691WQusbWnde+
-# NpSYD3LaJZxTATyx5VraYqM7CHeGEzbME0pQTMHU0VUydc5HwKMLIbWBHjmQyjKN
-# RC7zNm6LPC6InJ2Mc0fZx46nVfHHDNcfhn+nowbRjnynvep4HTq9i/zk5Mpi/IU8
-# vMFL7Akc+vlOC4IFJKpEyKqk0Lrm59NkZLHQD7FoPzDL4sBRcK3aK3LUWBBUGvsq
-# IynvCDpg+d2dZYIEwoRAJaN77KoYwUFun+M4tlP8k6rSKvZszz8HWivZKhMFLkKi
-# x2MISWTdrmSCVpC63MMmp74UEk/Qs1BXZPRDFeinOMqrDsrq0CEOYJHa4esYEajL
-# Q/+UBnLz
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTu
+# 1BBMvt+i88zKrbJwiURk2MggIDANBgkqhkiG9w0BAQEFAASCAQCuYwHQnNPzeeR4
+# uge59CytShgqU5KArpSY2KVfDdg9Ld7eZkHH5j/LUGU2/0hubLcEv4OrctivZFvH
+# kE20ZlZ4xmF+sLC1zPmX4R6U2Jdnttn3Sv0O/F/WOTAUdWuBw7PeIDvAy8hlCCeG
+# AXSwnbrU3PFrxjYR5jsKH6epGbL6ddVadHyTZvUXrLsrazI06yNhMZML3Xh++mfO
+# +MYWYy0i9SwSkBm8xszqM+0Lsk0G5UDQMUf9k9j6yJffkFIEJ/0rPGdpme9x8DbV
+# jgQTDNJ2qOTNmCWFRl0wcSd4bR0ArfZ45zv37qlyYVatYoTuWse81v2HX9aGRYxq
+# Qx1B38Vx
 # SIG # End signature block
