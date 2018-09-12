@@ -223,7 +223,7 @@ $SW += Get-ItemProperty HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVers
 $object | Add-Member -MemberType NoteProperty -Name "Software" -Value ($SW| Sort-Object -Property DisplayName )
 
 #Services ( Exlude services with repeating numbers like BluetoothUserService_62541)
-$Services = get-service | Where-Object { (($_.Name.length - $_.Name.LastIndexOf("_")) -ne 6) -or ($_.Name.length -eq 6)  } | Select-Object -Property @{N = 'id'; E = { $_.Name}}, DisplayName, Status,StartType 
+$Services = get-service | Where-Object { ((($_.Name.length - $_.Name.LastIndexOf("_")) -ne 6) -or ($_.Name.length -eq 6)) -and ($_.Name -ne 'camsvc')  } | Select-Object -Property @{N = 'id'; E = { $_.Name}}, DisplayName, StartType, @{N = '@status'; E = {$_.status}} 
 $object | Add-Member -MemberType NoteProperty -Name "Services" -Value ($Services )
 
 #OS Version details
@@ -245,8 +245,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUlw+ldZ2DP6InovmJawJTraH2
-# 6GygggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUi/smn+IPSKl03FGq1ZE8vGqt
+# dm6gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -311,12 +311,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRq
-# pBzKzbEqGszpCz+Yn6qSbn95OzANBgkqhkiG9w0BAQEFAASCAQAtEXuMML8jeuaR
-# Aw/gIlbl351wIElN74cyU3RLqxqHAZ94nn0PSZxaqFV6x5pZJ9P3g8rjEqb89F65
-# Y5c1l+fK/RDCJjVvUyAabXkvroGAhKrVIvMgUv3NYj9WvVTlHebUolQehJBTHiR3
-# aqOTq8cGTuDztYPgP5qcaG8vJ3alvUuMqvxtN/0YEFKUSR/cMpdB9oOFEwKnyAuY
-# cAzXD5kF9mGkPFHd+nhaF2TPqrNx9bBWsBPaBsrlsrUTOPvElGiuN/52yC0zTBc9
-# yRXaVZwPYMQSXXier/fvK2I1N1eRAA8sifrQZfzvUr/ZC9FK8qM/+4PgzogpqGjv
-# 4yIuRJ51
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRf
+# qJLIYMXqcAFqUMh62MsDuNWjqzANBgkqhkiG9w0BAQEFAASCAQBIdI92MBAhQFcz
+# koduoyd9HTrHQbBnrAU5JjiUlSl9LwMBFjXeoO3ewunQzo+UnHSDW00d8H47bTzd
+# 3SGD/uymtvIpwsLo/TdojYaZaIJXvNUf0ooZX+vVLElpb3GOJI4EIJg0EDlRbI8W
+# +3GbQKGJzDVWEy2yrumPq9Ucy3S++LieMIXHG5Bc0edJBhmmmAhfXv9OQnG++ZVv
+# Exn/lsn9BSpdALkz2F9Jim1M5o5xFC9Gpv6TBIIgCj6hLz8ajlzlyScS22mkgYDi
+# SwprESpnjOUSwYly+7kvzpwwYsp4c9EAMPoUBlIu8Onj84nxgvnotHsyJ62TvIci
+# ckNfAvcc
 # SIG # End signature block
