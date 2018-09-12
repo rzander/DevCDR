@@ -134,7 +134,7 @@ namespace DevCDRServer.Controllers
         //[AllowAnonymous]
         [System.Web.Mvc.Authorize]
         [HttpGet]
-        public ActionResult Inv(string id, string name = "")
+        public ActionResult Inv(string id, string name = "", int index = -1)
         {
             string spath = HttpContext.Server.MapPath("~/App_Data/JainDB");
             jaindb.jDB.FilePath = spath;
@@ -145,7 +145,7 @@ namespace DevCDRServer.Controllers
             if (string.IsNullOrEmpty(id))
                 return Redirect("../DevCdr/Dashboard");
 
-            var oInv = jDB.GetFull(id, -1);
+            var oInv = jDB.GetFull(id, index);
 
             if (oInv != new JObject())
             {
@@ -172,6 +172,7 @@ namespace DevCDRServer.Controllers
                         ViewBag.LastInv = oInv["_date"];
                     }
 
+                    ViewBag.Index = oInv["_index"];
                     ViewBag.OS = oInv["OS"]["Caption"];
                     ViewBag.Name = oInv["Computer"]["#Name"];
                     ViewBag.Title = oInv["Computer"]["#Name"];
