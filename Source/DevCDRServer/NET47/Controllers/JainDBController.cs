@@ -172,6 +172,7 @@ namespace DevCDRServer.Controllers
                         ViewBag.LastInv = oInv["_date"];
                     }
 
+                    ViewBag.Id = id;
                     ViewBag.Index = oInv["_index"];
                     ViewBag.OS = oInv["OS"]["Caption"];
                     ViewBag.Name = oInv["Computer"]["#Name"];
@@ -350,6 +351,57 @@ namespace DevCDRServer.Controllers
             }
 
             return Redirect("../DevCdr/Dashboard");
+        }
+
+        [System.Web.Mvc.Authorize]
+        [HttpGet]
+        public ActionResult Diff(string id, int l =-1, int r = -1)
+        {
+            string spath = HttpContext.Server.MapPath("~/App_Data/JainDB");
+            jaindb.jDB.FilePath = spath;
+
+            if (!string.IsNullOrEmpty(id))
+            {
+
+                var oL = jDB.GetFull(id, l);
+                if (r == -1)
+                {
+                    try
+                    {
+                        r = (int)oL["_index"] - 1;
+                    }
+                    catch { }
+                }
+                var oR = jDB.GetFull(id, r);
+
+                //remove all @ attributes
+                foreach (var oKey in oL.Descendants().Where(t => t.Type == JTokenType.Property && ((JProperty)t).Name.StartsWith("@")).ToList())
+                {
+                    try
+                    {
+                        oKey.Remove();
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+                }
+
+                //remove all @ attributes
+                foreach (var oKey in oR.Descendants().Where(t => t.Type == JTokenType.Property && ((JProperty)t).Name.StartsWith("@")).ToList())
+                {
+                    try
+                    {
+                        oKey.Remove();
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+                }
+
+                ViewBag.jsonR = oR.ToString();
+                ViewBag.jsonL = oL.ToString();
+            }
+            return View("Diff");
         }
     }
 

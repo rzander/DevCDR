@@ -78,9 +78,10 @@
             </div>
             <div class="form-group">
                 <label class="control-label col-sm-3 text-right">Inventory age:</label>
-                <div class="col-sm-9">
+                <div class="col-sm-8">
                     <input class="form-control" id="tbStatus" type="text" value="@ViewBag.LastInv  Revision: @ViewBag.Index" readonly>
                 </div>
+                <a href="Diff?id=@ViewBag.Id&l=@ViewBag.Index" role="button" class="btn btn-default" aria-pressed="true">Diff</a>
             </div>
             <div class="form-group">
                 <label class="control-label col-sm-3 text-right">UserName:</label>
