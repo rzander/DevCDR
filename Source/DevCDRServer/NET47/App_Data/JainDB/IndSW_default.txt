@@ -320,3 +320,7 @@ Windows Software Development Kit - Windows 10.0.16299.15
 Windows Software Development Kit - Windows 10.0.17134.12
 Xamarin Studio 6.1.2
 ZyWALL SecuExtender
+KeePass 2.40
+Microsoft SQL Server Management Studio - 17.9
+Mozilla Firefox 62.0 (x64 de)
+AIO CREATOR NEO version 2.4.3

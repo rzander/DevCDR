@@ -330,3 +330,7 @@ Sysinternals Suite
 Sunny Explorer
 Steam
 SketchUp 2018
+KeePass 2.40
+Microsoft SQL Server Management Studio - 17.9
+Mozilla Firefox 62.0 (x64 de)
+AIO CREATOR NEO version 2.4.3

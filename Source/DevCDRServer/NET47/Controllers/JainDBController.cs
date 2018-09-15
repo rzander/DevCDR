@@ -398,10 +398,27 @@ namespace DevCDRServer.Controllers
                     }
                 }
 
-                ViewBag.jsonR = oR.ToString();
-                ViewBag.jsonL = oL.ToString();
+                ViewBag.jsonR = oR.ToString(Formatting.None);
+                ViewBag.jsonL = oL.ToString(Formatting.None);
             }
             return View("Diff");
+        }
+
+        [System.Web.Mvc.Authorize]
+        [HttpGet]
+        public ActionResult InvJson(string id, int l = -1)
+        {
+            string spath = HttpContext.Server.MapPath("~/App_Data/JainDB");
+            jaindb.jDB.FilePath = spath;
+
+            if (!string.IsNullOrEmpty(id))
+            {
+
+                var oL = jDB.GetFull(id, l);
+
+                ViewBag.jsonL = oL.ToString(Formatting.None);
+            }
+            return View("InvJson");
         }
     }
 

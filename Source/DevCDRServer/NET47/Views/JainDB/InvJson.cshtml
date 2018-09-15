@@ -1,0 +1,36 @@
+﻿<p></p>
+
+<link href="../content/jTree/jsonTree.css" rel="stylesheet" />
+<script src="../content/jTree/jquery-1.11.1.min.js" type="text/javascript"></script>
+<script src="../content/jTree/underscore-min.js" type="text/javascript"></script>
+<script src="../content/jTree/backbone-min.js" type="text/javascript"></script>
+
+<script src="../content/jTree/pretty-json-min.js" type="text/javascript"></script>
+
+
+<hr />
+<span id="result"></span>
+<hr />
+
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        var el = {
+            result: $('#result')
+        }
+
+        // Get json-data by javascript-object
+        var json = @Html.Raw(Json.Encode(ViewBag.jsonL));
+        var o;
+        try { o = JSON.parse(json); }
+        catch (e) {
+            alert('not valid JSON' + e);
+            return;
+        }
+
+        var node = new PrettyJSON.view.Node({
+            el: el.result,
+            data: o
+        });
+    });
+</script>

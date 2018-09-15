@@ -325,3 +325,7 @@ ZyWALL SecuExtender
 Microsoft .NET Core SDK - 2.1.100 (x64)
 Microsoft .NET Core SDK - 2.1.2 (x64)
 SurfaceBook Update 18_010_00 (64 bit)
+KeePass 2.40
+Microsoft SQL Server Management Studio - 17.9
+Mozilla Firefox 62.0 (x64 de)
+AIO CREATOR NEO version 2.4.3
