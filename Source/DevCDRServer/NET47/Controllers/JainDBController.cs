@@ -177,7 +177,7 @@ namespace DevCDRServer.Controllers
                     ViewBag.OS = oInv["OS"]["Caption"];
                     ViewBag.Name = oInv["Computer"]["#Name"];
                     ViewBag.Title = oInv["Computer"]["#Name"];
-                    ViewBag.UserName = oInv["Computer"]["#UserName"] ?? "";
+                    ViewBag.UserName = oInv["Computer"]["@UserName"] ?? "";
                     ViewBag.Vendor = oInv["Computer"]["Manufacturer"] ?? oInv["BIOS"]["Manufacturer"];
                     ViewBag.Serial = oInv["Computer"]["#SerialNumber"] ?? oInv["BIOS"]["#SerialNumber"] ?? "unknown";
                     ViewBag.Version = oInv["OS"]["Version"];
@@ -398,8 +398,8 @@ namespace DevCDRServer.Controllers
                     }
                 }
 
-                ViewBag.jsonR = oR.ToString(Formatting.None);
-                ViewBag.jsonL = oL.ToString(Formatting.None);
+                ViewBag.jsonR = oR.ToString(Formatting.Indented);
+                ViewBag.jsonL = oL.ToString(Formatting.Indented);
             }
             return View("Diff");
         }

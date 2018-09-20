@@ -1,22 +1,28 @@
 ﻿<p></p>
 <link rel="stylesheet" href="../content/diff/html.css" type="text/css" />
-@*<link rel="stylesheet" href="../content/diff/annotated.css" type="text/css" />*@
-<link rel="stylesheet" href="../content/diff/style.css" type="text/css" />
-<script src="../content/diff/jsondiffpatch.umd.min.js" type="text/javascript"></script>
+@*<link rel="stylesheet" href="../content/diff/style.css" type="text/css" />*@
+<script src="../content/diff/jsondiffpatch.js" type="text/javascript"></script>
+<script src="../content/diff/jsondiffpatch-formatters.js" type="text/javascript"></script>
 
 <div id="visual" class=""></div>
 <hr />
 <div id="annotated"></div>
 <script type="text/javascript">
     $(function () {
-        var left = @Html.Raw(Json.Encode(ViewBag.jsonL));
-        var right = @Html.Raw(Json.Encode(ViewBag.jsonR));
+        var left = @Html.Raw(ViewBag.jsonL);
+        var right = @Html.Raw(ViewBag.jsonR);
 
-        var delta = jsondiffpatch.diff(right, left);
+        //var delta = jsondiffpatch.diff(right, left);
+        var delta = jsondiffpatch.create({
+            objectHash: function (obj, index) {
+                // try to find an id property, otherwise just use the index in the array
+                return obj.name || obj.id || obj._id || obj.PropertyName || obj.name || obj.DisplayName || obj.DeviceID || obj.HotFixID || '$$index:' + index;
+            }
+        }).diff(right, left);
 
         // beautiful html diff
         document.getElementById('visual').innerHTML = jsondiffpatch.formatters.html.format(delta, left);
-
+        jsondiffpatch.formatters.html.hideUnchanged();
         // self-explained json
         //document.getElementById('annotated').innerHTML = jsondiffpatch.formatters.annotated.format(delta, left);
     })

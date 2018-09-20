@@ -449,7 +449,12 @@
     <Content Include="Content\DataTables\swf\flashExport.swf" />
     <Content Include="Content\diff\annotated.css" />
     <Content Include="Content\diff\html.css" />
-    <Content Include="Content\diff\jsondiffpatch.umd.min.js" />
+    <Content Include="Content\diff\jsondiffpatch-formatters.js" />
+    <Content Include="Content\diff\jsondiffpatch-formatters.min.js" />
+    <Content Include="Content\diff\jsondiffpatch-full.js" />
+    <Content Include="Content\diff\jsondiffpatch-full.min.js" />
+    <Content Include="Content\diff\jsondiffpatch.js" />
+    <Content Include="Content\diff\jsondiffpatch.min.js" />
     <Content Include="Content\diff\style.css" />
     <Content Include="Content\jTree\backbone-min.js" />
     <Content Include="Content\jTree\jquery-1.11.1.min.js" />
@@ -528,6 +533,9 @@
     <Content Include="Content\DataTables\css\semanticui.scss" />
     <Content Include="Content\DataTables\css\mixins.scss" />
     <Content Include="Content\DataTables\css\common.scss" />
+    <Content Include="Content\diff\jsondiffpatch-formatters.min.map" />
+    <Content Include="Content\diff\jsondiffpatch-full.min.map" />
+    <Content Include="Content\diff\jsondiffpatch.min.map" />
     <None Include="packages.config" />
     <None Include="Properties\PublishProfiles\DevCDR - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\DevCDR - Web Deploy.pubxml" />
