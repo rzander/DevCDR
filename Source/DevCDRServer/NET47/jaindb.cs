@@ -243,7 +243,7 @@ namespace jaindb
                             }
                             break;
 
-                        case "chain":
+                        case "_chain":
                             lock (locker) //only one write operation
                             {
                                 File.WriteAllText(FilePath + "\\" + Collection + "\\" + Hash + ".json", Data);
@@ -330,7 +330,7 @@ namespace jaindb
 
 #if DEBUG
                         //Check if hashes are valid...
-                        if (Collection.ToLower() != "_full" && Collection.ToLower() != "chain")
+                        if (Collection.ToLower() != "_full" && Collection.ToLower() != "_chain")
                         {
                             var jData = JObject.Parse(sResult);
                             /*if (jData["#id"] != null)
@@ -374,7 +374,7 @@ namespace jaindb
         public static Blockchain GetChain(string DeviceID)
         {
             Blockchain oChain;
-            string sData = ReadHash(DeviceID, "Chain");
+            string sData = ReadHash(DeviceID, "_Chain");
             if (string.IsNullOrEmpty(sData))
             {
                 oChain = new Blockchain("", "root", 0);
@@ -389,10 +389,13 @@ namespace jaindb
             return oChain;
         }
 
-        public static string UploadFull(string JSON, string DeviceID)
+        public static string UploadFull(string JSON, string DeviceID, string blockType = "")
         {
             if (ReadOnly)
                 return "";
+
+            if (string.IsNullOrEmpty(blockType))
+                blockType = BlockType;
 
             try
             {
@@ -537,10 +540,10 @@ namespace jaindb
 
                 string sResult = CalculateHash(oStatic.ToString(Newtonsoft.Json.Formatting.None));
 
-                var oBlock = oChain.GetLastBlock();
+                var oBlock = oChain.GetLastBlock(blockType);
                 if (oBlock.data != sResult)
                 {
-                    var oNew = oChain.MineNewBlock(oBlock, BlockType);
+                    var oNew = oChain.MineNewBlock(oBlock, blockType);
                     oChain.UseBlock(sResult, oNew);
 
                     if (oChain.ValidateChain())
@@ -556,7 +559,7 @@ namespace jaindb
                         }
 
 
-                        WriteHashAsync(DeviceID, JsonConvert.SerializeObject(oChain), "Chain");
+                        WriteHashAsync(DeviceID, JsonConvert.SerializeObject(oChain), "_Chain");
 
 
 
@@ -565,6 +568,8 @@ namespace jaindb
                             oStatic.AddFirst(new JProperty("_date", new DateTime(oNew.timestamp).ToUniversalTime()));
                         if (oStatic["_index"] == null)
                             oStatic.AddFirst(new JProperty("_index", oNew.index));
+                        if (oStatic["_type"] == null)
+                            oStatic.AddFirst(new JProperty("_type", blockType));
                         if (oStatic["#id"] == null)
                             oStatic.AddFirst(new JProperty("#id", DeviceID));
 
@@ -574,12 +579,18 @@ namespace jaindb
                             jTemp.AddFirst(new JProperty("_hash", oNew.data));
                         if (jTemp["_date"] == null)
                             jTemp.AddFirst(new JProperty("_date", new DateTime(oNew.timestamp).ToUniversalTime()));
+                        if (jTemp["_type"] == null)
+                            jTemp.AddFirst(new JProperty("_type", blockType));
                         if (jTemp["#id"] == null)
                             jTemp.AddFirst(new JProperty("#id", DeviceID));
 
                         //JSort(jTemp);
 
-                        WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_Full");
+                        //Only store Full data for default BlockType
+                        if (blockType == BlockType)
+                            WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_Full");
+                        else
+                            WriteHashAsync(DeviceID + "_" + blockType, jTemp.ToString(Formatting.None), "_Full");
 
                     }
                     else
@@ -589,9 +600,10 @@ namespace jaindb
                 }
 
                 //JSort(oStatic);
-
-                WriteHashAsync(sResult, oStatic.ToString(Newtonsoft.Json.Formatting.None), "Assets");
-
+                if (blockType == BlockType)
+                    WriteHashAsync(sResult, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_Assets");
+                else
+                    WriteHashAsync(sResult + "_" + blockType, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_Assets");
 
 
                 return sResult;
@@ -604,26 +616,38 @@ namespace jaindb
             return "";
         }
 
-        public static JObject GetFull(string DeviceID, int Index = -1)
+        public static JObject GetFull(string DeviceID, int Index = -1, string blockType = "")
         {
             try
             {
                 JObject oInv = new JObject();
 
+                if (string.IsNullOrEmpty(blockType))
+                    blockType = BlockType;
+
                 if (Index == -1)
                 {
-                    string sFull = ReadHash(DeviceID, "_Full");
+                    string sFull = "";
+                    if (blockType == BlockType)
+                        sFull = ReadHash(DeviceID, "_Full");
+                    else
+                        sFull = ReadHash(DeviceID + "_" + blockType, "_Full");
+
                     if (!string.IsNullOrEmpty(sFull))
                     {
                         return JObject.Parse(sFull);
                     }
                 }
 
-                JObject oRaw = GetRawId(DeviceID, Index);
-                string sData = ReadHash(oRaw["_hash"].ToString(), "Assets");
+                JObject oRaw = GetRawId(DeviceID, Index, blockType);
 
+                string sData = "";
+                if (blockType == BlockType)
+                    sData = ReadHash(oRaw["_hash"].ToString(), "_Assets");
+                else
+                    sData = ReadHash(oRaw["_hash"].ToString() + "_" + blockType, "_Assets");
 
-                    if (!string.IsNullOrEmpty(sData))
+                if (!string.IsNullOrEmpty(sData))
                     {
                         oInv = JObject.Parse(sData);
                         try
@@ -797,9 +821,12 @@ namespace jaindb
             return new JObject();
         }
 
-        public static JObject GetRawId(string DeviceID, int Index = -1)
+        public static JObject GetRawId(string DeviceID, int Index = -1, string blockType = "")
         {
             JObject jResult = new JObject();
+
+            if (string.IsNullOrEmpty(blockType))
+                blockType = BlockType;
 
             try
             {
@@ -810,13 +837,13 @@ namespace jaindb
                 if (Index == -1)
                 {
                     oChain = GetChain(DeviceID);
-                    lBlock = oChain.GetLastBlock();
+                    lBlock = oChain.GetLastBlock(blockType);
 
                 }
                 else
                 {
                     oChain = GetChain(DeviceID);
-                    lBlock = oChain.GetBlock(Index);
+                    lBlock = oChain.GetBlock(Index, blockType);
                 }
 
 
@@ -833,15 +860,19 @@ namespace jaindb
             return jResult;
         }
 
-        public static JObject GetHistory(string DeviceID)
+        public static JObject GetHistory(string DeviceID, string blockType = "")
         {
             JObject jResult = new JObject();
+
+            if (string.IsNullOrEmpty(blockType))
+                blockType = BlockType;
+
             try
             {
 
-                string sChain = ReadHash(DeviceID, "Chain");
+                string sChain = ReadHash(DeviceID, "_Chain");
                 var oChain = JsonConvert.DeserializeObject<Blockchain>(sChain);
-                foreach (block oBlock in oChain.Chain.Where(t => t.blocktype != "root"))
+                foreach (block oBlock in oChain.Chain.Where(t => t.blocktype == blockType))
                 {
                     try
                     {
@@ -928,8 +959,11 @@ namespace jaindb
             return jResult;
         }
 
-        public static JObject GetDiff(string DeviceId, int IndexLeft, int mode = -1, int IndexRight = -1)
+        public static JObject GetDiff(string DeviceId, int IndexLeft, int mode = -1, int IndexRight = -1, string blockType = "")
         {
+            if (string.IsNullOrEmpty(blockType))
+                blockType = BlockType;
+
             try
             {
                 var right = GetFull(DeviceId, IndexRight);
@@ -1343,7 +1377,7 @@ namespace jaindb
             {
                 if (UseFileStore)
                 {
-                    foreach (var oFile in new DirectoryInfo(FilePath + "\\Assets").GetFiles("*.json"))
+                    foreach (var oFile in new DirectoryInfo(FilePath + "\\_Assets").GetFiles("*.json"))
                     {
                         bool foundData = false;
                         JObject jObj = GetRaw(File.ReadAllText(oFile.FullName), paths);
@@ -1491,7 +1525,7 @@ namespace jaindb
             {
                 Change oRes = new Change();
                 oRes.id = sID;
-                var jObj = JObject.Parse(ReadHash(sID, "Chain"));
+                var jObj = JObject.Parse(ReadHash(sID, "_Chain"));
                 oRes.lastChange = new DateTime(jObj["Chain"].Last["timestamp"].Value<long>());
                 if (DateTime.Now.Subtract(oRes.lastChange) > age)
                 {
@@ -1527,7 +1561,7 @@ namespace jaindb
                 {
                     if (UseFileStore)
                     {
-                        foreach (var oFile in new DirectoryInfo(FilePath + "\\Chain").GetFiles("*.json"))
+                        foreach (var oFile in new DirectoryInfo(FilePath + "\\_Chain").GetFiles("*.json"))
                         {
                             lResult.Add(System.IO.Path.GetFileNameWithoutExtension(oFile.Name));
                         }
@@ -1610,7 +1644,7 @@ namespace jaindb
                     {
                         try
                         {
-                            var jObj = JObject.Parse(ReadHash(sID, "Chain"));
+                            var jObj = JObject.Parse(ReadHash(sID, "_Chain"));
                             foreach (var sBlock in jObj.SelectTokens("Chain[*].data"))
                             {
                                 try
@@ -1618,7 +1652,7 @@ namespace jaindb
                                     string sBlockID = sBlock.Value<string>();
                                     if (!string.IsNullOrEmpty(sBlockID))
                                     {
-                                        var jBlock = GetRaw(ReadHash(sBlockID, "Assets"));
+                                        var jBlock = GetRaw(ReadHash(sBlockID, "_Assets"));
                                         jBlock.Remove("#id"); //old Version of jainDB 
                                         //jBlock.Remove("_date");
                                         jBlock.Remove("_index");
@@ -1856,7 +1890,7 @@ namespace jaindb
 
                     var oNew = new block()
                     {
-                        index = iIndex,
+                        index = ParentBlock.index + 1, //iIndex,
                         timestamp = DateTime.Now.Ticks,
                         previous_hash = ParentBlock.hash,
                         blocktype = Blocktype,
@@ -1917,14 +1951,28 @@ namespace jaindb
                 return sb.ToString();
             }
 
-            public block GetLastBlock()
+            public block GetLastBlock(string blockType = "")
             {
-                return Chain.FirstOrDefault(t => Chain.Count(q => ByteArrayToString(q.previous_hash) == ByteArrayToString(t.hash)) == 0);
+                if (string.IsNullOrEmpty(blockType))
+                    return Chain.FirstOrDefault(t => Chain.Count(q => ByteArrayToString(q.previous_hash) == ByteArrayToString(t.hash)) == 0);
+                else
+                {
+                    var oBlock = Chain.FirstOrDefault(t => Chain.Count(q => ByteArrayToString(q.previous_hash) == ByteArrayToString(t.hash)) == 0 && (t.blocktype == blockType));
+
+                    //return genesis block if no other block was found
+                    if (oBlock == null)
+                        return GetBlock(0, "root");
+                    else
+                        return oBlock;
+                }
             }
 
-            public block GetBlock(int index)
+            public block GetBlock(int index, string blockType = "")
             {
-                return Chain.FirstOrDefault(t => t.index == index);
+                if (string.IsNullOrEmpty(blockType))
+                    return Chain.FirstOrDefault(t => t.index == index);
+                else
+                    return Chain.FirstOrDefault(t => t.index == index && t.blocktype == blockType);
             }
         }
 

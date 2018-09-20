@@ -29,31 +29,45 @@ namespace DevCDRServer.Controllers
         [AllowAnonymous]
         [HttpPost]
         [Route("upload/{param}")]
-        public string Upload(string param)
+        public string Upload(string param, string blockType = "INV")
         {
             jDB.FilePath = HttpContext.Server.MapPath("~/App_Data/JainDB");
             Stream req = Request.InputStream;
             req.Seek(0, System.IO.SeekOrigin.Begin);
             string sParams = new StreamReader(req).ReadToEnd();
             param = Request.Path.Substring(Request.Path.LastIndexOf('/') + 1);
-            return jDB.UploadFull(sParams, param);
+            return jDB.UploadFull(sParams, param, blockType);
         }
 
         [AllowAnonymous]
         [HttpGet]
         [Route("GetPS")]
-        public string GetPS()
+        public string GetPS(string filename = "")
         {
             string sResult = "";
             string spath = HttpContext.Server.MapPath("~/App_Data/JainDB");
             jaindb.jDB.FilePath = spath;
-            string sLocalURL = Request.Url.AbsoluteUri.Replace("/getps", "");
-            if (System.IO.File.Exists(spath + "/inventory.ps1"))
+            if (string.IsNullOrEmpty(filename))
             {
-                string sFile = System.IO.File.ReadAllText(spath + "/inventory.ps1");
-                sResult = sFile.Replace("%LocalURL%", sLocalURL).Replace(":%WebPort%", "");
+                string sLocalURL = Request.Url.AbsoluteUri.Replace("/getps", "");
+                if (System.IO.File.Exists(spath + "/inventory.ps1"))
+                {
+                    string sFile = System.IO.File.ReadAllText(spath + "/inventory.ps1");
+                    sResult = sFile.Replace("%LocalURL%", sLocalURL).Replace(":%WebPort%", "");
 
-                return sResult;
+                    return sResult;
+                }
+            }
+            else
+            {
+                string sLocalURL = Request.Url.AbsoluteUri.Substring(0, Request.Url.AbsoluteUri.IndexOf("/getps"));
+                if (System.IO.File.Exists(spath + "/" + filename))
+                {
+                    string sFile = System.IO.File.ReadAllText(spath + "/" + filename);
+                    sResult = sFile.Replace("%LocalURL%", sLocalURL).Replace(":%WebPort%", "");
+
+                    return sResult;
+                }
             }
 
             return sResult;
@@ -63,7 +77,7 @@ namespace DevCDRServer.Controllers
         [HttpGet]
         [BasicAuthenticationAttribute("DEMO", "password")]
         [Route("full")]
-        public JObject Full()
+        public JObject Full(string blockType = "INV")
         {
             //string sPath = this.Request.Path;
             string spath = HttpContext.Server.MapPath("~/App_Data/JainDB");
@@ -80,7 +94,7 @@ namespace DevCDRServer.Controllers
             if (!int.TryParse(query["index"], out int index))
                 index = -1;
             if (!string.IsNullOrEmpty(sKey))
-                return jDB.GetFull(sKey, index);
+                return jDB.GetFull(sKey, index, blockType);
             else
                 return null;
         }
@@ -134,7 +148,7 @@ namespace DevCDRServer.Controllers
         //[AllowAnonymous]
         [System.Web.Mvc.Authorize]
         [HttpGet]
-        public ActionResult Inv(string id, string name = "", int index = -1)
+        public ActionResult Inv(string id, string name = "", int index = -1, string blockType = "INV")
         {
             string spath = HttpContext.Server.MapPath("~/App_Data/JainDB");
             jaindb.jDB.FilePath = spath;
@@ -145,7 +159,7 @@ namespace DevCDRServer.Controllers
             if (string.IsNullOrEmpty(id))
                 return Redirect("../DevCdr/Dashboard");
 
-            var oInv = jDB.GetFull(id, index);
+            var oInv = jDB.GetFull(id, index, blockType);
 
             if (oInv != new JObject())
             {
@@ -174,6 +188,7 @@ namespace DevCDRServer.Controllers
 
                     ViewBag.Id = id;
                     ViewBag.Index = oInv["_index"];
+                    ViewBag.Type = oInv["_type"] ?? "INV";
                     ViewBag.OS = oInv["OS"]["Caption"];
                     ViewBag.Name = oInv["Computer"]["#Name"];
                     ViewBag.Title = oInv["Computer"]["#Name"];
