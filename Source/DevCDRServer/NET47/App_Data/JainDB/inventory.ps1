@@ -198,7 +198,7 @@ getinv -Name "Printer" -WMIClass "Win32_Printer" -Properties @("DeviceID","Capab
 $user = Get-LocalUser | Select-Object Description, Enabled, UserMayChangePassword, PasswordRequired, Name, @{N = '@PasswordLastSet'; E = {[System.DateTime](($_.PasswordLastSet).ToUniversalTime())}}, @{N = 'id'; E = {$_.SID}} | Sort-Object -Property Name
 $object | Add-Member -MemberType NoteProperty -Name "LocalUsers" -Value ($user)
 
-$locAdmin = Get-LocalGroupMember -SID S-1-5-32-544 | Select-Object @{N = 'Name'; E = {$_.Name.Replace($($env:Computername) + "\", "")}}, ObjectClass, @{Name = 'id'; Expression = {$_.SID.Value}} | Sort-Object -Property Name
+$locAdmin = Get-LocalGroupMember -SID S-1-5-32-544 | Select-Object @{N = 'Name'; E = {$_.Name.Replace($($env:Computername) + "\", "")}}, ObjectClass, PrincipalSource, @{Name = 'id'; Expression = {$_.SID.Value}} | Sort-Object -Property Name
 $object | Add-Member -MemberType NoteProperty -Name "LocalAdmins" -Value ($locAdmin)
 
 $locGroup = Get-LocalGroup | Select-Object Description, Name, PrincipalSource, ObjectClass, @{N = 'id'; E = {$_.SID}}  | Sort-Object -Property Name
@@ -226,6 +226,14 @@ $object | Add-Member -MemberType NoteProperty -Name "Software" -Value ($SW| Sort
 $Services = get-service | Where-Object { (($_.Name.IndexOf("_")) -eq -1) -and ($_.Name -ne 'camsvc')  } | Select-Object -Property @{N = 'id'; E = { $_.Name}}, DisplayName, StartType, @{N = '@status'; E = {$_.status}} 
 $object | Add-Member -MemberType NoteProperty -Name "Services" -Value ($Services )
 
+#Office365
+$O365 = Get-ItemProperty HKLM:SOFTWARE\Microsoft\Office\ClickToRun\Configuration | Select * -Exclude PS*,*Retail.EmailAddress,InstallID
+$object | Add-Member -MemberType NoteProperty -Name "Office365" -Value ($O365)
+
+#CloudJoin
+$Cloud = Get-Item HKLM:SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\* | Get-ItemProperty | select -Property IdpDomain,TenantId,@{N = '#UserEmail'; E = { $_.UserEmail}},AikCertStatus, AttestationLevel,TransportKeyStatus
+$object | Add-Member -MemberType NoteProperty -Name "CloudJoin" -Value ($Cloud)
+
 #OS Version details
 $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
 
@@ -245,8 +253,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQqF9DJkYFGjG27bLDorsasKz
-# OW+gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUnxfAPHg2kQkIHcxQDD5FbEon
+# BeqgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -311,12 +319,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTS
-# UOAl8KX8Kl8uDEEJIRvT0Cz76TANBgkqhkiG9w0BAQEFAASCAQDAgImYxhuPy54W
-# V73WsA5FxEDImGRWV3FbttRDCwNXONttmlvXJ0O794E9iVMmDHlITC7WIfNaDlOc
-# WvQ0xcGxH/yWjfBC2ktSLCPfTwJgXNuPKgvRrGCTMv2A6c+/PcQzOAxFdT6baKrA
-# 2KL99RyBVWep8sZvorryp6f08hh7FYNJkXJvMFw+WZvEmE9RWVz6Nl7VY/BzB1CR
-# UvED2NpAbPB8s1kJT2KRYJAUD4pAB8RdIkwQ0vIGcOs+prvofaQ93pcdsCHca/vq
-# Vj0ScRVB0GMiDAJkLnaS7NcaUjDZNIaXpedSq1csLCjrb1yBt39EOA6r2QNtAs7j
-# r7gLmzCX
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRA
+# HIV6RkfXiHtovo7f1qYvf3HHTDANBgkqhkiG9w0BAQEFAASCAQBjl70OoL2pv+50
+# u2PDUr6mUd0X6u2f7jT18msSQuVV598fppzDJY0Fs2TErLy7//zlkun4dmtNZwpN
+# pGREzgkAU/YmI5WVNmRs+4moQjyi7FB3m968oKe7CSVbxTUeMPMwQ8v+VRzsOHdz
+# e1FN2cp5xaKIUKKDSo24nkBNHtrgV2etMdCb1bk+H/1FZ4D1wfGzmQswM0wJqnT7
+# NjUA7iq6vhDSGeBzYtmfdGN2O0WiIRguva9qCO9POzrbbP5r5OF5MhJHmEKH8sY3
+# cRNUHSAF3sl8htIKLZmQQVKeaD0fTm4ZY1BzAuTQkSLO/43gUltSpuAuYfVHqunW
+# ar3mqm/5
 # SIG # End signature block
