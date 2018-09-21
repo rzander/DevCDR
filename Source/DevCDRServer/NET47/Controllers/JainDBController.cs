@@ -126,7 +126,7 @@ namespace DevCDRServer.Controllers
         public int totalDeviceCount(string sPath = "")
         {
             if(string.IsNullOrEmpty(sPath))
-                sPath = HttpContext.Server.MapPath("~/App_Data/JainDB/Chain");
+                sPath = HttpContext.Server.MapPath("~/App_Data/JainDB/_Chain");
             int iCount = 0;
             if (Directory.Exists(sPath))
                 iCount = Directory.GetFiles(sPath).Count(); //count Blockchain Files
@@ -145,8 +145,8 @@ namespace DevCDRServer.Controllers
             return View();
         }
 
-        //[AllowAnonymous]
-        [System.Web.Mvc.Authorize]
+        [AllowAnonymous]
+        //[System.Web.Mvc.Authorize]
         [HttpGet]
         public ActionResult Inv(string id, string name = "", int index = -1, string blockType = "INV")
         {
@@ -327,6 +327,12 @@ namespace DevCDRServer.Controllers
                         case 14:
                             ViewBag.Type = "Sub Notebook";
                             break;
+                        case 30:
+                            ViewBag.Type = "Tablet";
+                            break;
+                        case 31:
+                            ViewBag.Type = "Convertible";
+                            break;
                         default:
                             ViewBag.Type = "Other";
                             break;
@@ -368,7 +374,8 @@ namespace DevCDRServer.Controllers
             return Redirect("../DevCdr/Dashboard");
         }
 
-        [System.Web.Mvc.Authorize]
+        [AllowAnonymous]
+        //[System.Web.Mvc.Authorize]
         [HttpGet]
         public ActionResult Diff(string id, int l =-1, int r = -1)
         {
@@ -419,9 +426,10 @@ namespace DevCDRServer.Controllers
             return View("Diff");
         }
 
-        [System.Web.Mvc.Authorize]
+        [AllowAnonymous]
+        //[System.Web.Mvc.Authorize]
         [HttpGet]
-        public ActionResult InvJson(string id, int l = -1)
+        public ActionResult InvJson(string id, int l = -1, string blockType = "INV")
         {
             string spath = HttpContext.Server.MapPath("~/App_Data/JainDB");
             jaindb.jDB.FilePath = spath;
@@ -429,7 +437,7 @@ namespace DevCDRServer.Controllers
             if (!string.IsNullOrEmpty(id))
             {
 
-                var oL = jDB.GetFull(id, l);
+                var oL = jDB.GetFull(id, l, blockType);
 
                 ViewBag.jsonL = oL.ToString(Formatting.None);
             }

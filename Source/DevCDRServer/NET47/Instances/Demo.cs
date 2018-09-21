@@ -35,6 +35,12 @@ namespace DevCDRServer
             }
         }
 
+        public void HealthCheck(string name)
+        {
+            string sEndPoint = "devcdr.azurewebsites.net";
+            Clients.Client(Context.ConnectionId).returnPSAsync("Invoke-RestMethod -Uri 'https://" + sEndPoint + "/jaindb/getps?filename=inventory.ps1' | IEX;'Inventory complete..'", "Host");
+        }
+
         public Task JoinGroup(string groupName)
         {
             if (!lGroups.Contains(groupName))
@@ -101,7 +107,7 @@ namespace DevCDRServer
 
         public void Send(string name, string message)
         {
-            string lMessage = message.ToLower();
+           /* string lMessage = message.ToLower();
 
             if (message.StartsWith("@"))
             {
@@ -177,7 +183,7 @@ namespace DevCDRServer
                     return;
                 }
             }
-
+            */
         }
 
         public void Respond(string senderId, string message)

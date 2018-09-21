@@ -198,7 +198,7 @@ getinv -Name "Printer" -WMIClass "Win32_Printer" -Properties @("DeviceID","Capab
 $user = Get-LocalUser | Select-Object Description, Enabled, UserMayChangePassword, PasswordRequired, Name, @{N = '@PasswordLastSet'; E = {[System.DateTime](($_.PasswordLastSet).ToUniversalTime())}}, @{N = 'id'; E = {$_.SID}} | Sort-Object -Property Name
 $object | Add-Member -MemberType NoteProperty -Name "LocalUsers" -Value ($user)
 
-$locAdmin = Get-LocalGroupMember -SID S-1-5-32-544 | Select-Object @{N = 'Name'; E = {$_.Name.Replace($($env:Computername) + "\", "")}}, ObjectClass, PrincipalSource, @{Name = 'id'; Expression = {$_.SID.Value}} | Sort-Object -Property Name
+$locAdmin = Get-LocalGroupMember -SID S-1-5-32-544 | Select-Object @{N = 'Name'; E = {$_.Name.Replace($($env:Computername) + "\", "")}}, ObjectClass, @{Name = 'PrincipalSource'; Expression = {$_.PrincipalSource.ToString()}}, @{Name = 'id'; Expression = {$_.SID.Value}} | Sort-Object -Property Name
 $object | Add-Member -MemberType NoteProperty -Name "LocalAdmins" -Value ($locAdmin)
 
 $locGroup = Get-LocalGroup | Select-Object Description, Name, PrincipalSource, ObjectClass, @{N = 'id'; E = {$_.SID}}  | Sort-Object -Property Name
@@ -253,8 +253,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUnxfAPHg2kQkIHcxQDD5FbEon
-# BeqgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUU25cYh2rE+WDhaZp8S/M4Qyb
+# TrqgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -319,12 +319,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRA
-# HIV6RkfXiHtovo7f1qYvf3HHTDANBgkqhkiG9w0BAQEFAASCAQBjl70OoL2pv+50
-# u2PDUr6mUd0X6u2f7jT18msSQuVV598fppzDJY0Fs2TErLy7//zlkun4dmtNZwpN
-# pGREzgkAU/YmI5WVNmRs+4moQjyi7FB3m968oKe7CSVbxTUeMPMwQ8v+VRzsOHdz
-# e1FN2cp5xaKIUKKDSo24nkBNHtrgV2etMdCb1bk+H/1FZ4D1wfGzmQswM0wJqnT7
-# NjUA7iq6vhDSGeBzYtmfdGN2O0WiIRguva9qCO9POzrbbP5r5OF5MhJHmEKH8sY3
-# cRNUHSAF3sl8htIKLZmQQVKeaD0fTm4ZY1BzAuTQkSLO/43gUltSpuAuYfVHqunW
-# ar3mqm/5
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSF
+# Lppw+Gv5PrtLbKt9EGBIFnSQSjANBgkqhkiG9w0BAQEFAASCAQAzwJi28YgEgkDu
+# Q4zGdoPtoecetxqxx5cnm9zZ2VUjo7W/fTbozg/OPEpJG6zb4WHbpv2EF9pHrfVQ
+# 5zgsSmuyogxeWJP2M2rmfKWv5dgy5OsbiE/n/aC+jF1cMflzJBmYeKkZv6FXIylv
+# Izr+oSILi9keiHE2YE4EYYBr44Bw/CH6GCWpYtk3J919x1mpBnMBPkChgseNAzLJ
+# cCrEJE4/ZeDqRLCSfWbICXkWFWFIjEyByIfIW7Oi3W7w8csG77bUbPAHQch6SdKM
+# B6nmWymlslx0CbssPOlFzFUnFvF+GXtmVMfst5L409iuVy3rQ8kufKbtctHJEvdY
+# k1+LVf8i
 # SIG # End signature block
