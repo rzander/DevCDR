@@ -34,7 +34,7 @@ namespace DevCDRAgent.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Test")]
+        [global::System.Configuration.DefaultSettingValueAttribute("zander")]
         public string Instance {
             get {
                 return ((string)(this["Instance"]));
@@ -175,6 +175,26 @@ namespace DevCDRAgent.Properties {
         public int StatusDelay {
             get {
                 return ((int)(this["StatusDelay"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("12")]
+        public int HealtchCheckHours {
+            get {
+                return ((int)(this["HealtchCheckHours"]));
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        public global::System.DateTime HealthCheckSuccess {
+            get {
+                return ((global::System.DateTime)(this["HealthCheckSuccess"]));
+            }
+            set {
+                this["HealthCheckSuccess"] = value;
             }
         }
     }

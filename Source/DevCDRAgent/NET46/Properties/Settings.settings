@@ -6,7 +6,7 @@
       <Value Profile="(Default)">https://devcdr.azurewebsites.net/Chat</Value>
     </Setting>
     <Setting Name="Instance" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">Test</Value>
+      <Value Profile="(Default)">zander</Value>
     </Setting>
     <Setting Name="PSStatus" Type="System.String" Scope="Application">
       <Value Profile="(Default)">
@@ -174,6 +174,12 @@ $object | ConvertTo-Json
     </Setting>
     <Setting Name="StatusDelay" Type="System.Int32" Scope="Application">
       <Value Profile="(Default)">5000</Value>
+    </Setting>
+    <Setting Name="HealtchCheckHours" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">12</Value>
+    </Setting>
+    <Setting Name="HealthCheckSuccess" Type="System.DateTime" Scope="User">
+      <Value Profile="(Default)" />
     </Setting>
   </Settings>
 </SettingsFile>

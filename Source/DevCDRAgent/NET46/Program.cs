@@ -4,8 +4,6 @@ using System.Configuration.Install;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
-using System.IO;
-using DevCDRAgent.Modules;
 
 namespace DevCDRAgent
 {

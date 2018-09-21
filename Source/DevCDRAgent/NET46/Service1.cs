@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Management.Automation;
+using System.Net.NetworkInformation;
 using System.Reflection;
 using System.ServiceProcess;
 using System.Threading.Tasks;
@@ -63,6 +64,32 @@ namespace DevCDRAgent
                                     Program.MinimizeFootprint();
                                 }
                             });
+
+                            var tLastCheck = DateTime.Now - Properties.Settings.Default.HealthCheckSuccess;
+
+                            //Run HealthChekc every x Hours
+                            if (tLastCheck.TotalHours > Properties.Settings.Default.HealtchCheckHours)
+                            {
+                                Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
+                                Trace.Flush();
+                                System.Threading.Thread.Sleep(5000);
+
+                                myHub.Invoke<string>("HealthCheck", Hostname).ContinueWith(task1 =>
+                                {
+                                    if (task1.IsFaulted)
+                                    {
+                                        Console.WriteLine("There was an error opening the connection:{0}", task1.Exception.GetBaseException());
+                                        OnStart(null);
+                                    }
+                                    else
+                                    {
+                                        Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
+                                        Properties.Settings.Default.Save();
+                                        Program.MinimizeFootprint();
+                                    }
+                                });
+
+                            }
                         }
                     }
                 }
@@ -70,6 +97,7 @@ namespace DevCDRAgent
             catch(Exception ex)
             {
                 Console.WriteLine(ex.Message);
+                Trace.Write(DateTime.Now.ToString() + " ERROR ReInit: " + ex.Message);
                 OnStart(null);
             }
         }
@@ -223,6 +251,7 @@ namespace DevCDRAgent
                         //New 0.9.0.6
                         myHub.On<string, string>("returnPSAsync", (s1, s2) =>
                         {
+                            Trace.WriteLine(DateTime.Now.ToString() + "\t run PS async..." + s1);
                             var tSWScan = Task.Run(() =>
                             {
                                 using (PowerShell PowerShellInstance = PowerShell.Create())
@@ -256,7 +285,7 @@ namespace DevCDRAgent
                         {
                             try
                             {
-                                Trace.Write(DateTime.Now.ToString() + " Agent init...");
+                                Trace.Write(DateTime.Now.ToString() + "\t Agent init...");
                                 myHub.Invoke<string>("Init", Hostname).ContinueWith(task1 =>
                                 {
                                 });
@@ -280,7 +309,7 @@ namespace DevCDRAgent
                         {
                             try
                             {
-                                Trace.Write(DateTime.Now.ToString() + " send status...");
+                                Trace.Write(DateTime.Now.ToString() + "\t send status...");
                                 string sResult = "{}";
                                 using (PowerShell PowerShellInstance = PowerShell.Create())
                                 {
@@ -342,15 +371,32 @@ namespace DevCDRAgent
                                 {
                                     foreach (string sMAC in s1.Split(';'))
                                     {
-                                        WOL.WakeUp(sMAC);
+                                        try
+                                        {
+                                            WOL.WakeUp(sMAC); //Send Broadcast
+
+                                            //Send to local Gateway
+                                            foreach (NetworkInterface f in NetworkInterface.GetAllNetworkInterfaces())
+                                                if (f.OperationalStatus == OperationalStatus.Up)
+                                                    foreach (GatewayIPAddressInformation d in f.GetIPProperties().GatewayAddresses)
+                                                    {
+                                                        //Only use IPv4
+                                                        if (d.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                                                        {
+                                                            WOL.WakeUp(d.Address, 9, sMAC);
+                                                        }
+                                                    }
+                                        }
+                                        catch { }
                                     }
-                                }                                
+                                }
                             }
                             catch { }
                         });
 
                         myHub.On<string>("setinstance", (s1) =>
                         {
+                            Trace.WriteLine(DateTime.Now.ToString() + "\t Set instance: " + s1);
                             try
                             {
                                 if (!string.IsNullOrEmpty(s1))
@@ -376,6 +422,7 @@ namespace DevCDRAgent
 
                         myHub.On<string>("setendpoint", (s1) =>
                         {
+                            Trace.WriteLine(DateTime.Now.ToString() + "\t Set Endpoint: " + s1);
                             try
                             {
                                 if (!string.IsNullOrEmpty(s1))
@@ -404,6 +451,7 @@ namespace DevCDRAgent
 
                         myHub.On<string>("setgroups", (s1) =>
                         {
+                            Trace.WriteLine(DateTime.Now.ToString() + "\t Set Groups: " + s1);
                             try
                             {
                                 if (!string.IsNullOrEmpty(s1))
@@ -687,13 +735,17 @@ namespace DevCDRAgent
         {
             try
             {
+                Trace.WriteLine(DateTime.Now.ToString() + "\t stopping DevCDRAgent...");
+                Trace.Flush();
+                Trace.Listeners.Clear();
+
                 tReCheck.Enabled = false;
                 tReInit.Enabled = false;
                 tReCheck.Stop();
                 tReInit.Stop();
                 
                 connection.Stop(new TimeSpan(0, 0, 30));
-                System.Threading.Thread.Sleep(1000);
+                System.Threading.Thread.Sleep(500);
                 connection.Dispose();
             }
             catch { }
@@ -701,6 +753,7 @@ namespace DevCDRAgent
 
         public void RestartService()
         {
+            Trace.WriteLine(DateTime.Now.ToString() + "\t restarting Service..");
             try
             {
                 using (PowerShell PowerShellInstance = PowerShell.Create())
@@ -715,7 +768,6 @@ namespace DevCDRAgent
             }
             catch (Exception ex)
             {
-
                 Console.WriteLine(ex.Message);
             }
         }
