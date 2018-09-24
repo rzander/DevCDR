@@ -163,8 +163,8 @@ function SetID {
 
 
 $object = New-Object PSObject
-getinv -Name "Battery" -WMIClass "win32_Battery" -Properties @("BatteryStatus", "Caption", "Chemitry", "#Name", "Status", "PowerManagementCapabilities", "#DeviceID") -AppendObject ([ref]$object)
-$bios = getinv -Name "BIOS" -WMIClass "win32_BIOS" -Properties @("Name", "Manufacturer", "Version", "#SerialNumber") #-AppendObject ([ref]$object)
+getinv -Name "Battery" -WMIClass "win32_Battery" -Properties @("@BatteryStatus", "Caption", "Chemitry", "#Name", "Status", "PowerManagementCapabilities", "#DeviceID") -AppendObject ([ref]$object)
+$bios = getinv -Name "BIOS" -WMIClass "win32_BIOS" -Properties @("Name", "Manufacturer", "Version", "#SerialNumber", "SMBIOSBIOSVersion") #-AppendObject ([ref]$object)
 $bios | Add-Member -MemberType NoteProperty -Name "@DeviceHardwareData" -Value ((Get-WMIObject -Namespace root/cimv2/mdm/dmmap -Class MDM_DevDetail_Ext01 -Filter "InstanceID='Ext' AND ParentID='./DevDetail'").DeviceHardwareData) -ea SilentlyContinue
 $object | Add-Member -MemberType NoteProperty -Name "BIOS" -Value $bios -ea SilentlyContinue
 getinv -Name "Processor" -WMIClass "win32_Processor" -Properties @("Name", "Manufacturer", "Family", "NumberOfCores", "NumberOfEnabledCore", "NumberOfLogicalProcessors", "L2CacheSize", "L3CacheSize", "#ProcessorId") -AppendObject ([ref]$object)
@@ -172,7 +172,7 @@ getinv -Name "Memory" -WMIClass "win32_PhysicalMemory" -Properties @("Manufactur
 getinv -Name "OS" -WMIClass "win32_OperatingSystem" -Properties @("BuildNumber", "BootDevice", "Caption", "CodeSet", "CountryCode", "@CurrentTimeZone", "EncryptionLevel", "Locale", "Manufacturer", "MUILanguages", "OperatingSystemSKU", "OSArchitecture", "OSLanguage", "SystemDrive", "Version", "#InstallDate", "@LastBootUpTime") -AppendObject ([ref]$object)
 
 $CSP = getinv -Name "Computer" -WMIClass "win32_ComputerSystemProduct" -Properties @("#UUID", "Version")
-$CS = getinv -Name "Computer" -WMIClass "win32_ComputerSystem" -Properties @("Domain", "HypervisorPresent", "InfraredSupported", "Manufacturer", "Model", "PartOfDomain", "Roles", "SystemFamily", "SystemSKUNumber", "@UserName", "WakeUpType", "TotalPhysicalMemory", "#Name") -AppendProperties $CSP 
+$CS = getinv -Name "Computer" -WMIClass "win32_ComputerSystem" -Properties @("Domain", "HypervisorPresent", "InfraredSupported", "Manufacturer", "Model", "PartOfDomain", "@Roles", "SystemFamily", "SystemSKUNumber", "@UserName", "WakeUpType", "TotalPhysicalMemory", "#Name") -AppendProperties $CSP 
 getinv -Name "Computer" -WMIClass "win32_SystemEnclosure" -Properties @("ChassisTypes", "Model", "#SMBIOSAssetTag", "#SerialNumber") -AppendProperties $CS -AppendObject ([ref]$object)
 
 getinv -Name "DiskDrive" -WMIClass "Win32_DiskDrive" -Properties @("@Capabilities", "Caption", "DeviceID", "@FirmwareRevision", "@Index", "InterfaceType", "MediaType", "Model", "@Partitions", "PNPDeviceID", "Size", "#SerialNumber" ) -AppendObject ([ref]$object)
@@ -182,18 +182,21 @@ $ld = getinv -Name "LogicalDisk" -WMIClass "Win32_LogicalDisk" -Properties @("De
 $ld = $ld | Where-Object { $_.DriveType -lt 4 }
 $object | Add-Member -MemberType NoteProperty -Name "LogicalDisk" -Value ($ld)
 
-getinv -Name "NetworkAdapter" -WMIClass "Win32_NetworkAdapter" -Properties @("AdapterType", "Description", "@DeviceID", "@InterfaceIndex", "#MACAddress", "Manufacturer", "PhysicalAdapter", "PNPDeviceID", "ServiceName", "@Speed") -AppendObject ([ref]$object)
-getinv -Name "NetworkAdapterConfiguration" -WMIClass "Win32_NetworkAdapterConfiguration" -Properties @("@DefaultIPGateway", "Description", "DHCPEnabled", "#DHCPServer", "DNSDomain", "@Index", "@InterfaceIndex", "@IPAddress", "IPEnabled", "@IPSubnet", "#MACAddress" ) -AppendObject ([ref]$object)
+#getinv -Name "NetworkAdapter" -WMIClass "Win32_NetworkAdapter" -Properties @("AdapterType", "Description", "@DeviceID", "@InterfaceIndex", "#MACAddress", "Manufacturer", "PhysicalAdapter", "PNPDeviceID", "ServiceName", "@Speed") -AppendObject ([ref]$object)
+#getinv -Name "NetworkAdapterConfiguration" -WMIClass "Win32_NetworkAdapterConfiguration" -Properties @("@DefaultIPGateway", "Description", "DHCPEnabled", "#DHCPServer", "DNSDomain", "@Index", "@InterfaceIndex", "@IPAddress", "IPEnabled", "@IPSubnet", "#MACAddress" ) -AppendObject ([ref]$object)
 
-getinv -Name "Video" -WMIClass "Win32_VideoController" -Properties @("AdapterCompatibility", "Name", "CurrentHorizontalResolution", "CurrentVerticalResolution", "CurrentBitsPerPixel", "CurrentRefreshRate", "DriverVersion", "InfSection", "PNPDeviceID", "VideoArchitecture", "VideoMemoryType") -AppendObject ([ref]$object)
+getinv -Name "Video" -WMIClass "Win32_VideoController" -Properties @("AdapterCompatibility", "Name", "@CurrentHorizontalResolution", "@CurrentVerticalResolution", "@CurrentBitsPerPixel", "@CurrentRefreshRate","DeviceID", "DriverVersion", "InfSection", "PNPDeviceID", "VideoArchitecture", "VideoProcessor") -AppendObject ([ref]$object)
 getinv -Name "QFE" -WMIClass "Win32_QuickFixEngineering" -Properties @("Caption", "Description", "HotFixID", "@InstalledOn") -AppendObject ([ref]$object)
 getinv -Name "Share" -WMIClass "Win32_Share" -Properties @("Name", "Description ", "Name", "Path", "Type") -AppendObject ([ref]$object)
 getinv -Name "Audio" -WMIClass "Win32_SoundDevice" -Properties @("Caption", "Description ", "DeviceID", "Manufacturer") -AppendObject ([ref]$object)
+$object.Audio = $object.Audio | where { $_.DeviceID -notlike "USB\*" } #Cleanup USB Audio Devices
 
 getinv -Name "CDROM" -WMIClass "Win32_CDROMDrive" -Properties @("Capabilities", "Name", "Description", "DeviceID", "@Drive" , "MediaType") -AppendObject ([ref]$object)
 
 #getinv -Name "Driver" -WMIClass "Win32_PnPSignedDriver" -Properties @("DeviceID","DeviceName", "DriverDate", "DriverProviderName", "DriverVersion", "FriendlyName", "HardWareID", "InfName" ) -AppendObject ([ref]$object)
 getinv -Name "Printer" -WMIClass "Win32_Printer" -Properties @("DeviceID","CapabilityDescriptions","DriverName", "Local" , "Network", "PrinterPaperNames") -AppendObject ([ref]$object)
+getinv -Name "OptionalFeature" -WMIClass "Win32_OptionalFeature" -Properties @("Caption", "Name", "InstallState" ) -AppendObject ([ref]$object)
+
 
 $user = Get-LocalUser | Select-Object Description, Enabled, UserMayChangePassword, PasswordRequired, Name, @{N = '@PasswordLastSet'; E = {[System.DateTime](($_.PasswordLastSet).ToUniversalTime())}}, @{N = 'id'; E = {$_.SID}} | Sort-Object -Property Name
 $object | Add-Member -MemberType NoteProperty -Name "LocalUsers" -Value ($user)
@@ -223,7 +226,7 @@ $SW += Get-ItemProperty HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVers
 $object | Add-Member -MemberType NoteProperty -Name "Software" -Value ($SW| Sort-Object -Property DisplayName )
 
 #Services ( Exlude services with repeating numbers like BluetoothUserService_62541)
-$Services = get-service | Where-Object { (($_.Name.IndexOf("_")) -eq -1) -and ($_.Name -ne 'camsvc')  } | Select-Object -Property @{N = 'id'; E = { $_.Name}}, DisplayName, StartType, @{N = '@status'; E = {$_.status}} 
+$Services = get-service | Where-Object { (($_.Name.IndexOf("_")) -eq -1) -and ($_.Name -ne 'camsvc')  } | Select-Object -Property @{N = 'id'; E = { $_.Name}}, DisplayName, @{N = 'StartType'; E = {if($_.StartType -eq 4) { 'Disabled'} else { 'Manual or Automatic' }}}, @{N = '@status'; E = {$_.status}} 
 $object | Add-Member -MemberType NoteProperty -Name "Services" -Value ($Services )
 
 #Office365
@@ -253,8 +256,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUU25cYh2rE+WDhaZp8S/M4Qyb
-# TrqgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUsa6PSLHKEKcQLFyDlAZ8uTQZ
+# kTOgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -319,12 +322,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSF
-# Lppw+Gv5PrtLbKt9EGBIFnSQSjANBgkqhkiG9w0BAQEFAASCAQAzwJi28YgEgkDu
-# Q4zGdoPtoecetxqxx5cnm9zZ2VUjo7W/fTbozg/OPEpJG6zb4WHbpv2EF9pHrfVQ
-# 5zgsSmuyogxeWJP2M2rmfKWv5dgy5OsbiE/n/aC+jF1cMflzJBmYeKkZv6FXIylv
-# Izr+oSILi9keiHE2YE4EYYBr44Bw/CH6GCWpYtk3J919x1mpBnMBPkChgseNAzLJ
-# cCrEJE4/ZeDqRLCSfWbICXkWFWFIjEyByIfIW7Oi3W7w8csG77bUbPAHQch6SdKM
-# B6nmWymlslx0CbssPOlFzFUnFvF+GXtmVMfst5L409iuVy3rQ8kufKbtctHJEvdY
-# k1+LVf8i
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTt
+# ie2EmvFpsLdhwJyK5OSAUQXJQDANBgkqhkiG9w0BAQEFAASCAQAawhsBtjUfx5tY
+# B78vg98JLrLzEXKbPnC+cBNNplCKpy+uf0KWitqE45bmAdotpGPeVcUVWKCCHrhM
+# tBe8PLDCTJ2cgWQLr+95aWDymN5eOQhbfmPqHQmAMhMjkzI2w5IkgZoF/OBqhNXo
+# DoPFOZ8vkbNO2luvLk9nD5KwOUsoxxmPW9f7yzO769vOhU8HwoiH6ViSZ+GuifLs
+# KUCINiprDLeNtE8FZ/nsJGEUft5RGHHCuX0TCiuYvE1bRW7enkvkxztSP9ktX53M
+# On5JFRim4zD3MNxaP22CtCejgtlijvymR2HYgXf/HBjIL+LtPbmR9u1wzzSu1Oke
+# k43kGQlE
 # SIG # End signature block
