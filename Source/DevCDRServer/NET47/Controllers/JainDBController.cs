@@ -145,8 +145,8 @@ namespace DevCDRServer.Controllers
             return View();
         }
 
-        [AllowAnonymous]
-        //[System.Web.Mvc.Authorize]
+        [AllowAnonymous] //because of TEST instance
+        [System.Web.Mvc.Authorize]
         [HttpGet]
         public ActionResult Inv(string id, string name = "", int index = -1, string blockType = "INV")
         {
@@ -188,6 +188,7 @@ namespace DevCDRServer.Controllers
 
                     ViewBag.Id = id;
                     ViewBag.Index = oInv["_index"];
+                    ViewBag.idx = index;
                     ViewBag.Type = oInv["_type"] ?? "INV";
                     ViewBag.OS = oInv["OS"]["Caption"];
                     ViewBag.Name = oInv["Computer"]["#Name"];
@@ -374,8 +375,8 @@ namespace DevCDRServer.Controllers
             return Redirect("../DevCdr/Dashboard");
         }
 
-        [AllowAnonymous]
-        //[System.Web.Mvc.Authorize]
+        [AllowAnonymous] //because of TEST instance
+        [System.Web.Mvc.Authorize]
         [HttpGet]
         public ActionResult Diff(string id, int l =-1, int r = -1)
         {
@@ -426,8 +427,8 @@ namespace DevCDRServer.Controllers
             return View("Diff");
         }
 
-        [AllowAnonymous]
-        //[System.Web.Mvc.Authorize]
+        [AllowAnonymous] //because of TEST instance
+        [System.Web.Mvc.Authorize]
         [HttpGet]
         public ActionResult InvJson(string id, int l = -1, string blockType = "INV")
         {

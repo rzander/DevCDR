@@ -331,3 +331,4 @@ Mozilla Firefox 62.0 (x64 de)
 AIO CREATOR NEO version 2.4.3
 FileZilla Client 3.37.0
 Advanced Installer 15.3
+Client Center for Configuration Manager 

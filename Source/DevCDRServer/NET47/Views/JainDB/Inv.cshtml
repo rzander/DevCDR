@@ -5,7 +5,7 @@
             <div class="form-group has-success">
                 <label class="control-label col-sm-2 ">Name:</label>
                 <div class="col-sm-10">
-                    <input style="font-weight: bold;" class="form-control" id="tbType" type="text" value="@ViewBag.Name" readonly style="background-color:transparent">
+                    <input style="font-weight: bold;" class="form-control" id="tbName" type="text" value="@ViewBag.Name" readonly style="background-color:transparent">
                 </div>
             </div>
             <div class="form-group">
@@ -17,31 +17,31 @@
             <div class="form-group">
                 <label class="control-label col-sm-2 text-right">Model:</label>
                 <div class="col-sm-10">
-                    <input class="form-control" id="tbVendor" type="text" value="@ViewBag.Model" readonly>
+                    <input class="form-control" id="tbModel" type="text" value="@ViewBag.Model" readonly>
                 </div>
             </div>
             <div class="form-group">
                 <label class="control-label col-sm-2 text-right">Type:</label>
                 <div class="col-sm-10">
-                    <input class="form-control" id="tbVendor" type="text" value="@ViewBag.Type" readonly>
+                    <input class="form-control" id="tbType" type="text" value="@ViewBag.Type" readonly>
                 </div>
             </div>
             <div class="form-group">
                 <label class="control-label col-sm-2 text-right">SerialNr:</label>
                 <div class="col-sm-10">
-                    <input class="form-control" id="tbVendor" type="text" value="@ViewBag.Serial" readonly>
+                    <input class="form-control" id="tbSer" type="text" value="@ViewBag.Serial" readonly>
                 </div>
             </div>
             <div class="form-group">
                 <label class="control-label col-sm-2 text-right">Memory:</label>
                 <div class="col-sm-10">
-                    <input class="form-control" id="tbVendor" type="text" value="@ViewBag.Memory (GB)" readonly>
+                    <input class="form-control" id="tbMem" type="text" value="@ViewBag.Memory (GB)" readonly>
                 </div>
             </div>
             <div class="form-group">
                 <label class="control-label col-sm-2 text-right">CPU:</label>
                 <div class="col-sm-10">
-                    <input class="form-control" id="tbVendor" type="text" value="@ViewBag.CPU" readonly>
+                    <input class="form-control" id="tbCPU" type="text" value="@ViewBag.CPU" readonly>
                 </div>
             </div>
         </div>
@@ -55,38 +55,38 @@
             <div class="form-group">
                 <label class="control-label col-sm-3 text-right">Version:</label>
                 <div class="col-sm-9">
-                    <input class="form-control" id="tbStatus" type="text" value="@ViewBag.Version" readonly>
+                    <input class="form-control" id="tbVersion" type="text" value="@ViewBag.Version" readonly>
                 </div>
             </div>
             <div class="form-group">
                 <label class="control-label col-sm-3 text-right">Language:</label>
                 <div class="col-sm-9">
-                    <input class="form-control" id="tbStatus" type="text" value="@ViewBag.Language" readonly>
+                    <input class="form-control" id="tbLang" type="text" value="@ViewBag.Language" readonly>
                 </div>
             </div>
             <div class="form-group">
                 <label class="control-label col-sm-3 text-right">Architecture:</label>
                 <div class="col-sm-9">
-                    <input class="form-control" id="tbStatus" type="text" value="@ViewBag.Arch" readonly>
+                    <input class="form-control" id="tbArch" type="text" value="@ViewBag.Arch" readonly>
                 </div>
             </div>
             <div class="form-group">
                 <label class="control-label col-sm-3 text-right">Installdate:</label>
                 <div class="col-sm-9">
-                    <input class="form-control" id="tbStatus" type="text" value="@ViewBag.InstDate (UTC)" readonly>
+                    <input class="form-control" id="tbInstDate" type="text" value="@ViewBag.InstDate (UTC)" readonly>
                 </div>
             </div>
             <div class="form-group">
                 <label class="control-label col-sm-3 text-right">Inventory age:</label>
                 <div class="col-sm-8">
-                    <input class="form-control" id="tbStatus" type="text" value="@ViewBag.LastInv  Revision: @ViewBag.Index" readonly>
+                    <input class="form-control" id="tbInvDate" type="text" value="@ViewBag.LastInv  Revision: @ViewBag.Index" readonly>
                 </div>
                 <a href="Diff?id=@ViewBag.Id&l=@ViewBag.Index" role="button" class="btn btn-default" aria-pressed="true">Diff</a>
             </div>
             <div class="form-group">
                 <label class="control-label col-sm-3 text-right">UserName:</label>
                 <div class="col-sm-9">
-                    <input class="form-control" id="tbStatus" type="text" value="@ViewBag.UserName" readonly>
+                    <input class="form-control" id="tbUserName" type="text" value="@ViewBag.UserName" readonly>
                 </div>
             </div>
         </div>
@@ -138,7 +138,7 @@
         </div>
 
         <hr style="width: 100%; color: black; height: 1px; background-color:darkgray;" />
-        <a href="InvJson?id=@ViewBag.Id&l=@ViewBag.Index" role="button" class="btn btn-default col-sm-2" aria-pressed="true">show JSON...</a>
+        <a href="InvJson?id=@ViewBag.Id&l=@ViewBag.idx" role="button" class="btn btn-default col-sm-2" aria-pressed="true">show JSON...</a>
     </div>
 </form>
 

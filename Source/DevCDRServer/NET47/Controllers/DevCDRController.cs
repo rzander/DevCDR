@@ -280,7 +280,7 @@ namespace DevCDRServer.Controllers
             catch { }
         }
 
-        [AllowAnonymous] //Test instance
+        [AllowAnonymous] //because of TEST instance
         [System.Web.Mvc.Authorize]
         [HttpPost]
         public object Command()
@@ -650,7 +650,7 @@ namespace DevCDRServer.Controllers
             }
         }
 
-        [AllowAnonymous] //Test instance
+        [AllowAnonymous] //because of TEST instance
         [System.Web.Mvc.Authorize]
         [HttpPost]
         public object RunPS()
@@ -708,7 +708,7 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
-        [AllowAnonymous] //Test instance
+        [AllowAnonymous] //because of TEST instance
         [System.Web.Mvc.Authorize]
         [HttpPost]
         public object RunUserPS()
@@ -766,7 +766,7 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
-        [AllowAnonymous] //Test instance
+        [AllowAnonymous] //because of TEST instance
         [System.Web.Mvc.Authorize]
         [HttpPost]
         public object RunPSAsync()
@@ -824,7 +824,7 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
-        [AllowAnonymous] //Test instance
+        [AllowAnonymous] //because of TEST instance
         [System.Web.Mvc.Authorize]
         [HttpPost]
         public object RunPSFile()

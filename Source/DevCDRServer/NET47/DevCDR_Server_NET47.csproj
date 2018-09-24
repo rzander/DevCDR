@@ -536,6 +536,7 @@
     <Content Include="Content\diff\jsondiffpatch-formatters.min.map" />
     <Content Include="Content\diff\jsondiffpatch-full.min.map" />
     <Content Include="Content\diff\jsondiffpatch.min.map" />
+    <Content Include="App_Data\JainDB\Compliance_default.ps1" />
     <None Include="packages.config" />
     <None Include="Properties\PublishProfiles\DevCDR - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\DevCDR - Web Deploy.pubxml" />
