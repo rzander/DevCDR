@@ -26,10 +26,12 @@ if (get-process logonui -ea SilentlyContinue) {
     }
 
 	#Cleanup CleanMgr Settings
-	Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\*' -Name StateFlags0001 -ErrorAction SilentlyContinue | Remove-ItemProperty -Name StateFlags0001 -ErrorAction SilentlyContinue
+	#Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\*' -Name StateFlags0001 -ErrorAction SilentlyContinue | Remove-ItemProperty -Name StateFlags0001 -ErrorAction SilentlyContinue
 
 	#Cleanup Temp
-	Remove-Item "$($env:windir)\Temp\*" -Force -Recurse -Exclude devcdr.log -ea SilentlyContinue
+	if((Get-ChildItem "$($env:windir)\Temp\*" -Recurse).Count -gt 100) {
+		Remove-Item "$($env:windir)\Temp\*" -Force -Recurse -Exclude devcdr.log -ea SilentlyContinue
+	}
 }
 
 #region Select a method to restrict Peer Selection on DeliveryOptimization
@@ -47,8 +49,8 @@ Invoke-RestMethod -URI "https://devcdr.azurewebsites.net/jaindb/getps" | IEX
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0nu87yXSGxUUyfPq28m+H3bG
-# zf2gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUJaKfnUTcIud19Q/DsnPnMjs1
+# ndWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -113,12 +115,12 @@ Invoke-RestMethod -URI "https://devcdr.azurewebsites.net/jaindb/getps" | IEX
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQk
-# T9T1gGufeJU8eF1J8crFVP/R8jANBgkqhkiG9w0BAQEFAASCAQAlk9UKp/zMvV+5
-# 4DO3ML3sNR/LUPpyx7CKrpRcK/hEqKNLsevwHZ/HED87e8GNYFJ/TZt+h/Fgf520
-# tfhO4ccIJihAEYUKX2sdxWtRpRQL4UBEy3nHNQ+g+ArrnZEsmTL6dQhUTXpb4r3e
-# O3R+pql6s68tJHZF3RueSYnjijdH43MShdIxaTN87r4ytjRw0KACWy20fDS+XI5N
-# KAd/81fYbgRxB5e4vZEun5Uqb5pAj2wFDIRs0sopcGy2d3H8dPjIY1mS1f/3DYw4
-# mntDzUajOxm+WqdyZftCgX1uEkME92PmnkNUkUlDtftjE3KPQ3QGEjjM9XTbUkhR
-# U8NigE28
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRD
+# N+6mkFCTsSB6XyL4C8GgyuphFzANBgkqhkiG9w0BAQEFAASCAQBVOMkfM5PUfkr1
+# tc22EY4B0ekp3PlHhbn+nwNM8a6NwWBuyvCCyH8xsbgivymSq2A1I7OGBff0SNqj
+# KFoGVG6ZJwTJCTNVPM8y4hK/75838OQMVZEpiY5OjyGuZwmj/yZ55bFIYISfgllu
+# W52nrOLtL8z+YXXZn3qgUcjVHqtVUmri/70zcg7GXD/XzSqaobOk4Xza26VFiuoa
+# FVyQh4hbFqjP09TKtevLMk4Kl4JZrrREXU9q9IBJfteTsKW4sbDOHRKOeuccUJps
+# Apx21Ny6ZcLap7HVHgYGTqx67jTR946wqOQnRnQBEn/8/0lBU75EaHo4cr1QJ2QY
+# XnwMXIMA
 # SIG # End signature block

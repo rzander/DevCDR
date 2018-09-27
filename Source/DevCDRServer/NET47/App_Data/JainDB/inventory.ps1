@@ -163,8 +163,8 @@ function SetID {
 
 
 $object = New-Object PSObject
-getinv -Name "Battery" -WMIClass "win32_Battery" -Properties @("@BatteryStatus", "Caption", "Chemitry", "#Name", "Status", "PowerManagementCapabilities", "#DeviceID") -AppendObject ([ref]$object)
-$bios = getinv -Name "BIOS" -WMIClass "win32_BIOS" -Properties @("Name", "Manufacturer", "Version", "#SerialNumber", "SMBIOSBIOSVersion") #-AppendObject ([ref]$object)
+getinv -Name "Battery" -WMIClass "win32_Battery" -Properties @("@BatteryStatus", "Caption", "Chemistry", "#Name", "@Status", "PowerManagementCapabilities", "#DeviceID") -AppendObject ([ref]$object)
+$bios = getinv -Name "BIOS" -WMIClass "win32_BIOS" -Properties @("Name", "Manufacturer", "Version", "#SerialNumber") #-AppendObject ([ref]$object)
 $bios | Add-Member -MemberType NoteProperty -Name "@DeviceHardwareData" -Value ((Get-WMIObject -Namespace root/cimv2/mdm/dmmap -Class MDM_DevDetail_Ext01 -Filter "InstanceID='Ext' AND ParentID='./DevDetail'").DeviceHardwareData) -ea SilentlyContinue
 $object | Add-Member -MemberType NoteProperty -Name "BIOS" -Value $bios -ea SilentlyContinue
 getinv -Name "Processor" -WMIClass "win32_Processor" -Properties @("Name", "Manufacturer", "Family", "NumberOfCores", "NumberOfEnabledCore", "NumberOfLogicalProcessors", "L2CacheSize", "L3CacheSize", "#ProcessorId") -AppendObject ([ref]$object)
@@ -186,6 +186,7 @@ $object | Add-Member -MemberType NoteProperty -Name "LogicalDisk" -Value ($ld)
 #getinv -Name "NetworkAdapterConfiguration" -WMIClass "Win32_NetworkAdapterConfiguration" -Properties @("@DefaultIPGateway", "Description", "DHCPEnabled", "#DHCPServer", "DNSDomain", "@Index", "@InterfaceIndex", "@IPAddress", "IPEnabled", "@IPSubnet", "#MACAddress" ) -AppendObject ([ref]$object)
 
 getinv -Name "Video" -WMIClass "Win32_VideoController" -Properties @("AdapterCompatibility", "Name", "@CurrentHorizontalResolution", "@CurrentVerticalResolution", "@CurrentBitsPerPixel", "@CurrentRefreshRate","DeviceID", "DriverVersion", "InfSection", "PNPDeviceID", "VideoArchitecture", "VideoProcessor") -AppendObject ([ref]$object)
+$object.Video= $object.Video | where { $_.DeviceID -notlike "USB\*" } #Cleanup USB Video Devices
 getinv -Name "QFE" -WMIClass "Win32_QuickFixEngineering" -Properties @("Caption", "Description", "HotFixID", "@InstalledOn") -AppendObject ([ref]$object)
 getinv -Name "Share" -WMIClass "Win32_Share" -Properties @("Name", "Description ", "Name", "Path", "Type") -AppendObject ([ref]$object)
 getinv -Name "Audio" -WMIClass "Win32_SoundDevice" -Properties @("Caption", "Description ", "DeviceID", "Manufacturer") -AppendObject ([ref]$object)
@@ -206,6 +207,18 @@ $object | Add-Member -MemberType NoteProperty -Name "LocalAdmins" -Value ($locAd
 
 $locGroup = Get-LocalGroup | Select-Object Description, Name, PrincipalSource, ObjectClass, @{N = 'id'; E = {$_.SID}}  | Sort-Object -Property Name
 $object | Add-Member -MemberType NoteProperty -Name "LocalGroups" -Value ($locGroup)
+
+$fw = Get-NetFirewallProfile | select Name, Enabled
+$object | Add-Member -MemberType NoteProperty -Name "Firewall" -Value ($fw)
+
+$tpm = get-tpm
+$object | Add-Member -MemberType NoteProperty -Name "TPM" -Value ($tpm)
+
+$bitlocker = Get-BitLockerVolume | select MountPoint, EncryptionMethod, AutoUnlockEnabled, AutoUnlockKeyStored, MetadataVersion, VolumeStatus, ProtectionStatus, LockStatus, EncryptionPercentage, WipePercentage, VolumeType
+$object | Add-Member -MemberType NoteProperty -Name "BitLocker" -Value ($bitlocker)
+
+$defender = Get-MpPreference | select * -ExcludeProperty ComputerID, PSComputerName, Cim*
+$object | Add-Member -MemberType NoteProperty -Name "Defender" -Value ($defender)
 
 #$FWRules = Get-NetFirewallRule | Select-Object DisplayName,Description,DisplayGroup,Group,Enabled,Profile,Platform,Direction,Action,EdgeTraversalPolicy,LooseSourceMapping,LocalOnlyMapping,Owner,PrimaryStatus,Status,EnforcementStatus,PolicyStoreSource,PolicyStoreSourceType | Sort-Object -Property DisplayName
 #$object | Add-Member -MemberType NoteProperty -Name "FirewallRules" -Value ($FWRules)
@@ -256,8 +269,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUsa6PSLHKEKcQLFyDlAZ8uTQZ
-# kTOgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUz0EQm0PHyghKOYyiFhMHyC8N
+# RwagggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -322,12 +335,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTt
-# ie2EmvFpsLdhwJyK5OSAUQXJQDANBgkqhkiG9w0BAQEFAASCAQAawhsBtjUfx5tY
-# B78vg98JLrLzEXKbPnC+cBNNplCKpy+uf0KWitqE45bmAdotpGPeVcUVWKCCHrhM
-# tBe8PLDCTJ2cgWQLr+95aWDymN5eOQhbfmPqHQmAMhMjkzI2w5IkgZoF/OBqhNXo
-# DoPFOZ8vkbNO2luvLk9nD5KwOUsoxxmPW9f7yzO769vOhU8HwoiH6ViSZ+GuifLs
-# KUCINiprDLeNtE8FZ/nsJGEUft5RGHHCuX0TCiuYvE1bRW7enkvkxztSP9ktX53M
-# On5JFRim4zD3MNxaP22CtCejgtlijvymR2HYgXf/HBjIL+LtPbmR9u1wzzSu1Oke
-# k43kGQlE
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR+
+# MFrkDNQ9uxDj3sBD/gYcS0oJMDANBgkqhkiG9w0BAQEFAASCAQBCliZQYRWSwFGT
+# NvYQXjTxxoO7xvU+YxpPgM6RQX4oD3a9OVIH6pQMCyjjDR2drTxTEzLBnYtVtRm0
+# n5KfBH7Z//dm4FBmz9nYmfCpd3+wKe27T9LXv0K6ObmFZ1HW11ArfAngCySvvwdo
+# +o5nPxkraN3/x7r2Mj45IQDM2fe48kEzOBVgwVVoKdfxRF0iADD0vE+K7Bno0Ka5
+# kemrXluCExExgPdAo/9QCjCr9D1+IOkDEQFDf35j2DeiLqz0OLQz+orgLhRlaI4E
+# gPHK0O0iEtZDLDZ190oENvWlsVdz069e2E/cuCJM0XZYeQ2JD0i3jb6MLMdNz4/m
+# pTWOauZN
 # SIG # End signature block
