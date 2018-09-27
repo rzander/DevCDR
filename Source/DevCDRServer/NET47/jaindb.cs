@@ -541,7 +541,7 @@ namespace jaindb
                 string sResult = CalculateHash(oStatic.ToString(Newtonsoft.Json.Formatting.None));
 
                 var oBlock = oChain.GetLastBlock(blockType);
-                if (oBlock.data != sResult)
+                if (oBlock.data != sResult) //Compare hash
                 {
                     var oNew = oChain.MineNewBlock(oBlock, blockType);
                     oChain.UseBlock(sResult, oNew);
@@ -597,6 +597,26 @@ namespace jaindb
                     {
                         Console.WriteLine("Blockchain is NOT valid... " + DeviceID);
                     }
+                }
+                else
+                {
+                    //Do not touch Blockchain, but store the Full JSON for reporting
+                    if (jTemp["_index"] == null)
+                        jTemp.AddFirst(new JProperty("_index", oBlock.index));
+                    if (jTemp["_hash"] == null)
+                        jTemp.AddFirst(new JProperty("_hash", oBlock.data));
+                    if (jTemp["_date"] == null)
+                        jTemp.AddFirst(new JProperty("_date", DateTime.UtcNow));
+                    if (jTemp["_type"] == null)
+                        jTemp.AddFirst(new JProperty("_type", blockType));
+                    if (jTemp["#id"] == null)
+                        jTemp.AddFirst(new JProperty("#id", DeviceID));
+
+                    //JSort(jTemp);
+
+                    //Only store Full data for default BlockType
+                    if (blockType == BlockType)
+                        WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_Full");
                 }
 
                 //JSort(oStatic);
