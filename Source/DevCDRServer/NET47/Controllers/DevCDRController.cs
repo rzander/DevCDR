@@ -361,6 +361,9 @@ namespace DevCDRServer.Controllers
                 case "DevCDRUser":
                     runUserCmd(lHostnames, sInstance, "", "");
                     break;
+                case "WOL":
+                    sendWOL(lHostnames, sInstance, sArgs.Split(',').ToList());
+                    break;
             }
 
             return new ContentResult();
@@ -646,6 +649,32 @@ namespace DevCDRServer.Controllers
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
                     hubContext.Clients.Client(sID).userprocess(cmd, args);
+                }
+            }
+        }
+
+        internal void sendWOL(List<string> Hostnames, string sInstance, List<string> MAC)
+        {
+            IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext(sInstance);
+
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "WakeUp devices..."); //Update Status
+            }
+            hubContext.Clients.Group("web").newData("HUB", "WakeUp devices"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    foreach (string sMAC in MAC)
+                        hubContext.Clients.Client(sID).wol(sMAC);
                 }
             }
         }

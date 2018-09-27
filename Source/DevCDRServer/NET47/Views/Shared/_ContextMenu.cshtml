@@ -378,6 +378,16 @@
                                         RunPS('Restart-Computer -Force', 'Restart...');
                                     }
                                 },
+                                "actOSRestart5": {
+                                    "name": "Restart Computer in 5min with User notification",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('shutdown /g /t 300 /f', 'Restart in 5min...');
+                                    }
+                                },
                                 "actOSShutdown": {
                                     "name": "Shutdown Computer",
                                     icon: function (opt, $itemElement, itemKey, item) {
@@ -461,6 +471,16 @@
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
                                         RunPS('"User: " +(get-process -includeusername explorer).UserName', 'Get User...');
+                                    }
+                                },
+                                "actSecLocked": {
+                                    "name": "Get locked state",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('if (get-process logonui -ea SilentlyContinue) { "locked" } else { "unlocked" }', 'Get locked state...');
                                     }
                                 },
                                 "sep1": "---------",
