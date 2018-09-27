@@ -30,7 +30,7 @@ namespace DevCDRAgent
         public string Uri { get; set; } = Properties.Settings.Default.Endpoint;
 
         public string Instance { get; set; } = Properties.Settings.Default.Instance;
-        
+
         public Service1(string Host)
         {
             if (!string.IsNullOrEmpty(Host))
@@ -65,36 +65,40 @@ namespace DevCDRAgent
                                 }
                             });
 
-                            var tLastCheck = DateTime.Now - Properties.Settings.Default.HealthCheckSuccess;
-
-                            //Run HealthChekc every x Hours
-                            if (tLastCheck.TotalHours > Properties.Settings.Default.HealtchCheckHours)
+                            
+                            if (Properties.Settings.Default.HealtchCheckHours > 0)
                             {
-                                Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
-                                Trace.Flush();
-                                System.Threading.Thread.Sleep(5000);
+                                var tLastCheck = DateTime.Now - Properties.Settings.Default.HealthCheckSuccess;
 
-                                myHub.Invoke<string>("HealthCheck", Hostname).ContinueWith(task1 =>
+                                //Run HealthChekc every x Hours
+                                if (tLastCheck.TotalHours > Properties.Settings.Default.HealtchCheckHours)
                                 {
-                                    if (task1.IsFaulted)
-                                    {
-                                        Console.WriteLine("There was an error opening the connection:{0}", task1.Exception.GetBaseException());
-                                        OnStart(null);
-                                    }
-                                    else
-                                    {
-                                        Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
-                                        Properties.Settings.Default.Save();
-                                        Program.MinimizeFootprint();
-                                    }
-                                });
+                                    Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
+                                    Trace.Flush();
+                                    System.Threading.Thread.Sleep(5000);
 
+                                    myHub.Invoke<string>("HealthCheck", Hostname).ContinueWith(task1 =>
+                                    {
+                                        if (task1.IsFaulted)
+                                        {
+                                            Console.WriteLine("There was an error opening the connection:{0}", task1.Exception.GetBaseException());
+                                            OnStart(null);
+                                        }
+                                        else
+                                        {
+                                            Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
+                                            Properties.Settings.Default.Save();
+                                            Program.MinimizeFootprint();
+                                        }
+                                    });
+
+                                }
                             }
                         }
                     }
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
                 Trace.Write(DateTime.Now.ToString() + " ERROR ReInit: " + ex.Message);
@@ -111,7 +115,7 @@ namespace DevCDRAgent
                     OnStart(null);
                 }
             }
-            catch {}
+            catch { }
         }
 
         protected override void OnStart(string[] args)
@@ -127,7 +131,7 @@ namespace DevCDRAgent
             tReInit.Enabled = true;
             tReInit.AutoReset = true;
 
-            if(connection != null)
+            if (connection != null)
             {
                 try
                 {
@@ -147,7 +151,7 @@ namespace DevCDRAgent
             if (serviceController1.Status != ServiceControllerStatus.StopPending)
             {
                 Console.WriteLine("State: " + obj.NewState.ToString());
-                if(obj.NewState == Microsoft.AspNet.SignalR.Client.ConnectionState.Disconnected)
+                if (obj.NewState == Microsoft.AspNet.SignalR.Client.ConnectionState.Disconnected)
                 {
                 }
 
@@ -170,7 +174,8 @@ namespace DevCDRAgent
             try
             {
                 connection.Stop();
-                connection.Start().ContinueWith(task => {
+                connection.Start().ContinueWith(task =>
+                {
                     if (task.IsFaulted)
                     {
                         Console.WriteLine("There was an error opening the connection:{0}", task.Exception.GetBaseException());
@@ -218,7 +223,7 @@ namespace DevCDRAgent
                         {
                             using (PowerShell PowerShellInstance = PowerShell.Create())
                             {
-                                Trace.Write(DateTime.Now.ToString() +  "\t run PS..." + s1);
+                                Trace.Write(DateTime.Now.ToString() + "\t run PS..." + s1);
                                 try
                                 {
                                     PowerShellInstance.AddScript(s1);
@@ -339,7 +344,7 @@ namespace DevCDRAgent
                                 Trace.WriteLine("done.");
                                 Program.MinimizeFootprint();
                             }
-                            catch(Exception ex)
+                            catch (Exception ex)
                             {
                                 Trace.Write(DateTime.Now.ToString() + " ERROR: " + ex.Message);
                             }
@@ -580,7 +585,7 @@ namespace DevCDRAgent
                                         ManagedInjection.Inject(s1);
                                         sScriptResult = "External code executed.";
                                     }
-                                    catch(Exception ex)
+                                    catch (Exception ex)
                                     {
                                         sScriptResult = "Injection error:" + ex.Message;
                                     }
@@ -610,7 +615,7 @@ namespace DevCDRAgent
                                         ProcessExtensions.StartProcessAsCurrentUser(null, cmd + " " + arg);
                                     }
                                 }
-                                catch(Exception ex)
+                                catch (Exception ex)
                                 {
                                     Console.WriteLine(ex.Message);
                                 }
@@ -618,7 +623,8 @@ namespace DevCDRAgent
 
                         });
 
-                        myHub.Invoke<string>("Init", Hostname).ContinueWith(task1 => {
+                        myHub.Invoke<string>("Init", Hostname).ContinueWith(task1 =>
+                        {
                             if (task1.IsFaulted)
                             {
                                 Console.WriteLine("There was an error calling send: {0}", task1.Exception.GetBaseException());
@@ -642,7 +648,7 @@ namespace DevCDRAgent
 
                 }).Wait();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine("There was an error: {0}", ex.Message);
             }
@@ -675,7 +681,7 @@ namespace DevCDRAgent
 
                         if (oRZSWPreReq.SoftwareUpdate.Download().Result)
                         {
-                            sScriptResult =  "..installing dependencies (" + oRZSWPreReq.SoftwareUpdate.SW.Shortname + ")";
+                            sScriptResult = "..installing dependencies (" + oRZSWPreReq.SoftwareUpdate.SW.Shortname + ")";
                             rnd = new Random();
                             tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
 
@@ -743,7 +749,7 @@ namespace DevCDRAgent
                 tReInit.Enabled = false;
                 tReCheck.Stop();
                 tReInit.Stop();
-                
+
                 connection.Stop(new TimeSpan(0, 0, 30));
                 System.Threading.Thread.Sleep(500);
                 connection.Dispose();
