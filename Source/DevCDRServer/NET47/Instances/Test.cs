@@ -41,6 +41,11 @@ namespace DevCDRServer
             Clients.Client(Context.ConnectionId).returnPSAsync("Invoke-RestMethod -Uri 'https://" + sEndPoint + "/jaindb/getps?filename=compliance_default.ps1' | IEX;'Check complete..'", "Host");
         }
 
+        public void Inventory(string name)
+        {
+            string sEndPoint = "devcdr.azurewebsites.net";
+            Clients.Client(Context.ConnectionId).returnPSAsync("Invoke-RestMethod -Uri 'https://" + sEndPoint + "/jaindb/getps?filename=inventory.ps1' | IEX;'Inventory complete..'", "Host");
+        }
         public Task JoinGroup(string groupName)
         {
             if (!lGroups.Contains(groupName))

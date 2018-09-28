@@ -413,8 +413,18 @@
                                         Command('GetRZUpdates', '');
                                     }
                                 },
+                                "actRZUpdateCore": {
+                                    "name": "Update important Applications",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        Command('InstallRZUpdates', '7-Zip;7-Zip(MSI);AdobeReader DC MUI;AdobeReader DC;Firefox;FlashPlayerPlugin;FlashPlayerPPAPI;Google Chrome;KeePass;Notepad++;Notepad++(x64);Code;paint.net;Putty;VLC;JavaRuntime8;JavaRuntime8x64;VCRedist2017x64;VCRedist2017x86;VCRedist2015x64;VCRedist2015x86;VCRedist2013x64;VCRedist2013x86;WinSCP;Sonos Controller;Microsoft Azure PowerShell;Greenshot;Brackets');
+                                    }
+                                },
                                 "actRZUpdate": {
-                                    "name": "Install missing Updates",
+                                    "name": "Update all Applications",
                                     icon: function (opt, $itemElement, itemKey, item) {
                                         $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
@@ -471,6 +481,16 @@
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
                                         RunPS('"User: " +(get-process -includeusername explorer).UserName', 'Get User...');
+                                    }
+                                },
+                                "actSecOwner": {
+                                    "name": "Get Owner",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-Item HKLM:SYSTEM\\CurrentControlSet\\Control\\CloudDomainJoin\\JoinInfo\\* -ea SilentlyContinue | Get-ItemProperty).UserEmail', 'Get Owner...');
                                     }
                                 },
                                 "actSecLocked": {

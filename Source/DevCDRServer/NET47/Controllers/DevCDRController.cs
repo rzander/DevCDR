@@ -332,7 +332,7 @@ namespace DevCDRServer.Controllers
                     RZScan(lHostnames, sInstance);
                     break;
                 case "InstallRZUpdates":
-                    RZUpdate(lHostnames, sInstance);
+                    RZUpdate(lHostnames, sInstance, sArgs);
                     break;
                 case "InstallRZSW":
                     InstallRZSW(lHostnames, sInstance, sArgs);
@@ -603,7 +603,7 @@ namespace DevCDRServer.Controllers
             }
         }
 
-        internal void RZUpdate(List<string> Hostnames, string sInstance)
+        internal void RZUpdate(List<string> Hostnames, string sInstance, string Args = "")
         {
             IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext(sInstance);
 
@@ -623,7 +623,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
-                    hubContext.Clients.Client(sID).rzupdate("HUB");
+                    hubContext.Clients.Client(sID).rzupdate(Args);
                 }
             }
         }
