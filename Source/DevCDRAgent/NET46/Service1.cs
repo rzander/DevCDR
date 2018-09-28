@@ -12,6 +12,7 @@ using System.Management.Automation;
 using System.Net.NetworkInformation;
 using System.Reflection;
 using System.ServiceProcess;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Xml;
@@ -65,33 +66,61 @@ namespace DevCDRAgent
                                 }
                             });
 
-                            
-                            if (Properties.Settings.Default.HealtchCheckHours > 0)
+                            if (Hostname == Environment.MachineName) //No Inventory or Healthcheck if agent is running as user or with custom Name
                             {
-                                var tLastCheck = DateTime.Now - Properties.Settings.Default.HealthCheckSuccess;
-
-                                //Run HealthChekc every x Hours
-                                if (tLastCheck.TotalHours > Properties.Settings.Default.HealtchCheckHours)
+                                if (Properties.Settings.Default.InventoryCheckHours > 0) //Invemtory is enabled
                                 {
-                                    Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
-                                    Trace.Flush();
-                                    System.Threading.Thread.Sleep(5000);
+                                    var tLastCheck = DateTime.Now - Properties.Settings.Default.InventorySuccess;
 
-                                    myHub.Invoke<string>("HealthCheck", Hostname).ContinueWith(task1 =>
+                                    //Run Inventory every x Hours
+                                    if (tLastCheck.TotalHours >= Properties.Settings.Default.InventoryCheckHours)
                                     {
-                                        if (task1.IsFaulted)
-                                        {
-                                            Console.WriteLine("There was an error opening the connection:{0}", task1.Exception.GetBaseException());
-                                            OnStart(null);
-                                        }
-                                        else
-                                        {
-                                            Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
-                                            Properties.Settings.Default.Save();
-                                            Program.MinimizeFootprint();
-                                        }
-                                    });
+                                        Trace.WriteLine(DateTime.Now.ToString() + " starting Inventory...");
+                                        Trace.Flush();
+                                        System.Threading.Thread.Sleep(1000);
 
+                                        myHub.Invoke<string>("Inventory", Hostname).ContinueWith(task1 =>
+                                        {
+                                            if (task1.IsFaulted)
+                                            {
+                                                Console.WriteLine("There was an error opening the connection:{0}", task1.Exception.GetBaseException());
+                                                OnStart(null);
+                                            }
+                                            else
+                                            {
+                                                Properties.Settings.Default.InventorySuccess = DateTime.Now;
+                                                Properties.Settings.Default.Save();
+                                            }
+                                        });
+                                    }
+                                }
+
+                                if (Properties.Settings.Default.HealtchCheckHours > 0) //Healthcheck is enabled
+                                {
+                                    var tLastCheck = DateTime.Now - Properties.Settings.Default.HealthCheckSuccess;
+
+                                    //Run HealthChekc every x Hours
+                                    if (tLastCheck.TotalHours >= Properties.Settings.Default.HealtchCheckHours)
+                                    {
+                                        Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
+                                        Trace.Flush();
+                                        System.Threading.Thread.Sleep(5000);
+
+                                        myHub.Invoke<string>("HealthCheck", Hostname).ContinueWith(task1 =>
+                                        {
+                                            if (task1.IsFaulted)
+                                            {
+                                                Console.WriteLine("There was an error opening the connection:{0}", task1.Exception.GetBaseException());
+                                                OnStart(null);
+                                            }
+                                            else
+                                            {
+                                                Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
+                                                Properties.Settings.Default.Save();
+                                            }
+                                        });
+
+                                    }
                                 }
                             }
                         }
@@ -221,28 +250,46 @@ namespace DevCDRAgent
 
                         myHub.On<string, string>("returnPS", (s1, s2) =>
                         {
+                            TimeSpan timeout = new TimeSpan(0, 5, 0); //default timeout = 5min
+                            DateTime dStart = DateTime.Now;
+                            TimeSpan dDuration = DateTime.Now - dStart;
+
                             using (PowerShell PowerShellInstance = PowerShell.Create())
                             {
-                                Trace.Write(DateTime.Now.ToString() + "\t run PS..." + s1);
+                                Trace.WriteLine(DateTime.Now.ToString() + "\t run PS... " + s1);
                                 try
                                 {
                                     PowerShellInstance.AddScript(s1);
-                                    var PSResult = PowerShellInstance.Invoke();
-                                    if (PSResult.Count() > 0)
+                                    PSDataCollection<PSObject> outputCollection = new PSDataCollection<PSObject>();
+
+                                    outputCollection.DataAdding += ConsoleOutput;
+                                    PowerShellInstance.Streams.Error.DataAdding += ConsoleError;
+
+                                    IAsyncResult async = PowerShellInstance.BeginInvoke<PSObject, PSObject>(null, outputCollection);
+                                    while (async.IsCompleted == false || dDuration > timeout)
                                     {
-                                        string sResult = PSResult.Last().BaseObject.ToString();
-                                        if (sResult != sScriptResult)
-                                        {
-                                            sScriptResult = sResult;
-                                            Trace.WriteLine("done. Result: " + sResult);
-                                            Random rnd = new Random();
-                                            tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
-                                        }
+                                        Thread.Sleep(200);
+                                        dDuration = DateTime.Now - dStart;
+                                        if (tReInit.Interval > 5000)
+                                            tReInit.Interval = 5000;
                                     }
-                                    else
-                                    {
-                                        Trace.WriteLine("done. no result.");
-                                    }
+
+                                    //var PSResult = PowerShellInstance.Invoke();
+                                    //if (PSResult.Count() > 0)
+                                    //{
+                                    //    string sResult = PSResult.Last().BaseObject.ToString();
+                                    //    if (sResult != sScriptResult)
+                                    //    {
+                                    //        sScriptResult = sResult;
+                                    //        Trace.WriteLine(" done. Result: " + sResult);
+                                    //        Random rnd = new Random();
+                                    //        tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                                    //    }
+                                    //}
+                                    //else
+                                    //{
+                                    //    Trace.WriteLine(" done. no result.");
+                                    //}
                                 }
                                 catch (Exception ex)
                                 {
@@ -256,7 +303,7 @@ namespace DevCDRAgent
                         //New 0.9.0.6
                         myHub.On<string, string>("returnPSAsync", (s1, s2) =>
                         {
-                            Trace.WriteLine(DateTime.Now.ToString() + "\t run PS async..." + s1);
+                            Trace.WriteLine(DateTime.Now.ToString() + "\t run PS async... " + s1);
                             var tSWScan = Task.Run(() =>
                             {
                                 using (PowerShell PowerShellInstance = PowerShell.Create())
@@ -290,11 +337,11 @@ namespace DevCDRAgent
                         {
                             try
                             {
-                                Trace.Write(DateTime.Now.ToString() + "\t Agent init...");
+                                Trace.Write(DateTime.Now.ToString() + "\t Agent init... ");
                                 myHub.Invoke<string>("Init", Hostname).ContinueWith(task1 =>
                                 {
                                 });
-                                Trace.WriteLine("done.");
+                                Trace.WriteLine(" done.");
                             }
                             catch { }
                             try
@@ -306,6 +353,20 @@ namespace DevCDRAgent
                                     });
                                 }
                                 Program.MinimizeFootprint();
+                            }
+                            catch { }
+                        });
+
+                        myHub.On<string>("reinit", (s1) =>
+                        {
+                            try
+                            {
+                                Properties.Settings.Default.InventorySuccess = new DateTime();
+                                Properties.Settings.Default.HealthCheckSuccess = new DateTime();
+                                Properties.Settings.Default.Save();
+
+                                Random rnd = new Random();
+                                tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
                             }
                             catch { }
                         });
@@ -334,14 +395,14 @@ namespace DevCDRAgent
                                     }
                                     catch (Exception ex)
                                     {
-                                        Console.WriteLine("There was an error: {0}", ex.Message);
+                                        Console.WriteLine(" There was an error: {0}", ex.Message);
                                     }
                                 }
 
                                 myHub.Invoke("Status", new object[] { Hostname, sResult }).ContinueWith(task1 =>
                                 {
                                 });
-                                Trace.WriteLine("done.");
+                                Trace.WriteLine(" done.");
                                 Program.MinimizeFootprint();
                             }
                             catch (Exception ex)
@@ -354,7 +415,7 @@ namespace DevCDRAgent
                         {
                             try
                             {
-                                Trace.Write(DateTime.Now.ToString() + "\t Get Version...");
+                                Trace.Write(DateTime.Now.ToString() + "\t Get Version... ");
                                 //Get File-Version
                                 sScriptResult = (FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location)).FileVersion.ToString();
                                 Trace.WriteLine(sScriptResult);
@@ -528,14 +589,26 @@ namespace DevCDRAgent
                                     oScan.SWScan().Wait(30000);
                                     oScan.CheckUpdates(null).Wait(30000);
 
-                                    sScriptResult = oScan.NewSoftwareVersions.Count.ToString() + " RZ updates found";
-                                    rnd = new Random();
-                                    tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                                    if (string.IsNullOrEmpty(s1))
+                                    {
+                                        sScriptResult = oScan.NewSoftwareVersions.Count.ToString() + " RZ updates found";
+                                        rnd = new Random();
+                                        tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                                    }
 
                                     List<string> lSW = new List<string>();
                                     foreach (var oSW in oScan.NewSoftwareVersions)
                                     {
-                                        RZInst(oSW.Shortname);
+                                        if (string.IsNullOrEmpty(s1) || s1 == "HUB")
+                                        {
+                                            RZInst(oSW.Shortname);
+                                        }
+                                        else
+                                        {
+                                            var SWList = s1.Split(';');
+                                            if (SWList.Contains(oSW.Shortname))
+                                                RZInst(oSW.Shortname);
+                                        }
                                     }
                                 }
                                 catch { }
@@ -550,7 +623,7 @@ namespace DevCDRAgent
                                 {
                                     sScriptResult = "Detecting updates...";
                                     Random rnd = new Random();
-                                    tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                                    tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
 
                                     RZUpdater oUpdate = new RZUpdater();
                                     RZScan oScan = new RZScan(false, false);
@@ -567,7 +640,7 @@ namespace DevCDRAgent
 
                                     sScriptResult = JsonConvert.SerializeObject(lSW);
                                     rnd = new Random();
-                                    tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                                    tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
                                 }
                                 catch { }
                             });
@@ -601,7 +674,7 @@ namespace DevCDRAgent
                                 if (string.IsNullOrEmpty(cmd))
                                 {
                                     cmd = Assembly.GetExecutingAssembly().Location;
-                                    arg = Environment.MachineName + ":" + "%USERNAME%";
+                                    arg = Environment.MachineName + ":" + "%USERNAME%" + " --hidden";
                                 }
 
                                 try
@@ -612,7 +685,7 @@ namespace DevCDRAgent
                                     }
                                     else
                                     {
-                                        ProcessExtensions.StartProcessAsCurrentUser(null, cmd + " " + arg);
+                                        ProcessExtensions.StartProcessAsCurrentUser(null, cmd + " " + arg, "", false);
                                     }
                                 }
                                 catch (Exception ex)
@@ -625,25 +698,31 @@ namespace DevCDRAgent
 
                         myHub.Invoke<string>("Init", Hostname).ContinueWith(task1 =>
                         {
-                            if (task1.IsFaulted)
+                            try
                             {
-                                Console.WriteLine("There was an error calling send: {0}", task1.Exception.GetBaseException());
-                            }
-                            else
-                            {
-                                try
+                                if (task1.IsFaulted)
                                 {
-                                    foreach (string sGroup in Properties.Settings.Default.Groups.Split(';'))
-                                    {
-                                        myHub.Invoke<string>("JoinGroup", sGroup).ContinueWith(task2 =>
-                                        {
-                                        });
-                                    }
-                                    Program.MinimizeFootprint();
+                                    Console.WriteLine("There was an error calling send: {0}", task1.Exception.GetBaseException());
                                 }
-                                catch { }
+                                else
+                                {
+                                    try
+                                    {
+                                        foreach (string sGroup in Properties.Settings.Default.Groups.Split(';'))
+                                        {
+                                            myHub.Invoke<string>("JoinGroup", sGroup).ContinueWith(task2 =>
+                                            {
+                                            });
+                                        }
+                                        Program.MinimizeFootprint();
+                                    }
+                                    catch { }
+                                }
                             }
+                            catch { }
                         });
+
+
                     }
 
                 }).Wait();
@@ -677,13 +756,13 @@ namespace DevCDRAgent
 
                         sScriptResult = "..downloading dependencies (" + oRZSWPreReq.SoftwareUpdate.SW.Shortname + ")";
                         rnd = new Random();
-                        tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                        tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
 
                         if (oRZSWPreReq.SoftwareUpdate.Download().Result)
                         {
                             sScriptResult = "..installing dependencies (" + oRZSWPreReq.SoftwareUpdate.SW.Shortname + ")";
                             rnd = new Random();
-                            tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                            tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
 
                             if (oRZSWPreReq.SoftwareUpdate.Install(false, true).Result)
                             {
@@ -693,7 +772,7 @@ namespace DevCDRAgent
                             {
                                 sScriptResult = oRZSWPreReq.SoftwareUpdate.SW.Shortname + " failed.";
                                 rnd = new Random();
-                                tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                                tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
                             }
                         }
                     }
@@ -702,25 +781,25 @@ namespace DevCDRAgent
 
                 sScriptResult = "..downloading " + oRZSW.SoftwareUpdate.SW.Shortname;
                 rnd = new Random();
-                tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
 
                 if (oRZSW.SoftwareUpdate.Download().Result)
                 {
                     sScriptResult = "..installing " + oRZSW.SoftwareUpdate.SW.Shortname;
                     rnd = new Random();
-                    tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                    tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
 
                     if (oRZSW.SoftwareUpdate.Install(false, true).Result)
                     {
                         sScriptResult = "Installed: " + oRZSW.SoftwareUpdate.SW.Shortname;
                         rnd = new Random();
-                        tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                        tReInit.Interval = rnd.Next(3000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
                     }
                     else
                     {
                         sScriptResult = "Failed: " + oRZSW.SoftwareUpdate.SW.Shortname;
                         rnd = new Random();
-                        tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                        tReInit.Interval = rnd.Next(3000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
                     }
                 }
             }
@@ -728,7 +807,7 @@ namespace DevCDRAgent
             {
                 sScriptResult = s1 + " : " + ex.Message;
                 Random rnd = new Random();
-                tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                tReInit.Interval = rnd.Next(3000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
             }
         }
 
@@ -775,6 +854,24 @@ namespace DevCDRAgent
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
+            }
+        }
+
+        private void ConsoleError(object sender, DataAddingEventArgs e)
+        {
+            if (e.ItemAdded != null)
+            {
+                sScriptResult = "ERROR: " + e.ItemAdded.ToString();
+                Trace.WriteLine("ERROR: " + e.ItemAdded.ToString());
+            }
+        }
+
+        private void ConsoleOutput(object sender, DataAddingEventArgs e)
+        {
+            if (e.ItemAdded != null)
+            {
+                sScriptResult = e.ItemAdded.ToString();
+                Trace.WriteLine(e.ItemAdded.ToString());
             }
         }
     }
