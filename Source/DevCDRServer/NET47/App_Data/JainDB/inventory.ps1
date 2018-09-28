@@ -152,7 +152,7 @@ function SetID {
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#UUID" -Value (getinv -Name "Computer" -WMIClass "win32_ComputerSystemProduct" -Properties @("#UUID"))."#UUID" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#Name" -Value (getinv -Name "Computer" -WMIClass "win32_ComputerSystem" -Properties @("Name"))."Name" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#SerialNumber" -Value (getinv -Name "Computer" -WMIClass "win32_SystemEnclosure" -Properties @("SerialNumber"))."SerialNumber" -ea SilentlyContinue
-        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#MAC" -Value (get-wmiobject -class "Win32_NetworkAdapterConfiguration" | Where-Object {($_.IpEnabled -Match "True")}).MACAddress.Replace(':', '-')
+        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "@MAC" -Value (get-wmiobject -class "Win32_NetworkAdapterConfiguration" | Where-Object {($_.IpEnabled -Match "True")}).MACAddress.Replace(':', '-')
 		
 		[xml]$xml = Get-Content "$($env:programfiles)\DevCDRAgent\DevCDRAgent.exe.config"
 		$inst = $xml.configuration.applicationSettings.'DevCDRAgent.Properties.Settings'.setting | Where-Object { $_.name -eq 'Instance' }
@@ -185,12 +185,12 @@ $object | Add-Member -MemberType NoteProperty -Name "LogicalDisk" -Value ($ld)
 #getinv -Name "NetworkAdapter" -WMIClass "Win32_NetworkAdapter" -Properties @("AdapterType", "Description", "@DeviceID", "@InterfaceIndex", "#MACAddress", "Manufacturer", "PhysicalAdapter", "PNPDeviceID", "ServiceName", "@Speed") -AppendObject ([ref]$object)
 #getinv -Name "NetworkAdapterConfiguration" -WMIClass "Win32_NetworkAdapterConfiguration" -Properties @("@DefaultIPGateway", "Description", "DHCPEnabled", "#DHCPServer", "DNSDomain", "@Index", "@InterfaceIndex", "@IPAddress", "IPEnabled", "@IPSubnet", "#MACAddress" ) -AppendObject ([ref]$object)
 
-getinv -Name "Video" -WMIClass "Win32_VideoController" -Properties @("AdapterCompatibility", "Name", "@CurrentHorizontalResolution", "@CurrentVerticalResolution", "@CurrentBitsPerPixel", "@CurrentRefreshRate","DeviceID", "DriverVersion", "InfSection", "PNPDeviceID", "VideoArchitecture", "VideoProcessor") -AppendObject ([ref]$object)
-$object.Video= $object.Video | where { $_.DeviceID -notlike "USB\*" } #Cleanup USB Video Devices
+getinv -Name "Video" -WMIClass "Win32_VideoController" -Properties @("AdapterCompatibility", "Name", "@CurrentHorizontalResolution", "@CurrentVerticalResolution", "@CurrentBitsPerPixel", "@CurrentRefreshRate", "DriverVersion", "InfSection", "PNPDeviceID", "VideoArchitecture", "VideoProcessor") -AppendObject ([ref]$object)
+$object.Video= $object.Video | where { $_.PNPDeviceID -notlike "USB*" } #Cleanup USB Video Devices
 getinv -Name "QFE" -WMIClass "Win32_QuickFixEngineering" -Properties @("Caption", "Description", "HotFixID", "@InstalledOn") -AppendObject ([ref]$object)
 getinv -Name "Share" -WMIClass "Win32_Share" -Properties @("Name", "Description ", "Name", "Path", "Type") -AppendObject ([ref]$object)
 getinv -Name "Audio" -WMIClass "Win32_SoundDevice" -Properties @("Caption", "Description ", "DeviceID", "Manufacturer") -AppendObject ([ref]$object)
-$object.Audio = $object.Audio | where { $_.DeviceID -notlike "USB\*" } #Cleanup USB Audio Devices
+$object.Audio = $object.Audio | where { $_.DeviceID -notlike "USB*" } #Cleanup USB Audio Devices
 
 getinv -Name "CDROM" -WMIClass "Win32_CDROMDrive" -Properties @("Capabilities", "Name", "Description", "DeviceID", "@Drive" , "MediaType") -AppendObject ([ref]$object)
 
@@ -243,11 +243,11 @@ $Services = get-service | Where-Object { (($_.Name.IndexOf("_")) -eq -1) -and ($
 $object | Add-Member -MemberType NoteProperty -Name "Services" -Value ($Services )
 
 #Office365
-$O365 = Get-ItemProperty HKLM:SOFTWARE\Microsoft\Office\ClickToRun\Configuration | Select * -Exclude PS*,*Retail.EmailAddress,InstallID
+$O365 = Get-ItemProperty HKLM:SOFTWARE\Microsoft\Office\ClickToRun\Configuration -ea SilentlyContinue  | Select * -Exclude PS*,*Retail.EmailAddress,InstallID
 $object | Add-Member -MemberType NoteProperty -Name "Office365" -Value ($O365)
 
 #CloudJoin
-$Cloud = Get-Item HKLM:SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\* | Get-ItemProperty | select -Property IdpDomain,TenantId,@{N = '#UserEmail'; E = { $_.UserEmail}},AikCertStatus, AttestationLevel,TransportKeyStatus
+$Cloud = Get-Item HKLM:SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\* -ea SilentlyContinue  | Get-ItemProperty | select -Property IdpDomain,TenantId,@{N = '#UserEmail'; E = { $_.UserEmail}},AikCertStatus, AttestationLevel,TransportKeyStatus
 $object | Add-Member -MemberType NoteProperty -Name "CloudJoin" -Value ($Cloud)
 
 #OS Version details
@@ -269,8 +269,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUz0EQm0PHyghKOYyiFhMHyC8N
-# RwagggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU76/F3OnFFGf9Ns0ItkrZYst8
+# x22gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -335,12 +335,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR+
-# MFrkDNQ9uxDj3sBD/gYcS0oJMDANBgkqhkiG9w0BAQEFAASCAQBCliZQYRWSwFGT
-# NvYQXjTxxoO7xvU+YxpPgM6RQX4oD3a9OVIH6pQMCyjjDR2drTxTEzLBnYtVtRm0
-# n5KfBH7Z//dm4FBmz9nYmfCpd3+wKe27T9LXv0K6ObmFZ1HW11ArfAngCySvvwdo
-# +o5nPxkraN3/x7r2Mj45IQDM2fe48kEzOBVgwVVoKdfxRF0iADD0vE+K7Bno0Ka5
-# kemrXluCExExgPdAo/9QCjCr9D1+IOkDEQFDf35j2DeiLqz0OLQz+orgLhRlaI4E
-# gPHK0O0iEtZDLDZ190oENvWlsVdz069e2E/cuCJM0XZYeQ2JD0i3jb6MLMdNz4/m
-# pTWOauZN
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTR
+# Vx/WqhLI2jzq3Ck4R/ytXGERQDANBgkqhkiG9w0BAQEFAASCAQBAm2lArl/aLC7q
+# rwZnxdeK7j1qESIVCYLkAI2YgvjWnepx1OKcKao5Q8Qs4ElpXWyCRVhZFNvmNfAd
+# G3vKPtyqU8CvFVbCSfQ97RzOoOALBZx4mWAaRYfm19C6ijF824prFK0lcWU07XQK
+# W2rtTH8aikAgWGG63SR93cvU2w9FLMupP3ftf976ubRWRAhj3e2upF1+iWC97Ygu
+# 6qJuuw+M+df3y95NQbn22MHE0lU+5OzdJHWYpa/ELuK57DkiboN/hSVMQ6FE39Kn
+# C5y2w5S0UJCncrcDUqpq49iqAsoPJNfeyGZSfQXJbS4uubJlpnzGT2x53b7kbfqt
+# LDLPZbFl
 # SIG # End signature block
