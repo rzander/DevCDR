@@ -4,6 +4,7 @@ using System.Configuration.Install;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
+using System.Linq;
 
 namespace DevCDRAgent
 {
@@ -14,6 +15,25 @@ namespace DevCDRAgent
         /// </summary>
         static int Main(string[] args)
         {
+            //Log File cleanup
+            try
+            {
+                if (System.IO.File.Exists("%temp%\\devcdr.log"))
+                {
+                    var log = new System.IO.FileInfo("%temp%\\devcdr.log");
+                    if (log.Length > 5242880) //File is more than 5MB
+                    {
+                        if (System.IO.File.Exists("%temp%\\devcdr_.log"))
+                        {
+                            System.IO.File.Delete("%temp%\\devcdr_.log");
+                        }
+
+                        System.IO.File.Move("%temp%\\devcdr.log", "%temp%\\devcdr_.log");
+                    }
+                }
+            }
+            catch { }
+
             Trace.Listeners.Add(new TextWriterTraceListener(Environment.ExpandEnvironmentVariables("%temp%\\devcdr.log")));
             Trace.AutoFlush = true;
             Trace.WriteLine("Starting DevCDRAgent... " + DateTime.Now.ToString());
@@ -32,6 +52,13 @@ namespace DevCDRAgent
                         ManagedInstallerClass.InstallHelper(new string[] { "/u", Assembly.GetExecutingAssembly().Location });
                         break;
                     default:
+                        if(args.ToList().Contains("--hidden"))
+                        {
+                            var handle = GetConsoleWindow();
+                            // Hide
+                            ShowWindow(handle, 0);
+                            parameter = "";
+                        }
                         Console.WriteLine(string.Format("--- Zander Tools: DevCDR Service Version: {0} ---", Assembly.GetEntryAssembly().GetName().Version));
                         Console.WriteLine("Optional ServiceInstaller parameters: --install , --uninstall");
                         if (string.IsNullOrEmpty(parameter))
@@ -71,5 +98,11 @@ namespace DevCDRAgent
 
         [DllImport("psapi.dll")]
         static extern int EmptyWorkingSet(IntPtr hwProc);
+
+        [DllImport("kernel32.dll")]
+        static extern IntPtr GetConsoleWindow();
+
+        [DllImport("user32.dll")]
+        static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
     }
 }
