@@ -674,18 +674,18 @@ namespace DevCDRAgent
                                 if (string.IsNullOrEmpty(cmd))
                                 {
                                     cmd = Assembly.GetExecutingAssembly().Location;
-                                    arg = Environment.MachineName + ":" + "%USERNAME%" + " --hidden";
+                                    arg = Environment.MachineName + ":" + "%USERNAME%";
                                 }
 
                                 try
                                 {
                                     if (string.IsNullOrEmpty(arg))
                                     {
-                                        ProcessExtensions.StartProcessAsCurrentUser(cmd);
+                                        ProcessExtensions.StartProcessAsCurrentUser(cmd, null, null, false);
                                     }
                                     else
                                     {
-                                        ProcessExtensions.StartProcessAsCurrentUser(null, cmd + " " + arg, "", false);
+                                        ProcessExtensions.StartProcessAsCurrentUser(null, cmd + " " + arg , null, false);
                                     }
                                 }
                                 catch (Exception ex)
