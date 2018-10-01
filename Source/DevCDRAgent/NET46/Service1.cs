@@ -315,11 +315,15 @@ namespace DevCDRAgent
                                         if (PSResult.Count() > 0)
                                         {
                                             string sResult = PSResult.Last().BaseObject.ToString();
-                                            if (sResult != sScriptResult)
+
+                                            if (!string.IsNullOrEmpty(sResult)) //Do not return empty results
                                             {
-                                                sScriptResult = sResult;
-                                                Random rnd = new Random();
-                                                tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                                                if (sResult != sScriptResult)
+                                                {
+                                                    sScriptResult = sResult;
+                                                    Random rnd = new Random();
+                                                    tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                                                }
                                             }
                                         }
                                     }
