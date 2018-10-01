@@ -11,8 +11,8 @@ if (get-process logonui -ea SilentlyContinue) {
     $ManagedSW = @("FileZilla", "Google Chrome", "Greenshot" , "KeePass", "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", 
         "AdobeReader DC", "paint.net", "WinSCP", "Sonos Controller", "Microsoft Azure PowerShell", "Firefox" , "Putty" ,
         "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
-        "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", "Microsoft Azure Information Protection", "Brackets", 
-		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "7-Zip" , "7-Zip(MSI)" )
+        "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", "Brackets", 
+		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "7-Zip" , "7-Zip(MSI)", "WinRAR", "TeamViewer" )
 
     #Find Software Updates
     $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename
@@ -24,9 +24,6 @@ if (get-process logonui -ea SilentlyContinue) {
             Install-Package -ProviderName RuckZuck "$($_)"
         }
     }
-
-	#Cleanup CleanMgr Settings
-	#Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\*' -Name StateFlags0001 -ErrorAction SilentlyContinue | Remove-ItemProperty -Name StateFlags0001 -ErrorAction SilentlyContinue
 
 	#Cleanup Temp
 	if((Get-ChildItem "$($env:windir)\Temp\*" -Recurse).Count -gt 100) {
@@ -45,8 +42,8 @@ Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimi
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUs1S3PvPt1P5lD5Fu8cX5bku/
-# N7egggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUFX365TQTL21EHymrGIJCJqUA
+# eUmgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -111,12 +108,12 @@ Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimi
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTr
-# R0/HypnR7R3TXBnzdYMMuYF3yTANBgkqhkiG9w0BAQEFAASCAQCTALQVUMDBndal
-# gR4rEgwylNCrS8WPqQ++lNRDgkzRd94UPESYAFgcM4NgOkgBcELMq+86n/jZfCKD
-# jySV2nndH+JhC4gDIu/E4OVMqMtxd919jyU/vJpQmnfZyClbEyiQ1I7tyFfAd52Y
-# K6bNXOB2QNQk9dy3fHLJ0hyJdK/Eg7At4xn3hj3rZ1EShcOmyds/EAf2ALs/gqLu
-# lq3ESFYLuR54ufmEtQjR5eLWHUB1Xw/N5vdvGhj4nNy4ZuDCMPURIvbmnOE/zbZM
-# 6bOBR7X2vRtB0sGKTNlyvGdG54ESUXniGyPy99ADJ33BY+kY/XILXK106mixzN8C
-# mGAFhlyv
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS9
+# 4v6XnIaN+KX1z2AnpcLElbdoMjANBgkqhkiG9w0BAQEFAASCAQB+yNFF1liBIAZ7
+# nWZ9zpruUM8ry2X5fFM8TN95AxwnRXKH65Mpbh/DedHqm8VrYdXp53nAABIt5jrS
+# K/vDQY/DLRCGJvn34x3RwDRSntt8Q/v4AWxl7eQ4c9fH5ZsddWXIWUJGjPBt4XPo
+# loEvKRg8VAxj0GAnlQPkfrxHWfoPky7hPAFkrx0r7d3TAOJ2pGwRz++IBnAzTqjW
+# yT+WgeojCb/i+qal9TdT/AQsrLGHOoV6q1Zw8jdbAwl5Hd9cPJ1slsRsCqX/KpzL
+# 9ZCDCLjTgf0eZlUFngUUWspZV/Ss9vgd6QtDsHUgofm5+zDfgVb23dYAeyw7ER6q
+# 9IzTkAOC
 # SIG # End signature block

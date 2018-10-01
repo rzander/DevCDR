@@ -38,7 +38,7 @@ namespace DevCDRServer
         public void HealthCheck(string name)
         {
             string sEndPoint = "devcdr.azurewebsites.net";
-            Clients.Client(Context.ConnectionId).returnPSAsync("Invoke-RestMethod -Uri 'https://" + sEndPoint + "/jaindb/getps?filename=compliance_default.ps1' | IEX;'Check complete..'", "Host");
+            Clients.Client(Context.ConnectionId).returnPSAsync("Invoke-RestMethod -Uri 'https://" + sEndPoint + "/jaindb/getps?filename=compliance_default.ps1' | IEX;''", "Host");
         }
 
         public void Inventory(string name)
