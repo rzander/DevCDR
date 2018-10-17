@@ -423,6 +423,8 @@ namespace DevCDRServer.Controllers
 
                 ViewBag.jsonR = oR.ToString(Formatting.Indented);
                 ViewBag.jsonL = oL.ToString(Formatting.Indented);
+                ViewBag.History = GetHistory(id).ToString(Formatting.Indented);
+                ViewBag.Id = id;
             }
             return View("Diff");
         }
@@ -443,6 +445,29 @@ namespace DevCDRServer.Controllers
                 ViewBag.jsonL = oL.ToString(Formatting.None);
             }
             return View("InvJson");
+        }
+
+        [System.Web.Mvc.Authorize]
+        [HttpGet]
+        [Route("GetHistory/{id}")]
+        public JArray GetHistory(string id, string blockType = "INV")
+        {
+            //string j = "[{\"index\":1,\"timestamp\":\"2018-08-05T15:03:17.3141628Z\",\"type\":\"\"},{\"index\":2,\"timestamp\":\"2018-08-23T17:12:59.3238779Z\",\"type\":\"\"}]";
+            //return JArray.Parse(j);
+
+             //string sPath = this.Request.Path;
+            string spath = HttpContext.Server.MapPath("~/App_Data/JainDB");
+            jaindb.jDB.FilePath = spath;
+
+            string sQuery = this.Request.QueryString.ToString();
+
+            var query = System.Web.HttpUtility.ParseQueryString(sQuery);
+            string sKey = query["id"];
+
+            if (!string.IsNullOrEmpty(sKey))
+                return jDB.GetJHistory(sKey, blockType);
+            else
+                return null;
         }
     }
 

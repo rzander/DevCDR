@@ -668,168 +668,150 @@ namespace jaindb
                     sData = ReadHash(oRaw["_hash"].ToString() + "_" + blockType, "_Assets");
 
                 if (!string.IsNullOrEmpty(sData))
+                {
+                    oInv = JObject.Parse(sData);
+                    try
                     {
-                        oInv = JObject.Parse(sData);
+                        if (oInv["_index"] == null)
+                            oInv.Add(new JProperty("_index", oRaw["_index"]));
+                        if (oInv["_date"] == null)
+                            oInv.Add(new JProperty("_date", oRaw["_date"]));
+                        if (oInv["_hash"] == null)
+                            oInv.Add(new JProperty("_hash", oRaw["_hash"]));
+                    }
+                    catch { }
+
+                    List<string> lHashes = new List<string>();
+
+                    //Load hashed values
+                    foreach (JProperty oTok in oInv.Descendants().Where(t => t.Type == JTokenType.Property && ((JProperty)t).Name.StartsWith("##hash")).ToList())
+                    {
+                        lHashes.Add(oTok.Path);
+                    }
+
+                    //Remove merge ##hash with hasehd value
+                    foreach (string sHash in lHashes)
+                    {
                         try
                         {
-                            if (oInv["_index"] == null)
-                                oInv.Add(new JProperty("_index", oRaw["_index"]));
-                            if (oInv["_date"] == null)
-                                oInv.Add(new JProperty("_date", oRaw["_date"]));
-                            if (oInv["_hash"] == null)
-                                oInv.Add(new JProperty("_hash", oRaw["_hash"]));
-                        }
-                        catch { }
+                            JProperty oTok = oInv.SelectToken(sHash).Parent as JProperty;
+                            string sH = oTok.Value.ToString();
 
-                        List<string> lHashes = new List<string>();
+                            List<string> aPathItems = oTok.Path.Split('.').ToList();
+                            aPathItems.Reverse();
+                            string sRoot = "";
+                            if (aPathItems.Count > 1)
+                                sRoot = aPathItems[1].Split('[')[0];
 
-                        //Load hashed values
-                        foreach (JProperty oTok in oInv.Descendants().Where(t => t.Type == JTokenType.Property && ((JProperty)t).Name.StartsWith("##hash")).ToList())
-                        {
-                            lHashes.Add(oTok.Path);
-                        }
-
-                        //Remove merge ##hash with hasehd value
-                        foreach (string sHash in lHashes)
-                        {
-                            try
+                            string sObj = ReadHash(sH, sRoot);
+                            if (!string.IsNullOrEmpty(sObj))
                             {
-                                JProperty oTok = oInv.SelectToken(sHash).Parent as JProperty;
-                                string sH = oTok.Value.ToString();
-
-                                List<string> aPathItems = oTok.Path.Split('.').ToList();
-                                aPathItems.Reverse();
-                                string sRoot = "";
-                                if (aPathItems.Count > 1)
-                                    sRoot = aPathItems[1].Split('[')[0];
-
-                                string sObj = ReadHash(sH, sRoot);
-                                if (!string.IsNullOrEmpty(sObj))
+                                var jStatic = JObject.Parse(sObj);
+                                oTok.Parent.Merge(jStatic);
+                                bool bLoop = true;
+                                int i = 0;
+                                //Remove NULL values as a result from merge
+                                while (bLoop)
                                 {
-                                    var jStatic = JObject.Parse(sObj);
-                                    oTok.Parent.Merge(jStatic);
-                                    bool bLoop = true;
-                                    int i = 0;
-                                    //Remove NULL values as a result from merge
-                                    while (bLoop)
-                                    {
-                                        bLoop = false;
-                                        foreach (var jObj in (oTok.Parent.Descendants().Where(t => (t.Type == (JTokenType.Object) || t.Type == (JTokenType.Array)) && t.HasValues == false).Reverse().ToList()))
-                                        {
-                                            try
-                                            {
-                                                if ((jObj.Type == JTokenType.Object || jObj.Type == JTokenType.Array) && jObj.Parent.Type == JTokenType.Property)
-                                                {
-                                                    jObj.Parent.Remove();
-                                                    bLoop = true;
-                                                    continue;
-                                                }
-
-                                                jObj.Remove();
-                                                bLoop = true;
-                                            }
-                                            catch (Exception ex)
-                                            {
-                                                Debug.WriteLine("Error GetFull_1: " + ex.Message.ToString());
-                                                if (i <= 100)
-                                                    bLoop = true;
-                                                i++;
-                                            }
-                                        }
-                                    }
-
-                                    /*foreach (var jObj in (oTok.Parent.Descendants().Where(t => t.Type == (JTokenType.Object) && t.HasValues == false).Reverse().ToList()))
+                                    bLoop = false;
+                                    foreach (var jObj in (oTok.Parent.Descendants().Where(t => (t.Type == (JTokenType.Object) || t.Type == (JTokenType.Array)) && t.HasValues == false).Reverse().ToList()))
                                     {
                                         try
                                         {
-                                             if (jObj.Parent.Count == 1 && jObj.Parent.Type == JTokenType.Array)
-                                            {
-                                                jObj.Parent.Parent.Remove();
-                                                continue;
-                                            }
-                                            if (jObj.Parent.Parent.Count == 1 && jObj.Parent.Type == JTokenType.Property)
-                                            {
-                                                jObj.Parent.Parent.Remove();
-                                                continue;
-                                            }
-                                            if (jObj.Parent.Count == 1 && jObj.Parent.Type == JTokenType.Property)
+                                            if ((jObj.Type == JTokenType.Object || jObj.Type == JTokenType.Array) && jObj.Parent.Type == JTokenType.Property)
                                             {
                                                 jObj.Parent.Remove();
+                                                bLoop = true;
                                                 continue;
                                             }
-                                            else
-                                            {
-                                                jObj.Remove();
-                                            }
+
+                                            jObj.Remove();
+                                            bLoop = true;
                                         }
-                                        catch(Exception ex)
+                                        catch (Exception ex)
                                         {
                                             Debug.WriteLine("Error GetFull_1: " + ex.Message.ToString());
+                                            if (i <= 100)
+                                                bLoop = true;
+                                            i++;
                                         }
-                                    }*/
-                                }
-                                else
-                                {
-                                    sObj.ToString();
+                                    }
                                 }
                             }
-                            catch (Exception ex)
+                            else
                             {
-                                Debug.WriteLine("Error GetFull_2: " + ex.Message.ToString());
+                                sObj.ToString();
                             }
                         }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine("Error GetFull_2: " + ex.Message.ToString());
+                        }
+                    }
 
-                        //Remove ##hash
-                        foreach (var oTok in oInv.Descendants().Where(t => t.Type == JTokenType.Property && ((JProperty)t).Name.StartsWith("##hash")).ToList())
+                    //Remove ##hash
+                    foreach (var oTok in oInv.Descendants().Where(t => t.Type == JTokenType.Property && ((JProperty)t).Name.StartsWith("##hash")).ToList())
+                    {
+                        try
+                        {
+                            if (oInv.SelectToken(oTok.Path).Parent.Parent.Children().Count() == 1)
+                                oInv.SelectToken(oTok.Path).Parent.Parent.Remove();
+                            else
+                                oInv.SelectToken(oTok.Path).Parent.Remove();
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine("Error GetFull_3: " + ex.Message.ToString());
+                        }
+                    }
+
+                    try
+                    {
+                        //Remove NULL values
+                        foreach (var oTok in (oInv.Descendants().Where(t => t.Type == (JTokenType.Object) && t.HasValues == false).Reverse().ToList()))
                         {
                             try
                             {
-                                if (oInv.SelectToken(oTok.Path).Parent.Parent.Children().Count() == 1)
-                                    oInv.SelectToken(oTok.Path).Parent.Parent.Remove();
-                                else
-                                    oInv.SelectToken(oTok.Path).Parent.Remove();
+                                if (oTok.Parent.Count == 1)
+                                {
+                                    oTok.Parent.Remove();
+                                }
+
+                                if (oTok.HasValues)
+                                    oTok.Remove();
                             }
                             catch (Exception ex)
                             {
-                                Debug.WriteLine("Error GetFull_3: " + ex.Message.ToString());
+                                Debug.WriteLine("Error GetFull_4: " + ex.Message.ToString());
                             }
                         }
-
-                        try
-                        {
-                            //Remove NULL values
-                            foreach (var oTok in (oInv.Descendants().Where(t => t.Type == (JTokenType.Object) && t.HasValues == false).Reverse().ToList()))
-                            {
-                                try
-                                {
-                                    if (oTok.Parent.Count == 1)
-                                    {
-                                        oTok.Parent.Remove();
-                                    }
-
-                                    if (oTok.HasValues)
-                                        oTok.Remove();
-                                }
-                                catch (Exception ex)
-                                {
-                                    Debug.WriteLine("Error GetFull_4: " + ex.Message.ToString());
-                                }
-                            }
-                        }
-                        catch { }
-                        JSort(oInv, true);
-
-                        if (Index == -1)
-                        {
-                            //Cache Full
-                            WriteHashAsync(DeviceID, oInv.ToString(), "_full");
-                        }
-
-                        /*var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(60)); //cache full for 60s
-                        _cache.Set("FULL-" + DeviceID + "-" + Index.ToString(), oInv, cacheEntryOptions);*/
-
-                        return oInv;
                     }
+                    catch { }
+                    JSort(oInv, true);
+
+                    if (Index == -1)
+                    {
+                        //Cache Full
+                        if (!File.Exists(FilePath + "\\" + "_full" + "\\" + DeviceID + ".json"))
+                        {
+                            WriteHashAsync(DeviceID, oInv.ToString(), "_full").ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            try
+                            {
+                                //Cache in Memory
+                                CacheItemPolicy policy = new CacheItemPolicy();
+                                policy.AbsoluteExpiration = DateTimeOffset.Now.AddSeconds(60.0);
+
+                                _cache.Set("RH-" + "_full" + "-" + DeviceID, oInv.ToString(), policy);
+                            }
+                            catch { }
+                        }
+                    }
+
+                    return oInv;
+                }
 
 
             }
@@ -911,6 +893,63 @@ namespace jaindb
             catch { }
 
             JSort(jResult);
+            return jResult;
+        }
+
+        public static JArray GetJHistory(string DeviceID, string blockType = "")
+        {
+            string sResult = "";
+
+            try
+            {
+                //Check if MemoryCache is initialized
+                if (_cache == null)
+                {
+                    _cache = System.Runtime.Caching.MemoryCache.Default;
+                }
+
+                sResult = _cache["HIST-" + DeviceID + "-" + blockType] as string;
+                //Try to get value from Memory
+                if (!string.IsNullOrEmpty(sResult))
+                {
+                    return JArray.Parse(sResult);
+                }
+            }
+            catch { }
+
+            JArray jResult = new JArray();
+
+            if (string.IsNullOrEmpty(blockType))
+                blockType = BlockType;
+
+            try
+            {
+                string sChain = ReadHash(DeviceID, "_Chain");
+                var oChain = JsonConvert.DeserializeObject<Blockchain>(sChain);
+                foreach (block oBlock in oChain.Chain.Where(t => t.blocktype == blockType))
+                {
+                    try
+                    {
+                        JObject jTemp = new JObject();
+                        jTemp.Add("index", oBlock.index);
+                        jTemp.Add("timestamp", new DateTime(oBlock.timestamp).ToUniversalTime());
+                        jTemp.Add("type", "");
+                        jResult.Add(jTemp);
+                    }
+                    catch { }
+                }
+
+                //Cache result in Memory
+                if (!string.IsNullOrEmpty(sResult))
+                {
+                    CacheItemPolicy policy = new CacheItemPolicy();
+                    policy.AbsoluteExpiration =
+                    DateTimeOffset.Now.AddSeconds(60.0);
+                    _cache.Set("HIST-" + DeviceID + "-" + blockType, jResult.ToString(Formatting.None), policy);
+                }
+            }
+            catch { }
+
             return jResult;
         }
 

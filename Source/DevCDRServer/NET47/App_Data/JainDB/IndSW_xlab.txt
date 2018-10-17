@@ -47,8 +47,9 @@ Entity Framework 6.1.3 Tools  for Visual Studio 2015 Update 1
 ePub Converter
 FonePaw für Android 2.6.0
 Foxit Reader
+FileZilla Client 3.37.4
 Garmin Express
-Git version 2.16.1.2
+Git version 2.19.1 
 Goodix Fingerprint Driver
 Google Chrome
 Greenshot 1.2.10.6
@@ -170,8 +171,8 @@ Microsoft Visual Studio 2010-Tools für Office-Laufzeit (x64) Language Pack - DE
 Microsoft Visual Studio 2017
 Microsoft Visual Studio Code
 Microsoft Web Platform Installer 5.0
-Mozilla Firefox 61.0.1 (x64 de)
-Mozilla Firefox 61.0.2 (x64 en-US)
+Mozilla Firefox 62.0.3 (x64 de)
+Mozilla Firefox 62.0.3 (x64 en-US)
 Mozilla Maintenance Service
 MySQL Workbench 8.0 CE
 Notepad++ (32-bit x86)
@@ -259,8 +260,10 @@ Microsoft Azure App Service Tools v2.9.6 - Visual Studio 2015
 Microsoft Azure Data Lake Tools for Visual Studio 2015
 Microsoft Azure Mobile App SDK V2.0
 Microsoft Azure PowerShell - August 2018
+Microsoft Azure PowerShell - October 2018
 Microsoft Azure Storage Emulator - v5.4
 Microsoft Azure Storage Explorer version 1.4.0
+Microsoft Azure Storage Explorer version 1.4.4 
 Microsoft Azure Storage Tools - v5.0.0
 Microsoft Azure Tools for Microsoft Visual Studio 2015 - v2.9
 Microsoft Build Tools 2013
@@ -318,6 +321,7 @@ Windows SDK AddOn
 Windows Software Development Kit - Windows 10.0.14393.33
 Windows Software Development Kit - Windows 10.0.16299.15
 Windows Software Development Kit - Windows 10.0.17134.12
+Windows Software Development Kit - Windows 10.0.17763.1
 Xamarin Studio 6.1.2
 ZyWALL SecuExtender
 .NET Core SDK 1.1.6 (x64)
@@ -325,6 +329,11 @@ ZyWALL SecuExtender
 Microsoft .NET Core SDK - 2.1.100 (x64)
 Microsoft .NET Core SDK - 2.1.2 (x64)
 SurfaceBook Update 18_010_00 (64 bit)
+WinSCP 5.13.4
+Sysinternals Suite
+Sunny Explorer
+Steam
+SketchUp 2018
 KeePass 2.40
 Microsoft SQL Server Management Studio - 17.9
 Mozilla Firefox 62.0 (x64 de)

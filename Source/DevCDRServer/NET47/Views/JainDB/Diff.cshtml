@@ -4,6 +4,74 @@
 <script src="../content/diff/jsondiffpatch.js" type="text/javascript"></script>
 <script src="../content/diff/jsondiffpatch-formatters.js" type="text/javascript"></script>
 
+@*//https://github.com/krig/eventcontrol*@
+<link href="../content/diff/eventcontrol.css" rel="stylesheet" type="text/css">
+<style>
+    body {
+        background-color: #fafafa;
+    }
+
+    .eventcontrol-target {
+        width: 100%;
+        height: 64px;
+        border: 1px solid #e5e5e5;
+        border-radius: 3px;
+        background: #eee;
+        margin-top: 5px;
+        padding: 4px;
+        overflow: hidden;
+        text-align: center;
+    }
+
+        .eventcontrol-target h2 {
+            margin: 0;
+            font-size: 48px;
+        }
+</style>
+
+<div class="container">
+    <div class="eventcontrol"></div>
+</div>
+<script src="../content/diff/jquery-1.12.2.min.js"></script>
+<script src="../content/diff/moment.min.js"></script>
+<script src="../content/diff/jquery.mousewheel.min.js"></script>
+<script src="../content/diff/hammer.min.js"></script>
+<script src="../content/diff/eventcontrol.js"></script>
+<script>
+    $(function () {
+        'use strict';
+        var hist = @Html.Raw(ViewBag.History);
+        console.log(hist);
+
+        $('.eventcontrol').EventControl({
+            hammertime: true,
+            onhover: function (item, element, event, inout) {
+                if (inout == 'out') {
+                    $('.eventcontrol-target').html('');
+                    element.css('color', element.data('clr'));
+                } else {
+                    element.attr('title', moment(item.timestamp).format('YYYY-MM-DD HH:mm'));
+                }
+            },
+            oncreate: function (item, element) {
+                if (item.type == 'error') {
+                    element.css('color', '#e74c3c');
+                } else if (item.type == 'warning') {
+                    element.css('color', '#e67e22');
+                } else {
+                    element.css('color', '#1abc9c');
+                }
+            },
+            onclick: function (item, element, event) {
+                //alert(item.index);
+                window.location.href = "Diff?id=@ViewBag.Id&l=" + item.index;
+            },
+            data: hist
+
+        });
+    });
+</script>
+
 <div id="visual" class=""></div>
 <hr />
 <div id="annotated"></div>

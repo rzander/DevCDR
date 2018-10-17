@@ -7,12 +7,21 @@ if(Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) {} else {
 
 #Only Update SW if LockScreen (LogonUI) is present
 if (get-process logonui -ea SilentlyContinue) {
+	
+	#region Select a method to restrict Peer Selection on DeliveryOptimization
+	#Create the key if missing 
+	If((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization') -eq $false ) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -force -ea SilentlyContinue } 
+
+	#Enable Setting and Restrict to local Subnet only
+	Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -Name 'DORestrictPeerSelectionBy' -Value 1 -ea SilentlyContinue 
+	#endregion
+
     #List of managed Software.
-    $ManagedSW = @("FileZilla", "Google Chrome", "Greenshot" , "KeePass", "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", 
-        "AdobeReader DC", "paint.net", "WinSCP", "Sonos Controller", "Microsoft Azure PowerShell", "Firefox" , "Putty" ,
+    $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Greenshot" , "KeePass", "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", 
+        "AdobeReader DC", "Sonos Controller", "Microsoft Azure PowerShell", 
         "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
-        "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", "Brackets", 
-		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "7-Zip" , "7-Zip(MSI)", "WinRAR", "TeamViewer" )
+        "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", 
+		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "TeamViewer", "WinRAR", "paint.net" )
 
     #Find Software Updates
     $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename
@@ -31,19 +40,13 @@ if (get-process logonui -ea SilentlyContinue) {
 	}
 }
 
-#region Select a method to restrict Peer Selection on DeliveryOptimization
-#Create the key if missing 
-If((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization') -eq $false ) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -force -ea SilentlyContinue } 
 
-#Enable Setting and Restrict to local Subnet only
-Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -Name 'DORestrictPeerSelectionBy' -Value 1 -ea SilentlyContinue 
-#endregion
 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUFX365TQTL21EHymrGIJCJqUA
-# eUmgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUc2n3Y+XRgfjQfVwjicZcpukC
+# r9SgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -108,12 +111,12 @@ Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimi
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS9
-# 4v6XnIaN+KX1z2AnpcLElbdoMjANBgkqhkiG9w0BAQEFAASCAQB+yNFF1liBIAZ7
-# nWZ9zpruUM8ry2X5fFM8TN95AxwnRXKH65Mpbh/DedHqm8VrYdXp53nAABIt5jrS
-# K/vDQY/DLRCGJvn34x3RwDRSntt8Q/v4AWxl7eQ4c9fH5ZsddWXIWUJGjPBt4XPo
-# loEvKRg8VAxj0GAnlQPkfrxHWfoPky7hPAFkrx0r7d3TAOJ2pGwRz++IBnAzTqjW
-# yT+WgeojCb/i+qal9TdT/AQsrLGHOoV6q1Zw8jdbAwl5Hd9cPJ1slsRsCqX/KpzL
-# 9ZCDCLjTgf0eZlUFngUUWspZV/Ss9vgd6QtDsHUgofm5+zDfgVb23dYAeyw7ER6q
-# 9IzTkAOC
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRd
+# ZQQhfzDQY/vlx6ZLVXWL5WMFhTANBgkqhkiG9w0BAQEFAASCAQAKHSIR54YZVMaV
+# ex/uJkaRtzLYqo9g+Wj+NVbYjVw7hNzsZfQYzqXw1uaF2qA85cKYhMBDh4L14arV
+# +DRrJXMsjApaAAd5PTtcKeO9DPB2TKHlNHFrtdA6klZfSZVPIh3qbGHMsEzduKOu
+# Kn+lOO0AXslHnZmuMXinO8NeaVrBaV4KXvTmsH7Ws35LHm3XesAtCTKuGSOeVVUS
+# jLT/8mpFdqB5gvprC7a14V29nIcTFlS3vBVP0dr5X8r22DRkedTD4dvizVTNUgDW
+# 8dbWkCo3X8EU88FtZN789cTkfavLND/+lqM1htb37X7++h1dQW+IurrzmyT4yFZq
+# PaOc8tuu
 # SIG # End signature block
