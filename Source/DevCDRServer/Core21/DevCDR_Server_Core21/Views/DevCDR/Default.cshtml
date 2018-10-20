@@ -1,0 +1,57 @@
+﻿<div class="list-inline">
+    <button type="button" class="btn btn-default pull-right" title="download Agent" data-toggle="modal" data-target="#downloadModal">
+        <span class="glyphicon glyphicon-download-alt"></span> Agent
+    </button>
+    <button type="button" class="btn btn-default pull-right" title="reload all device data" onclick="Command('Init')">
+        <span class="glyphicon glyphicon-refresh"></span> Reload
+    </button>
+    <h2>@ViewData["Title"]</h2>
+</div>
+
+<small style="position:relative; top:-12px">Instance-ID: @ViewData["Instance"]</small>
+
+<ul class="nav nav-tabs" id="tabs">
+    <li class="active"><a href="" data-toggle="tab">All Devices</a></li>
+</ul>
+
+<table class="display compact" id="test" style="width:100%">
+    <thead>
+        <tr>
+            <th>Hostname</th>
+            <th>Internal IP</th>
+            <th>Last Reboot</th>
+            <th>Reboot Pending</th>
+            <th>Users Online</th>
+            <th>OS</th>
+            <th>Version</th>
+            <th>Arch</th>
+            <th>Lang</th>
+            <th>ScriptResult</th>
+            <th>Groups</th>
+        </tr>
+    </thead>
+</table>
+
+<div class="row">
+    <input class="btn btn-default" type="button" onclick="Command('AgentVersion')" value="Agent Version" title="get the RZAgent Version" />
+    <input class="btn btn-default" type="button" onclick="Command('Inv')" value="Run Inventory" title="Run JainDB inventory" />
+    <input class="btn btn-default" type="button" onclick="Command('Restart')" value="Restart" title="restart selected devices" />
+    <input class="btn btn-default" type="button" onclick="Command('Logoff')" value="Logoff" title="Logoff all users" />
+    <input class="btn btn-default disabled" type="button" onclick="Command('Shutdown')" value="Shutdown" title="shutdown selected devices" />
+    <input class="btn btn-default" type="button" value="User Message.." data-toggle="modal" data-target="#msgModal" title="Send a message to logged on users" />
+    <input class="btn btn-default" type="button" value="Get Groups" title="get Groups" onclick="Command('GetGroups')" />
+    <input class="btn btn-default" type="button" value="Set Groups.." data-toggle="modal" data-target="#msgGroups" title="Group selected devices" />
+    <input class="btn btn-default" type="button" value="Set Instance.." data-toggle="modal" data-target="#msgInstance" title="change Instance" />
+    <input class="btn btn-default" type="button" value="Set Endpoint.." data-toggle="modal" data-target="#msgEndpoint" title="change Endpoint (URL)" />
+    <input class="btn btn-default" type="button" value="start DevCDR as User" title="start DevCDR as User" onclick="Command('DevCDRUser')" />
+</div>
+
+
+@Html.Partial("_CustomPS")
+@Html.Partial("_ModalMessages")
+@Html.Partial("_Table")
+@Html.Partial("_ContextMenu")
+
+
+ @Html.Partial("_RunCommands")
+
