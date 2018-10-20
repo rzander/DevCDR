@@ -7,18 +7,19 @@ Summary: https://rzander.azurewebsites.net/device-commander/
 As soon as the devices have internet connection (also behind a Proxy), they will pop up in the Web-Console. Now can run some predefined commands or any custom PowerShell code and the Devices will respond in Realtime.
 
 ## Features
-* realtime cummunication
-* interactive Web frontend
-* micro Agent (500KB)
-* Only outgoing HTTPS (443) communication (agent)
-* Proxy Support
+* interactive Web frontend 
+* realtime PowerShell activities und custom commands
+* Install Software directly from https://RuckZuck.tools
+* Inventory
+  * Custom Inventory (PowerShell)
+  * Blockchain based archive (JainDB)
+  * Inventory-History with visual Differential and Timeline of changes
+  * Custom Reporting with Excel or PowerBI
+* Scheduled PowerShell script forHealth- Compliance-checks
 * multi tenancy support
 * device grouping
-* right click activities and custom PowerShell commands
-* Install Software directly from https://RuckZuck.tools
+* Only outgoing HTTPS (443) communication (agent) with Proxy support
 * Azure AD Authentication (Management-Interface)
-* Hardware/Software Inventory based on JainDB ( https://github.com/rzander/jaindb )
-* ...
 
 ## Agent Requirements
 * .NET4.6
