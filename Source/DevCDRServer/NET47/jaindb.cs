@@ -71,7 +71,7 @@ namespace jaindb
                 if (_cache == null)
                     _cache = System.Runtime.Caching.MemoryCache.Default;
                 //Check in MemoryCache
-                sResult = _cache["ID-" + name + value] as string;
+                sResult = _cache["ID-" + name.ToLower() + value.ToLower()] as string;
                 if (sResult != null)
                 {
                     return sResult;
@@ -89,7 +89,7 @@ namespace jaindb
                     policy.AbsoluteExpiration =
                     DateTimeOffset.Now.AddSeconds(300.0); //cache for 300s
 
-                    _cache.Set("ID-" + name + value, sResult, policy);
+                    _cache.Set("ID-" + name.ToLower() + value.ToLower(), sResult, policy);
                 }
                 return sResult;
             }

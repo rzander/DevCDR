@@ -278,12 +278,12 @@ namespace DevCDRServer
 
         public override Task OnConnected()
         {
-            string name = Context.User.Identity.Name;
+            //string name = Context.User.Identity.Name;
 
-            if (!string.IsNullOrEmpty(name))
-            {
-                _connections.Add(name, Context.ConnectionId);
-            }
+            //if (!string.IsNullOrEmpty(name))
+            //{
+            //    _connections.Add(name, Context.ConnectionId);
+            //}
 
             //Clients.Group("web").newData(Context.ConnectionId, "OnConnected"); //Enforce PageUpdate?
 
