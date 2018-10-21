@@ -25,10 +25,15 @@ As soon as the devices have internet connection (also behind a Proxy), they will
 * .NET4.6
 * DevCDRAgent (MSI is currently x64 only)
 
+### .NET Core Agent is in preview
+### .NET 4.7 Agent for .NET Core Server is in preview
+
 ## Server/Host Requirements
 * Azure Active Directory (Basic)
 * Azure Web App (Free F1 or better)
 * SSL
+
+### Server running .NET Core is in preview
 
 # DEMO
 https://devcdr.azurewebsites.net/ 
