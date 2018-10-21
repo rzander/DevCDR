@@ -1,0 +1,1 @@
+{"Architecture":"X86","DisplayName":"Prerequisites for SSDT ","DisplayVersion":"12.0.2000.8","HelpLink":"http://go.microsoft.com/fwlink/?LinkId=215695","id":"9qZi2cKY56KnmHxntcE6AAChw","Language":1033,"Publisher":"Microsoft Corporation","UninstallString":"MsiExec.exe /I{21373064-AD95-48DB-A32E-0D9E08EF7355}","WindowsInstaller":1}

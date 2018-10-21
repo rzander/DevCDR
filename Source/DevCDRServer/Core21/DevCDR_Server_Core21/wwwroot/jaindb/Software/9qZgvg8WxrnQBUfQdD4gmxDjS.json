@@ -1,0 +1,1 @@
+{"Architecture":"X64","DisplayName":"RuckZuck provider for OneGet","DisplayVersion":"1.6.2.10","HelpLink":"https://github.com/rzander/ruckzuck","id":"9qZepb4TXNxsc1tskzH1y1DuD","Language":1033,"Publisher":"Zander Tools","UninstallString":"MsiExec.exe /X{CC5A777D-085F-4240-B547-F167673AF107}","WindowsInstaller":1}

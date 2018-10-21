@@ -24,10 +24,11 @@ namespace DevCDRServer.Controllers
         private readonly IHostingEnvironment _env;
         private IMemoryCache _cache;
 
-        public DevCDRController(IHubContext<Default> hubContext, IHostingEnvironment env)
+        public DevCDRController(IHubContext<Default> hubContext, IHostingEnvironment env, IMemoryCache memoryCache)
         {
             _hubContext = hubContext;
             _env = env;
+            _cache = memoryCache;
         }
 
         [AllowAnonymous]
@@ -36,14 +37,11 @@ namespace DevCDRServer.Controllers
             ViewBag.Title = "Dashboard " + Environment.GetEnvironmentVariable("INSTANCETITLE");
             ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME");
             ViewBag.Route = "/Chat";
-            //var cCache = new Cache();
-            //var itotalDeviceCount = (int)(cCache.Get("totalDeviceCount") ?? -1);
-            //if (itotalDeviceCount == -1)
-            //{
-            //    itotalDeviceCount = 10; // new JainDBController().totalDeviceCount(HttpContext.Server.MapPath("~/App_Data/JainDB/_Chain"));
-            //}
 
-            int itotalDeviceCount = 10;
+            int itotalDeviceCount = -1;
+            
+           itotalDeviceCount = new JainDBController(_env, _cache).totalDeviceCount(Path.Combine(_env.WebRootPath, "JainDB\\_Chain"));
+
             int iDefault = ClientCount("Default");
             int iOnlineCount = iDefault;
             int iOfflineCount = itotalDeviceCount - iOnlineCount;

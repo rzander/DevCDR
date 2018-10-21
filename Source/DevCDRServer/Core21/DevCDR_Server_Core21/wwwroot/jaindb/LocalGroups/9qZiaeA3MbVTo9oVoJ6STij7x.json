@@ -1,0 +1,1 @@
+{"Description":"Users are prevented from making accidental or intentional system-wide changes and can run most applications","id":"S-1-5-32-545","Name":"Users","ObjectClass":"Group","PrincipalSource":1}

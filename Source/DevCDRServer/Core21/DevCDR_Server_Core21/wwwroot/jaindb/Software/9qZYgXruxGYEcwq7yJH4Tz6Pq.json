@@ -1,0 +1,1 @@
+{"Architecture":"X64","DisplayName":"DevCDRAgent","DisplayVersion":"0.9.0.12","HelpLink":"https://github.com/rzander/DevCDR","id":"9qZr5tusqG8Y7Xh3Y958gDYpB","Language":1033,"Publisher":"Zander Tools","UninstallString":"MsiExec.exe /X{EDB4F72C-D017-413C-BA37-4EFFA0E2B504}","WindowsInstaller":1}

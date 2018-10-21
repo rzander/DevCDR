@@ -1,0 +1,1 @@
+{"Architecture":"X64","DisplayName":"Microsoft Web Platform Installer 5.0","DisplayVersion":"5.0.50430.0","HelpLink":"","id":"9qZNAzoy2ucv74QcdSajqPvgg","Language":1033,"Publisher":"Microsoft Corporation","UninstallString":"MsiExec.exe /X{4D84C195-86F0-4B34-8FDE-4A17EB41306A}","WindowsInstaller":1}

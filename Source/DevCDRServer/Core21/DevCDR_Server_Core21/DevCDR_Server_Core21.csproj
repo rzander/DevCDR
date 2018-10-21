@@ -9,10 +9,11 @@
     <Copyright>Copyright (c) 2018 by Roger Zander</Copyright>
     <PackageLicenseUrl>https://github.com/rzander/DevCDR/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/rzander/DevCDR</PackageProjectUrl>
-    <Description>lightweight Client/Server Management tool for Windows</Description>
+    <Description>lightweight Client/Server Management tool</Description>
     <ApplicationIcon />
     <OutputType>Exe</OutputType>
     <StartupObject />
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,12 +25,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.0.4" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.1.5" />
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="jaindb\" />
+    <Folder Include="wwwroot\jaindb\" />
     <Folder Include="wwwroot\PSScripts\" />
   </ItemGroup>
 

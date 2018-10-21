@@ -1,0 +1,1 @@
+{"Architecture":"X64","DisplayName":"Microsoft System CLR Types for SQL Server 2014","DisplayVersion":"12.0.2402.29","HelpLink":"http://go.microsoft.com/fwlink/?LinkId=TestMSI","id":"9qZi8PtHvSGzB9GwX6MPo9UTS","Language":1033,"Publisher":"Microsoft Corporation","UninstallString":"MsiExec.exe /I{FC3BB979-AA54-4B60-BBA3-2C4DA6E08D80}","WindowsInstaller":1}

@@ -1,0 +1,1 @@
+{"Architecture":"X64","DisplayName":"Microsoft ODBC Driver 13 for SQL Server","DisplayVersion":"14.0.1000.169","HelpLink":"https://go.microsoft.com/fwlink/?LinkId=191752","id":"9qZYY5zbok2JjepEApf13CRa1","Language":1033,"Publisher":"Microsoft Corporation","UninstallString":"MsiExec.exe /I{76CF9EF4-ABA0-484E-8042-12B99499AF5F}","WindowsInstaller":1}

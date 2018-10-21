@@ -43,6 +43,11 @@ namespace DevCDR
             });
 
             services.AddSignalR();
+            services.AddMemoryCache();
+            services.AddResponseCompression(options =>
+            {
+                options.EnableForHttps = true;
+            });
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
         }
 

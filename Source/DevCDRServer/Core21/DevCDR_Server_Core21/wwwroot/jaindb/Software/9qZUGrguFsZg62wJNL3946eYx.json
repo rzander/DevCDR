@@ -1,0 +1,1 @@
+{"Architecture":"X64","DisplayName":"Microsoft System CLR Types for SQL Server 2016","DisplayVersion":"13.0.1601.5","HelpLink":"http://go.microsoft.com/fwlink/?LinkId=TestMSI","id":"9qZmKAehtvC88JTF64yzCxPcr","Language":1033,"Publisher":"Microsoft Corporation","UninstallString":"MsiExec.exe /I{96EB5054-C775-4BEF-B7B9-AA96A295EDCD}","WindowsInstaller":1}
