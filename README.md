@@ -21,6 +21,8 @@ As soon as the devices have internet connection (also behind a Proxy), they will
 * Only outgoing HTTPS (443) communication (agent) with Proxy support
 * Azure AD Authentication (Management-Interface)
 
+![video](https://rzander.azurewebsites.net/content/images/2018/07/devcdr.gif)
+
 ## Agent Requirements
 * .NET4.6
 * DevCDRAgent (MSI is currently x64 only)
