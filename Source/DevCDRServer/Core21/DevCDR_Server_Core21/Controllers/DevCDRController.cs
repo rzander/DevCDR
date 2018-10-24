@@ -14,10 +14,11 @@ using System.Net.Http.Headers;
 using System.Linq;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http.Extensions;
 
 namespace DevCDRServer.Controllers
 {
-    [AllowAnonymous]
+    [Authorize]
     public class DevCDRController : Controller
     {
         private readonly IHubContext<Default> _hubContext;
@@ -36,6 +37,7 @@ namespace DevCDRServer.Controllers
         {
             ViewBag.Title = "Dashboard " + Environment.GetEnvironmentVariable("INSTANCETITLE");
             ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME");
+            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             ViewBag.Route = "/Chat";
 
             int itotalDeviceCount = -1;
@@ -59,11 +61,15 @@ namespace DevCDRServer.Controllers
             return View();
         }
 
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [Authorize]
         public ActionResult Default()
         {
             ViewBag.Title = Environment.GetEnvironmentVariable("INSTANCETITLE") ?? "Default Environment";
             ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default";
+            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             ViewBag.Route = "/chat";
             return View();
         }
@@ -72,6 +78,7 @@ namespace DevCDRServer.Controllers
         public ActionResult About()
         {
             ViewBag.Message = "Device Commander details...";
+            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
 
             return View();
         }
@@ -80,6 +87,7 @@ namespace DevCDRServer.Controllers
         public ActionResult Contact()
         {
             ViewBag.Message = "Device Commander Contact....";
+            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
 
             return View();
         }
@@ -237,7 +245,9 @@ namespace DevCDRServer.Controllers
             catch { }
         }
 
+#if DEBUG
         [AllowAnonymous]
+#endif
         [Authorize]
         [HttpPost]
         public object Command()
@@ -270,8 +280,8 @@ namespace DevCDRServer.Controllers
                     AgentVersion(lHostnames, sInstance);
                     break;
                 case "Inv":
-                    string sEndPoint = Request.Host.Host;
-                    RunCommand(lHostnames, "Invoke-RestMethod -Uri 'https://" + sEndPoint + "/jaindb/getps' | IEX;'Inventory complete..'", sInstance, sCommand);
+                    string sEndPoint = Request.GetDisplayUrl().ToLower().Split("/devcdr")[0];
+                    RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps' | IEX;'Inventory complete..'", sInstance, sCommand);
                     break;
                 case "Restart":
                     RunCommand(lHostnames, "restart-computer -force", sInstance, sCommand);
@@ -614,7 +624,9 @@ namespace DevCDRServer.Controllers
             }
         }
 
-        [AllowAnonymous] //because of TEST instance
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [Authorize]
         [HttpPost]
         public object RunPS()
@@ -671,7 +683,9 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
-        [AllowAnonymous] //because of TEST instance
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [Authorize]
         [HttpPost]
         public object RunUserPS()
@@ -728,7 +742,9 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
-        [AllowAnonymous] //because of TEST instance
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [Authorize]
         [HttpPost]
         public object RunPSAsync()
@@ -785,7 +801,9 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
-        [AllowAnonymous] //because of TEST instance
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [Authorize]
         [HttpPost]
         public object RunPSFile()

@@ -1,1 +1,0 @@
-{"Description":"Members of this group may schedule logging of performance counters, enable trace providers, and collect event traces both locally and via remote access to this computer","id":"S-1-5-32-559","Name":"Performance Log Users","ObjectClass":"Group","PrincipalSource":1}

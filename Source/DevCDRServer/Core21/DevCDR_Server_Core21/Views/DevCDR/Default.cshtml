@@ -37,11 +37,11 @@
     <input class="btn btn-default" type="button" onclick="Command('Inv')" value="Run Inventory" title="Run JainDB inventory" />
     <input class="btn btn-default" type="button" onclick="Command('Restart')" value="Restart" title="restart selected devices" />
     <input class="btn btn-default" type="button" onclick="Command('Logoff')" value="Logoff" title="Logoff all users" />
-    <input class="btn btn-default disabled" type="button" onclick="Command('Shutdown')" value="Shutdown" title="shutdown selected devices" />
+    <input class="btn btn-default" type="button" onclick="Command('Shutdown')" value="Shutdown" title="shutdown selected devices" />
     <input class="btn btn-default" type="button" value="User Message.." data-toggle="modal" data-target="#msgModal" title="Send a message to logged on users" />
     <input class="btn btn-default" type="button" value="Get Groups" title="get Groups" onclick="Command('GetGroups')" />
     <input class="btn btn-default" type="button" value="Set Groups.." data-toggle="modal" data-target="#msgGroups" title="Group selected devices" />
-    <input class="btn btn-default" type="button" value="Set Instance.." data-toggle="modal" data-target="#msgInstance" title="change Instance" />
+    @*<input class="btn btn-default" type="button" value="Set Instance.." data-toggle="modal" data-target="#msgInstance" title="change Instance" />*@
     <input class="btn btn-default" type="button" value="Set Endpoint.." data-toggle="modal" data-target="#msgEndpoint" title="change Endpoint (URL)" />
     <input class="btn btn-default" type="button" value="start DevCDR as User" title="start DevCDR as User" onclick="Command('DevCDRUser')" />
 </div>
@@ -51,7 +51,5 @@
 @Html.Partial("_ModalMessages")
 @Html.Partial("_Table")
 @Html.Partial("_ContextMenu")
-
-
- @Html.Partial("_RunCommands")
+@Html.Partial("_RunCommands")
 

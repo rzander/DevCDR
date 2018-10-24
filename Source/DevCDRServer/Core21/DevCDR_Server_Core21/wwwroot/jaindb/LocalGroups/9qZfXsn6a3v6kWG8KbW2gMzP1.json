@@ -1,1 +1,0 @@
-{"Description":"Members of this group can access WMI resources over management protocols (such as WS-Management via the Windows Remote Management service). This applies only to WMI namespaces that grant access to the user.","id":"S-1-5-32-580","Name":"Remote Management Users","ObjectClass":"Group","PrincipalSource":1}

@@ -1,1 +1,0 @@
-{"Architecture":"X86","DisplayName":"Advanced Installer 15.4","DisplayVersion":"15.4","HelpLink":"https://www.advancedinstaller.com/forums/","id":"9qZiytqs9dU9XrHTVJG1uecTc","Language":1033,"Publisher":"Caphyon","UninstallString":"MsiExec.exe /I{D63B26A2-84A2-41AB-9BBD-DC30E7D99977}","WindowsInstaller":1}

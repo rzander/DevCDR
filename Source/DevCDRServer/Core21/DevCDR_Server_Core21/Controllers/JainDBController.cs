@@ -31,6 +31,7 @@ namespace DevCDRServer.Controllers
 
         [AllowAnonymous]
         [HttpGet]
+        [Route("")]
         [Route("About")]
         public ActionResult About()
         {
@@ -56,6 +57,7 @@ namespace DevCDRServer.Controllers
 
         [AllowAnonymous]
         [HttpGet]
+        [Route("GetPS")]
         [Route("GetPS/{filename}")]
         public string GetPS(string filename = "")
         {
@@ -164,7 +166,10 @@ namespace DevCDRServer.Controllers
             return iCount;
         }
 
+#if DEBUG
         [AllowAnonymous]
+#endif
+        [Authorize]
         [Route("inv")]
         [HttpGet]
         public ActionResult Inv(string id, string name = "", int index = -1, string blockType = "INV")
@@ -251,7 +256,7 @@ namespace DevCDRServer.Controllers
                     List<string> lUnknSW = new List<string>();
 
                     //Check if device has all required SW installed
-                    #region CoreApplications 
+#region CoreApplications 
                     ViewBag.CoreStyle = "alert-danger";
                     try
                     {
@@ -285,9 +290,9 @@ namespace DevCDRServer.Controllers
                         }
                     }
                     catch { }
-                    #endregion
+#endregion
 
-                    #region IndividualSW 
+#region IndividualSW 
                     try
                     {
                         var aIndApps = System.IO.File.ReadAllLines(Path.Combine(spath, "IndSW_" + sInstance + ".txt")).ToList();
@@ -306,7 +311,7 @@ namespace DevCDRServer.Controllers
                     catch { }
 
 
-                    #endregion
+#endregion
 
                     ViewBag.CoreSW = lCoreApps.Distinct().OrderBy(t => t);
                     ViewBag.IndSW = lIndSW.Distinct().OrderBy(t=>t);
@@ -394,7 +399,9 @@ namespace DevCDRServer.Controllers
             return Redirect("../DevCdr/Dashboard");
         }
 
-        [AllowAnonymous] //because of TEST instance
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [Authorize]
         [Route("diff")]
         [HttpGet]
@@ -449,7 +456,9 @@ namespace DevCDRServer.Controllers
             return View("Diff");
         }
 
-        [AllowAnonymous] //because of TEST instance
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [Authorize]
         [Route("invjson")]
         [HttpGet]
@@ -497,8 +506,8 @@ namespace DevCDRServer.Controllers
 
         public BasicAuthenticationAttribute()
         {
-            this.Username = Environment.GetEnvironmentVariable("USERNAME") ?? "DEMO";
-            this.Password = Environment.GetEnvironmentVariable("PASSWORD") ?? "password"; ;
+            this.Username = Environment.GetEnvironmentVariable("REPORTUSER") ?? "DEMO";
+            this.Password = Environment.GetEnvironmentVariable("REPORTPASSWORD") ?? "password"; ;
         }
 
         public BasicAuthenticationAttribute(string username, string password)
@@ -509,12 +518,16 @@ namespace DevCDRServer.Controllers
 
         public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
+#if DEBUG
+                return;
+#endif
             var req = filterContext.HttpContext.Request;
             string auth = req.Headers["Authorization"];
             if (!String.IsNullOrEmpty(auth))
             {
                 var cred = System.Text.ASCIIEncoding.ASCII.GetString(Convert.FromBase64String(auth.Substring(6))).Split(':');
                 var user = new { Name = cred[0], Pass = cred[1] };
+
                 if (user.Name == Username && user.Pass == Password) return;
             }
             filterContext.HttpContext.Response.Headers.Add("WWW-Authenticate", String.Format("Basic realm=\"{0}\"", BasicRealm ?? "devcdr"));

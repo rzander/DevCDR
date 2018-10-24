@@ -1,1 +1,0 @@
-{"Description":"Guests have the same access as members of the Users group by default, except for the Guest account which is further restricted","id":"S-1-5-32-546","Name":"Guests","ObjectClass":"Group","PrincipalSource":1}

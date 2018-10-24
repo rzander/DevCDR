@@ -10,10 +10,10 @@
         bottom: 0;
         width: 100%;
         /* Set the fixed height of the footer here */
-        height: 40px;
+        height: 30px;
         /*background-color: #f5f5f5;*/
         text-align: right;
-        padding-right: 20px;
+        padding-right: 100px;
     }
 </style>
 <html>
@@ -60,6 +60,7 @@
                     <li><a asp-area="" asp-controller="DevCDR" asp-action="About">About</a></li>
                     <li><a asp-area="" asp-controller="DevCDR" asp-action="Contact">Contact</a></li>
                 </ul>
+                @Html.Partial("_LoginPartial")
             </div>
         </div>
     </nav>
@@ -69,8 +70,8 @@
     <div class="container body-content">
         @RenderBody()
         <hr />
-        <footer>
-            <p>&copy; 2018 - DevCDR_Server_Core21</p>
+        <footer class="footer" >
+            <p>&copy; 2018 by Roger Zander - Version: @ViewBag.appVersion</p>
         </footer>
     </div>
 
