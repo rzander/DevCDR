@@ -27,6 +27,7 @@ namespace DevCDRAgent
         private static string Hostname = Environment.MachineName;
         private static HubConnection connection;
         private static string sScriptResult = "";
+        private bool isconnected = false;
         public string Uri { get; set; } = Properties.Settings.Default.Endpoint;
 
         public Service1(string Host)
@@ -44,26 +45,13 @@ namespace DevCDRAgent
                 Random rnd = new Random();
                 tReInit.Interval = 120100 + rnd.Next(1, 30000); //randomize ReInit intervall
 
-                if (connection != null)
+                if (connection != null && isconnected)
                 {
-
                     connection.SendAsync("Init", Hostname);
-                    //myHub.Invoke<string>("Init", Hostname).ContinueWith(task1 =>
-                    //{
-                    //    if (task1.IsFaulted)
-                    //    {
-                    //        Console.WriteLine("There was an error opening the connection:{0}", task1.Exception.GetBaseException());
-                    //        OnStart(null);
-                    //    }
-                    //    else
-                    //    {
-                    //        Program.MinimizeFootprint();
-                    //    }
-                    //});
 
                     if (Hostname == Environment.MachineName) //No Inventory or Healthcheck if agent is running as user or with custom Name
                     {
-                        if (Properties.Settings.Default.InventoryCheckHours > 0) //Invemtory is enabled
+                        if (Properties.Settings.Default.InventoryCheckHours > 0) //Inventory is enabled
                         {
                             var tLastCheck = DateTime.Now - Properties.Settings.Default.InventorySuccess;
 
@@ -75,19 +63,6 @@ namespace DevCDRAgent
                                 System.Threading.Thread.Sleep(1000);
 
                                 connection.SendAsync("Inventory", Hostname);
-                                //myHub.Invoke<string>("Inventory", Hostname).ContinueWith(task1 =>
-                                //{
-                                //    if (task1.IsFaulted)
-                                //    {
-                                //        Console.WriteLine("There was an error opening the connection:{0}", task1.Exception.GetBaseException());
-                                //        OnStart(null);
-                                //    }
-                                //    else
-                                //    {
-                                //        Properties.Settings.Default.InventorySuccess = DateTime.Now;
-                                //        Properties.Settings.Default.Save();
-                                //    }
-                                //});
                             }
                         }
 
@@ -100,28 +75,18 @@ namespace DevCDRAgent
                             {
                                 Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
                                 Trace.Flush();
-                                System.Threading.Thread.Sleep(5000);
+                                System.Threading.Thread.Sleep(3000);
 
                                 connection.SendAsync("HealthCheck", Hostname);
-                                //myHub.Invoke<string>("HealthCheck", Hostname).ContinueWith(task1 =>
-                                //{
-                                //    if (task1.IsFaulted)
-                                //    {
-                                //        Console.WriteLine("There was an error opening the connection:{0}", task1.Exception.GetBaseException());
-                                //        OnStart(null);
-                                //    }
-                                //    else
-                                //    {
-                                //        Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
-                                //        Properties.Settings.Default.Save();
-                                //    }
-                                //});
-
                             }
                         }
                     }
 
+                }
 
+                if(!isconnected)
+                {
+                    OnStart(new string[0]);
                 }
             }
             catch (Exception ex)
@@ -134,18 +99,19 @@ namespace DevCDRAgent
 
         private void TReCheck_Elapsed(object sender, ElapsedEventArgs e)
         {
-            //try
-            //{
-            //    if (connection.State != Microsoft.AspNet.SignalR.Client.ConnectionState.Connected)
-            //    {
-            //        OnStart(null);
-            //    }
-            //}
-            //catch { }
+            try
+            {
+                if (!isconnected)
+                {
+                    OnStart(null);
+                }
+            }
+            catch { }
         }
 
         protected override void OnStart(string[] args)
         {
+            
             sScriptResult = DateTime.Now.ToString();
             tReCheck.Elapsed -= TReCheck_Elapsed;
             tReCheck.Elapsed += TReCheck_Elapsed;
@@ -161,7 +127,7 @@ namespace DevCDRAgent
             {
                 try
                 {
-                    connection.DisposeAsync();
+                    connection.DisposeAsync().Wait(1000);
                 }
                 catch { }
             }
@@ -169,15 +135,46 @@ namespace DevCDRAgent
 
             connection.Closed += async (error) =>
             {
-                await Task.Delay(new Random().Next(0, 5) * 1000);
-                await connection.StartAsync();
+                try
+                {
+                    await Task.Delay(new Random().Next(0, 5) * 1000); // wait 0-5s
+                    await connection.StartAsync();
+                    isconnected = true;
+                    Console.WriteLine("Connected with " + Uri);
+                    Connect();
 
-                Connect();
+                }
+                catch(Exception ex)
+                {
+                    isconnected = false;
+                    Console.WriteLine(ex.Message);
+                    Trace.WriteLine("\tError: " + ex.Message + " " + DateTime.Now.ToString());
+                    Random rnd = new Random();
+                    tReInit.Interval = 10000 + rnd.Next(1, 90000); //randomize ReInit intervall
+                    Program.MinimizeFootprint();
+                }
             };
 
-            connection.StartAsync().Wait();
+            try
+            {
+                connection.StartAsync().Wait();
+                isconnected = true;
+                Console.WriteLine("Connected with " + Uri);
+                Trace.WriteLine("Connected with " + Uri + " " + DateTime.Now.ToString());
+                Connect();
+            }
+            catch(Exception ex)
+            {
+                isconnected = false;
+                Console.WriteLine(ex.Message);
+                Trace.WriteLine("\tError: " + ex.Message + " " + DateTime.Now.ToString());
+                Random rnd = new Random();
+                tReInit.Interval = 10000 + rnd.Next(1, 90000); //randomize ReInit intervall
+                Program.MinimizeFootprint();
+            }
 
-            Connect();
+
+
         }
 
         private Task Connection_Closed(Exception arg)
@@ -238,24 +235,7 @@ namespace DevCDRAgent
                                 if (tReInit.Interval > 5000)
                                     tReInit.Interval = 5000;
                             }
-
-                                    //var PSResult = PowerShellInstance.Invoke();
-                                    //if (PSResult.Count() > 0)
-                                    //{
-                                    //    string sResult = PSResult.Last().BaseObject.ToString();
-                                    //    if (sResult != sScriptResult)
-                                    //    {
-                                    //        sScriptResult = sResult;
-                                    //        Trace.WriteLine(" done. Result: " + sResult);
-                                    //        Random rnd = new Random();
-                                    //        tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
-                                    //    }
-                                    //}
-                                    //else
-                                    //{
-                                    //    Trace.WriteLine(" done. no result.");
-                                    //}
-                                }
+                        }
                         catch (Exception ex)
                         {
                             Console.WriteLine("There was an error: {0}", ex.Message);
@@ -801,9 +781,8 @@ namespace DevCDRAgent
                 tReCheck.Stop();
                 tReInit.Stop();
 
-                //connection.Stop(new TimeSpan(0, 0, 30));
-                //System.Threading.Thread.Sleep(500);
-                connection.DisposeAsync();
+                connection.StopAsync().Wait(3000);
+                connection.DisposeAsync().Wait(1000);
             }
             catch { }
         }
@@ -817,7 +796,7 @@ namespace DevCDRAgent
                 {
                     try
                     {
-                        PowerShellInstance.AddScript("powershell.exe -command stop-service DevCDRAgent -Force;sleep 5;start-service DevCDRAgent");
+                        PowerShellInstance.AddScript("powershell.exe -command stop-service DevCDRAgentCore -Force;sleep 5;start-service DevCDRAgentCore");
                         var PSResult = PowerShellInstance.Invoke();
                     }
                     catch { }

@@ -25,7 +25,7 @@ namespace DevCDRAgent.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("https://localhost:5001/chat")]
+        [global::System.Configuration.DefaultSettingValueAttribute("https://devcdrcore.azurewebsites.net/chat")]
         public string Endpoint {
             get {
                 return ((string)(this["Endpoint"]));

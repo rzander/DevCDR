@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 
 namespace DevCDRAgent
 {
@@ -15,26 +16,28 @@ namespace DevCDRAgent
         /// </summary>
         static int Main(string[] args)
         {
+            System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
             //Log File cleanup
             try
             {
-                if (System.IO.File.Exists("%temp%\\devcdr.log"))
+                if (System.IO.File.Exists("%temp%\\devcdrcore.log"))
                 {
-                    var log = new System.IO.FileInfo("%temp%\\devcdr.log");
+                    var log = new System.IO.FileInfo("%temp%\\devcdrcore.log");
                     if (log.Length > 5242880) //File is more than 5MB
                     {
-                        if (System.IO.File.Exists("%temp%\\devcdr_.log"))
+                        if (System.IO.File.Exists("%temp%\\devcdrcore_.log"))
                         {
-                            System.IO.File.Delete("%temp%\\devcdr_.log");
+                            System.IO.File.Delete("%temp%\\devcdrcore_.log");
                         }
 
-                        System.IO.File.Move("%temp%\\devcdr.log", "%temp%\\devcdr_.log");
+                        System.IO.File.Move("%temp%\\devcdrcore.log", "%temp%\\devcdrcore_.log");
                     }
                 }
             }
             catch { }
 
-            Trace.Listeners.Add(new TextWriterTraceListener(Environment.ExpandEnvironmentVariables("%temp%\\devcdr.log")));
+            Trace.Listeners.Add(new TextWriterTraceListener(Environment.ExpandEnvironmentVariables("%temp%\\devcdrcore.log")));
             Trace.AutoFlush = true;
             Trace.WriteLine("Starting DevCDRAgent... " + DateTime.Now.ToString());
             Trace.Indent();
@@ -68,6 +71,7 @@ namespace DevCDRAgent
                         Service1 ConsoleApp = new Service1(Environment.ExpandEnvironmentVariables(parameter));
                         ConsoleApp.Start(null);
                         MinimizeFootprint();
+                        Trace.WriteLine("Started... " + DateTime.Now.ToString());
                         Console.WriteLine("Press ENTER to terminate...");
                         Console.ReadLine();
                         ConsoleApp.Stop();

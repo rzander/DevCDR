@@ -7,7 +7,6 @@ using Microsoft.Win32;
 using System.Diagnostics;
 using RuckZuck_WCF;
 using System.Drawing;
-using System.Runtime.InteropServices;
 
 namespace RZUpdate
 {
