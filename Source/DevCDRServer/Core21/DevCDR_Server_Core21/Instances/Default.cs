@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -20,6 +21,8 @@ namespace DevCDRServer
 
         public async Task Init(string name)
         {
+            string sEndPoint = Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
+
             name = name.ToUpper();
             _connections.Remove(name, ""); //Remove existing Name
             _connections.Add(name, Context.ConnectionId); //Add Name
@@ -36,6 +39,22 @@ namespace DevCDRServer
                 await JoinGroup("Devices");
             }
         }
+
+        public void HealthCheck(string name)
+        {
+            string sEndPoint = Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
+            //string sEndPoint = "devcdr.azurewebsites.net";
+            //string sEndPoint = Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
+            Clients.Client(Context.ConnectionId).SendAsync("returnPSAsync", "Invoke-RestMethod -Uri 'https://" + sEndPoint + "/jaindb/getps?filename=compliance_default.ps1' | IEX;''", "Host");
+        }
+
+        public void Inventory(string name)
+        {
+            string sEndPoint = Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
+            //string sEndPoint = "devcdr.azurewebsites.net";
+            Clients.Client(Context.ConnectionId).SendAsync("returnPSAsync", "Invoke-RestMethod -Uri 'https://" + sEndPoint + "/jaindb/getps?filename=inventory.ps1' | IEX;'Inventory complete..'", "Host");
+        }
+
 
         public Task JoinGroup(string groupName)
         {

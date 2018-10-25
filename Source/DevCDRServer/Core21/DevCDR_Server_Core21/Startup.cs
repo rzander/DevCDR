@@ -64,6 +64,7 @@ namespace DevCDR
                 app.UseExceptionHandler("/DevCDR/Error");
             }
 
+            app.UseHttpsRedirection();
             app.UseStaticFiles();
 
             app.UseAuthentication();

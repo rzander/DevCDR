@@ -17,6 +17,7 @@ using System.Text;
 namespace DevCDRServer.Controllers
 {
     [Route("jaindb")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
     public class JainDBController : Controller
     {
         private readonly IHostingEnvironment _env;
@@ -66,7 +67,8 @@ namespace DevCDRServer.Controllers
             jaindb.jDB.FilePath = spath;
             if (string.IsNullOrEmpty(filename))
             {
-                string sLocalURL = Request.GetDisplayUrl().Replace("/getps", "");
+                Request.ToString();
+                string sLocalURL = Request.GetEncodedUrl().Replace("/getps", "");
                 if (System.IO.File.Exists(spath + "/inventory.ps1"))
                 {
                     
@@ -174,6 +176,7 @@ namespace DevCDRServer.Controllers
         [HttpGet]
         public ActionResult Inv(string id, string name = "", int index = -1, string blockType = "INV")
         {
+            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             string spath = Path.Combine(_env.WebRootPath, "JainDB");
             jaindb.jDB.FilePath = spath;
 
@@ -407,6 +410,7 @@ namespace DevCDRServer.Controllers
         [HttpGet]
         public ActionResult Diff(string id, int l =-1, int r = -1)
         {
+            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             string spath = Path.Combine(_env.WebRootPath, "JainDB");
             jaindb.jDB.FilePath = spath;
 
@@ -464,6 +468,7 @@ namespace DevCDRServer.Controllers
         [HttpGet]
         public ActionResult InvJson(string id, int l = -1, string blockType = "INV")
         {
+            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             string spath = Path.Combine(_env.WebRootPath, "JainDB");
             jaindb.jDB.FilePath = spath;
 

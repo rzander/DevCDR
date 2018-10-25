@@ -280,7 +280,7 @@ namespace DevCDRServer.Controllers
                     AgentVersion(lHostnames, sInstance);
                     break;
                 case "Inv":
-                    string sEndPoint = Request.GetDisplayUrl().ToLower().Split("/devcdr")[0];
+                    string sEndPoint = Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
                     RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps' | IEX;'Inventory complete..'", sInstance, sCommand);
                     break;
                 case "Restart":

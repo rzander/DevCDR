@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  devcdr_server_core21:
+    image: zanderr/devcdr_server_core
+    build:
+      context: .
+      dockerfile: DevCDR_Server_Core21/Dockerfile
