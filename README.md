@@ -23,6 +23,10 @@ As soon as the devices have internet connection (also behind a Proxy), they will
 
 ![video](https://rzander.azurewebsites.net/content/images/2018/07/devcdr.gif)
 
+<a href="https://azuredeploy.net/" target="_blank">
+    <img src="http://azuredeploy.net/deploybutton.png"/>
+</a>
+
 ## Agent Requirements
 * .NET4.6
 * DevCDRAgent (MSI is currently x64 only)
