@@ -12,7 +12,7 @@ As soon as the devices have internet connection (also behind a Proxy), they will
 
 ## Features
 * interactive Web frontend 
-* realtime PowerShell activities und custom commands
+* run PowerShell activities and custom commands in realtime
 * Install Software directly from https://RuckZuck.tools
 * Inventory
   * Custom Inventory (PowerShell)
