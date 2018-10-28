@@ -181,10 +181,10 @@ $object | ConvertTo-Json
       <Value Profile="(Default)">1</Value>
     </Setting>
     <Setting Name="HealthCheckSuccess" Type="System.DateTime" Scope="User">
-      <Value Profile="(Default)" />
+      <Value Profile="(Default)">2018-10-01</Value>
     </Setting>
     <Setting Name="InventorySuccess" Type="System.DateTime" Scope="User">
-      <Value Profile="(Default)" />
+      <Value Profile="(Default)">2018-10-01</Value>
     </Setting>
     <Setting Name="InventoryCheckHours" Type="System.Int32" Scope="Application">
       <Value Profile="(Default)">12</Value>

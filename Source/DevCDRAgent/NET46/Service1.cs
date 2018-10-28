@@ -365,9 +365,9 @@ namespace DevCDRAgent
                         {
                             try
                             {
-                                Properties.Settings.Default.InventorySuccess = new DateTime();
-                                Properties.Settings.Default.HealthCheckSuccess = new DateTime();
-                                Properties.Settings.Default.Save();
+                                //Properties.Settings.Default.InventorySuccess = new DateTime();
+                                //Properties.Settings.Default.HealthCheckSuccess = new DateTime();
+                                //Properties.Settings.Default.Save();
 
                                 Random rnd = new Random();
                                 tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
