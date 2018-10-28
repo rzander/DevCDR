@@ -6,6 +6,10 @@ Summary: https://rzander.azurewebsites.net/device-commander/
 
 As soon as the devices have internet connection (also behind a Proxy), they will pop up in the Web-Console. Now can run some predefined commands or any custom PowerShell code and the Devices will respond in Realtime.
 
+<a href="https://azuredeploy.net/?repository=https://github.com/rzander/devcdr/tree/ServerCore21" target="_blank">
+    <img src="http://azuredeploy.net/deploybutton.png"/>
+</a>
+
 ## Features
 * interactive Web frontend 
 * realtime PowerShell activities und custom commands
