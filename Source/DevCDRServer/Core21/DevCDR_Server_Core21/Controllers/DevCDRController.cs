@@ -38,11 +38,11 @@ namespace DevCDRServer.Controllers
             ViewBag.Title = "Dashboard " + Environment.GetEnvironmentVariable("INSTANCETITLE");
             ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME");
             ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
-            ViewBag.Route = "/Chat";
+            ViewBag.Route = "/chat";
 
             int itotalDeviceCount = -1;
             
-           itotalDeviceCount = new JainDBController(_env, _cache).totalDeviceCount(Path.Combine(_env.WebRootPath, "JainDB\\_Chain"));
+           itotalDeviceCount = new JainDBController(_env, _cache).totalDeviceCount(Path.Combine(_env.WebRootPath, "jaindb\\_Chain"));
 
             int iDefault = ClientCount("Default");
             int iOnlineCount = iDefault;
@@ -70,6 +70,8 @@ namespace DevCDRServer.Controllers
             ViewBag.Title = Environment.GetEnvironmentVariable("INSTANCETITLE") ?? "Default Environment";
             ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default";
             ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
+            ViewBag.Endpoint = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat";
+            ViewBag.MSI = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgenTCore.msi";
             ViewBag.Route = "/chat";
             return View();
         }

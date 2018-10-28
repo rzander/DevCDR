@@ -78,7 +78,7 @@ namespace jaindb
                 {
                     if (UseFileStore || UseCosmosDB)
                     {
-                        sResult = File.ReadAllText(Path.Combine(FilePath, "_Key" + "\\" + name.TrimStart('#', '@') + "\\" + value + ".json"));
+                        sResult = File.ReadAllText(Path.Combine(FilePath, "_Key", name.TrimStart('#', '@'), value + ".json"));
 
                         //Cache result in Memory
                         if (!string.IsNullOrEmpty(sResult))
@@ -192,7 +192,7 @@ namespace jaindb
                                             {
                                                 if (oSubSub.ToString() != sID)
                                                 {
-                                                    string sDir = Path.Combine(FilePath, "_Key" + "\\" + oSub.Name.ToLower().TrimStart('#'));
+                                                    string sDir = Path.Combine(FilePath, "_Key" , oSub.Name.ToLower().TrimStart('#'));
 
                                                     //Remove invalid Characters in Path
                                                     foreach (var sChar in Path.GetInvalidPathChars())
@@ -203,7 +203,7 @@ namespace jaindb
                                                     if (!Directory.Exists(sDir))
                                                         Directory.CreateDirectory(sDir);
 
-                                                    File.WriteAllText(sDir + "\\" + oSubSub.ToString() + ".json", sID);
+                                                    File.WriteAllText(Path.Combine(sDir , oSubSub.ToString() + ".json"), sID);
                                                 }
                                             }
                                             catch { }
@@ -218,7 +218,7 @@ namespace jaindb
                                             {
                                                 try
                                                 {
-                                                    string sDir = Path.Combine(FilePath, "_Key" + "\\" + oSub.Name.ToLower().TrimStart('#'));
+                                                    string sDir = Path.Combine(FilePath, "_Key" , oSub.Name.ToLower().TrimStart('#'));
 
                                                     //Remove invalid Characters in Path
                                                     foreach (var sChar in Path.GetInvalidPathChars())
@@ -229,7 +229,7 @@ namespace jaindb
                                                     if (!Directory.Exists(sDir))
                                                         Directory.CreateDirectory(sDir);
 
-                                                    File.WriteAllText(sDir + "\\" + (string)oSub.Value + ".json", sID);
+                                                    File.WriteAllText(Path.Combine(sDir , (string)oSub.Value + ".json"), sID);
                                                 }
                                                 catch { }
                                             }
@@ -240,23 +240,23 @@ namespace jaindb
 
                             lock (locker) //only one write operation
                             {
-                                File.WriteAllText(Path.Combine(FilePath, Collection + "\\" + Hash + ".json"), Data);
+                                File.WriteAllText(Path.Combine(FilePath, Collection , Hash + ".json"), Data);
                             }
                             break;
 
                         case "_chain":
                             lock (locker) //only one write operation
                             {
-                                File.WriteAllText(Path.Combine(FilePath, Collection + "\\" + Hash + ".json"), Data);
+                                File.WriteAllText(Path.Combine(FilePath, Collection , Hash + ".json"), Data);
                             }
                             break;
 
                         default:
-                            if (!File.Exists(Path.Combine(FilePath, Collection + "\\" + Hash + ".json"))) //We do not have to create the same hash file twice...
+                            if (!File.Exists(Path.Combine(FilePath, Collection , Hash + ".json"))) //We do not have to create the same hash file twice...
                             {
                                 lock (locker) //only one write operation
                                 {
-                                    File.WriteAllText(Path.Combine(FilePath, Collection + "\\" + Hash + ".json"), Data);
+                                    File.WriteAllText(Path.Combine(FilePath, Collection , Hash + ".json"), Data);
                                 }
                             }
                             break;
@@ -270,11 +270,11 @@ namespace jaindb
                 if (!Directory.Exists(Path.Combine(FilePath, Collection)))
                     Directory.CreateDirectory(Path.Combine(FilePath, Collection));
 
-                if (!File.Exists(Path.Combine(FilePath, Collection + "\\" + Hash + ".json"))) //We do not have to create the same hash file twice...
+                if (!File.Exists(Path.Combine(FilePath, Collection , Hash + ".json"))) //We do not have to create the same hash file twice...
                 {
                     lock (locker) //only one write operation
                     {
-                        File.WriteAllText(Path.Combine(FilePath, Collection + "\\" + Hash + ".json"), Data);
+                        File.WriteAllText(Path.Combine(FilePath, Collection , Hash + ".json"), Data);
                     }
                 }
 
@@ -324,7 +324,7 @@ namespace jaindb
                             Hash = Hash.Replace(sChar.ToString(), "");
                         }
 
-                        sResult = File.ReadAllText(Path.Combine(FilePath, Coll2 + "\\" + Hash + ".json"));
+                        sResult = File.ReadAllText(Path.Combine(FilePath, Coll2 , Hash + ".json"));
 
 #if DEBUG
                         //Check if hashes are valid...
@@ -557,7 +557,7 @@ namespace jaindb
                         }
 
                         if (!UseCosmosDB)
-                            WriteHashAsync(DeviceID, JsonConvert.SerializeObject(oChain), "_Chain");
+                            WriteHashAsync(DeviceID, JsonConvert.SerializeObject(oChain), "_Chain").ConfigureAwait(false);
                         else
                             WriteHashAsync(DeviceID, JsonConvert.SerializeObject(oChain), "_Chain").Wait();
 
@@ -587,9 +587,9 @@ namespace jaindb
                         if (!UseCosmosDB)
                         {
                             if (blockType == BlockType)
-                                WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_Full");
+                                WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_Full").ConfigureAwait(false);
                             else
-                                WriteHashAsync(DeviceID + "_" + blockType, jTemp.ToString(Formatting.None), "_Full");
+                                WriteHashAsync(DeviceID + "_" + blockType, jTemp.ToString(Formatting.None), "_Full").ConfigureAwait(false);
                         }
                         else
                         {
@@ -602,14 +602,34 @@ namespace jaindb
                         Console.WriteLine("Blockchain is NOT valid... " + DeviceID);
                     }
                 }
+                else
+                {
+                    //Do not touch Blockchain, but store the Full JSON for reporting
+                    if (jTemp["_index"] == null)
+                        jTemp.AddFirst(new JProperty("_index", oBlock.index));
+                    if (jTemp["_hash"] == null)
+                        jTemp.AddFirst(new JProperty("_hash", oBlock.data));
+                    if (jTemp["_date"] == null)
+                        jTemp.AddFirst(new JProperty("_date", DateTime.UtcNow));
+                    if (jTemp["_type"] == null)
+                        jTemp.AddFirst(new JProperty("_type", blockType));
+                    if (jTemp["#id"] == null)
+                        jTemp.AddFirst(new JProperty("#id", DeviceID));
+
+                    //JSort(jTemp);
+
+                    //Only store Full data for default BlockType
+                    if (blockType == BlockType)
+                        WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_Full").ConfigureAwait(false);
+                }
 
                 //JSort(oStatic);
                 if (!UseCosmosDB)
                 {
                     if (blockType == BlockType)
-                        WriteHashAsync(sResult, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_Assets");
+                        WriteHashAsync(sResult, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_Assets").ConfigureAwait(false);
                     else
-                        WriteHashAsync(sResult + "_" + blockType, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_Assets");
+                        WriteHashAsync(sResult + "_" + blockType, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_Assets").ConfigureAwait(false);
                 }
                 else
                 {
@@ -733,36 +753,6 @@ namespace jaindb
                                             }
                                         }
                                     }
-
-                                    /*foreach (var jObj in (oTok.Parent.Descendants().Where(t => t.Type == (JTokenType.Object) && t.HasValues == false).Reverse().ToList()))
-                                    {
-                                        try
-                                        {
-                                             if (jObj.Parent.Count == 1 && jObj.Parent.Type == JTokenType.Array)
-                                            {
-                                                jObj.Parent.Parent.Remove();
-                                                continue;
-                                            }
-                                            if (jObj.Parent.Parent.Count == 1 && jObj.Parent.Type == JTokenType.Property)
-                                            {
-                                                jObj.Parent.Parent.Remove();
-                                                continue;
-                                            }
-                                            if (jObj.Parent.Count == 1 && jObj.Parent.Type == JTokenType.Property)
-                                            {
-                                                jObj.Parent.Remove();
-                                                continue;
-                                            }
-                                            else
-                                            {
-                                                jObj.Remove();
-                                            }
-                                        }
-                                        catch(Exception ex)
-                                        {
-                                            Debug.WriteLine("Error GetFull_1: " + ex.Message.ToString());
-                                        }
-                                    }*/
                                 }
                                 else
                                 {
@@ -818,7 +808,7 @@ namespace jaindb
                         if (Index == -1)
                         {
                             //Cache Full
-                            WriteHashAsync(DeviceID, oInv.ToString(), "_full");
+                            WriteHashAsync(DeviceID, oInv.ToString(), "_full").ConfigureAwait(false);
                         }
 
                         /*var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(60)); //cache full for 60s
@@ -1097,45 +1087,6 @@ namespace jaindb
 
             return new JObject();
         }
-
-        /*      /// <summary>
-                /// Convert Topic /Key/Key/[0]/val to JSON Path format Key.Key[0].val
-                /// </summary>
-                /// <param name="Topic"></param>
-                /// <returns></returns>
-                public static string Topic2JPath(string Topic)
-                {
-                    try
-                    {
-                        string sPath = "";
-                        List<string> lItems = Topic.Split('/').ToList();
-                        for (int i = 0; i < lItems.Count(); i++)
-                        {
-                            bool bArray = false;
-                            int iVal = -1;
-                            if (i + 1 < lItems.Count())
-                            {
-                                if (lItems[i + 1].Contains("[") && int.TryParse(lItems[i + 1].TrimStart('[').TrimEnd(']'), out iVal))
-                                    bArray = true;
-                                else
-                                    bArray = false;
-                            }
-                            if (!bArray)
-                                sPath += lItems[i] + ".";
-                            else
-                            {
-                                sPath += lItems[i] + "[" + iVal.ToString() + "].";
-                                i++;
-                            }
-                        }
-
-                        return sPath.TrimEnd('.');
-                    }
-                    catch { }
-
-                    return "";
-                }
-                */
 
         class TopicComparer : IComparer<string>
         {

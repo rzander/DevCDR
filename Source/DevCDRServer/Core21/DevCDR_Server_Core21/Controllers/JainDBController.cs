@@ -46,7 +46,9 @@ namespace DevCDRServer.Controllers
         [Route("upload/{param}")]
         public string Upload(string param, string blockType = "INV")
         {
-            jDB.FilePath = Path.Combine(_env.WebRootPath, "JainDB");
+            _cache.Remove("totalDeviceCount");
+
+            jDB.FilePath = Path.Combine(_env.WebRootPath, "jaindb");
 
             string sParams = "";
             using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
@@ -63,7 +65,7 @@ namespace DevCDRServer.Controllers
         public string GetPS(string filename = "")
         {
             string sResult = "";
-            string spath = Path.Combine(_env.WebRootPath, "JainDB");
+            string spath = Path.Combine(_env.WebRootPath, "jaindb");
             jaindb.jDB.FilePath = spath;
             if (string.IsNullOrEmpty(filename))
             {
@@ -100,7 +102,7 @@ namespace DevCDRServer.Controllers
         public JObject Full(string blockType = "INV")
         {
             //string sPath = this.Request.Path;
-            string spath = Path.Combine(_env.WebRootPath, "JainDB");
+            string spath = Path.Combine(_env.WebRootPath, "jaindb");
             jDB.FilePath = spath;
 
             string sQuery = this.Request.QueryString.ToString();
@@ -126,7 +128,7 @@ namespace DevCDRServer.Controllers
         {
             DateTime dStart = DateTime.Now;
 
-            string sPath = Path.Combine(_env.WebRootPath, "JainDB");
+            string sPath = Path.Combine(_env.WebRootPath, "jaindb");
             jDB.FilePath = sPath;
 
             string sQuery = this.Request.QueryString.ToString();
@@ -155,7 +157,7 @@ namespace DevCDRServer.Controllers
                 }
 
                 if (string.IsNullOrEmpty(sPath))
-                    sPath = Path.Combine(_env.WebRootPath, "JainDB\\_Chain");
+                    sPath = Path.Combine(_env.WebRootPath, "jaindb\\_Chain");
 
                 if (Directory.Exists(sPath))
                     iCount = Directory.GetFiles(sPath).Count(); //count Blockchain Files
@@ -177,7 +179,7 @@ namespace DevCDRServer.Controllers
         public ActionResult Inv(string id, string name = "", int index = -1, string blockType = "INV")
         {
             ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
-            string spath = Path.Combine(_env.WebRootPath, "JainDB");
+            string spath = Path.Combine(_env.WebRootPath, "jaindb");
             jaindb.jDB.FilePath = spath;
 
             if (!string.IsNullOrEmpty(name))
@@ -411,7 +413,7 @@ namespace DevCDRServer.Controllers
         public ActionResult Diff(string id, int l =-1, int r = -1)
         {
             ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
-            string spath = Path.Combine(_env.WebRootPath, "JainDB");
+            string spath = Path.Combine(_env.WebRootPath, "jaindb");
             jaindb.jDB.FilePath = spath;
 
             if (!string.IsNullOrEmpty(id))
@@ -469,7 +471,7 @@ namespace DevCDRServer.Controllers
         public ActionResult InvJson(string id, int l = -1, string blockType = "INV")
         {
             ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
-            string spath = Path.Combine(_env.WebRootPath, "JainDB");
+            string spath = Path.Combine(_env.WebRootPath, "jaindb");
             jaindb.jDB.FilePath = spath;
 
             if (!string.IsNullOrEmpty(id))
@@ -487,7 +489,7 @@ namespace DevCDRServer.Controllers
         [Route("GetHistory/{id}")]
         public JArray GetHistory(string id, string blockType = "INV")
         {
-            string spath = Path.Combine(_env.WebRootPath, "JainDB");
+            string spath = Path.Combine(_env.WebRootPath, "jaindb");
             jaindb.jDB.FilePath = spath;
 
             string sQuery = this.Request.QueryString.ToString();
