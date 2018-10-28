@@ -5,9 +5,17 @@ if(Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) {} else {
 	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.10/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
+#Update DevCDRAgent
+#if([version](get-item "C:\Program Files\DevCDRAgent\DevCDRAgent.exe").VersionInfo.FileVersion -lt [version]"1.0.0.13") { 
+#	&msiexec -i https://itnetxdevcdr.azurewebsites.net/DevCDRAgent.msi INSTANCE=itnetx ENDPOINT=https://itnetxdevcdr.azurewebsites.net/Chat /qn REBOOT=REALLYSUPPRESS  
+#}
+
 #Only Update SW if LockScreen (LogonUI) is present
 if (get-process logonui -ea SilentlyContinue) {
 	
+	#Disable FastBoot
+	New-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' -Name 'HiberbootEnabled' -Value 0 -PropertyType DWord -Force -ea SilentlyContinue;
+
 	#region Select a method to restrict Peer Selection on DeliveryOptimization
 	#Create the key if missing 
 	If((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization') -eq $false ) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -force -ea SilentlyContinue } 
@@ -17,11 +25,11 @@ if (get-process logonui -ea SilentlyContinue) {
 	#endregion
 
     #List of managed Software.
-    $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Greenshot" , "KeePass", "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", 
+    $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "KeePass", "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", 
         "AdobeReader DC", "Sonos Controller", "Microsoft Azure PowerShell", 
         "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
         "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", 
-		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "TeamViewer", "WinRAR", "paint.net" )
+		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "TeamViewer" )
 
     #Find Software Updates
     $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename
@@ -40,13 +48,11 @@ if (get-process logonui -ea SilentlyContinue) {
 	}
 }
 
-
-
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUc2n3Y+XRgfjQfVwjicZcpukC
-# r9SgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkLFOEAKxzk1vuDxObjpJX5PJ
+# 9PWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -111,12 +117,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRd
-# ZQQhfzDQY/vlx6ZLVXWL5WMFhTANBgkqhkiG9w0BAQEFAASCAQAKHSIR54YZVMaV
-# ex/uJkaRtzLYqo9g+Wj+NVbYjVw7hNzsZfQYzqXw1uaF2qA85cKYhMBDh4L14arV
-# +DRrJXMsjApaAAd5PTtcKeO9DPB2TKHlNHFrtdA6klZfSZVPIh3qbGHMsEzduKOu
-# Kn+lOO0AXslHnZmuMXinO8NeaVrBaV4KXvTmsH7Ws35LHm3XesAtCTKuGSOeVVUS
-# jLT/8mpFdqB5gvprC7a14V29nIcTFlS3vBVP0dr5X8r22DRkedTD4dvizVTNUgDW
-# 8dbWkCo3X8EU88FtZN789cTkfavLND/+lqM1htb37X7++h1dQW+IurrzmyT4yFZq
-# PaOc8tuu
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSq
+# 0Rge8Fsp8EQu9gorkGDcmvaNPDANBgkqhkiG9w0BAQEFAASCAQBlrvOxLDRlLYyz
+# 4YjD/dILI3h89eLy5H7JWK1wyeqkFXs/rSIcA17Diezo4la9Cy27dEMy0n7QvaVE
+# rVbNYIxsDhzpj2bIjBlxXWHZIONDfyU2SQfzQGI1lkbGO8585kNCvzaj7sDmZhuU
+# 5b31ijaEFAsr1iOf+Mv6Wj704c1KxObyoybG9S3sziE8X/G+bJsHrkv316AGYl77
+# davU4aOeheoDANj2nvUi9T/S+vHN4YLzN+mFvDlQAiub7yCfDkEZLSjUM4F0bO7z
+# YJz1bI8hi5HbrB6nUXH2mieKJdSL2OGilj1eouDGRsIv0MNV3PS4LUZhQmqP9Qby
+# uw1Rmggm
 # SIG # End signature block

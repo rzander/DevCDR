@@ -559,7 +559,7 @@ namespace jaindb
                         }
 
 
-                        WriteHashAsync(DeviceID, JsonConvert.SerializeObject(oChain), "_Chain");
+                        WriteHashAsync(DeviceID, JsonConvert.SerializeObject(oChain), "_Chain").ConfigureAwait(false);
 
 
 
@@ -588,9 +588,9 @@ namespace jaindb
 
                         //Only store Full data for default BlockType
                         if (blockType == BlockType)
-                            WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_Full");
+                            WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_Full").ConfigureAwait(false);
                         else
-                            WriteHashAsync(DeviceID + "_" + blockType, jTemp.ToString(Formatting.None), "_Full");
+                            WriteHashAsync(DeviceID + "_" + blockType, jTemp.ToString(Formatting.None), "_Full").ConfigureAwait(false);
 
                     }
                     else
@@ -616,14 +616,14 @@ namespace jaindb
 
                     //Only store Full data for default BlockType
                     if (blockType == BlockType)
-                        WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_Full");
+                        WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_Full").ConfigureAwait(false);
                 }
 
-                //JSort(oStatic);
+
                 if (blockType == BlockType)
-                    WriteHashAsync(sResult, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_Assets");
+                    WriteHashAsync(sResult, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_Assets").ConfigureAwait(false);
                 else
-                    WriteHashAsync(sResult + "_" + blockType, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_Assets");
+                    WriteHashAsync(sResult + "_" + blockType, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_Assets").ConfigureAwait(false);
 
 
                 return sResult;

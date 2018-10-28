@@ -79,7 +79,7 @@ Jabra Direct
 Java 8 Update 181
 JetBrains PhpStorm 2017.3.6
 KB4023057
-KeePass Password Safe 2.39.1
+KeePass Password Safe 2.40
 LastPass (Nur deinstallieren)
 LastPass (uninstall only)
 Lenovo Solution Center
