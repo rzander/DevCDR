@@ -15,8 +15,8 @@ As soon as the devices have internet connection (also behind a Proxy), they will
   * Blockchain based archive (JainDB)
   * Inventory-History with visual Differential and Timeline of changes
   * Custom Reporting with Excel or PowerBI
-* Scheduled PowerShell script forHealth- Compliance-checks
-* multi tenancy support
+* Scheduled PowerShell script for Health- and Compliance-checks
+* multi tenancy support (only for Server running .NET 4.7)
 * device grouping
 * Only outgoing HTTPS (443) communication (agent) with Proxy support
 * Azure AD Authentication (Management-Interface)
@@ -27,15 +27,19 @@ As soon as the devices have internet connection (also behind a Proxy), they will
 * .NET4.6
 * DevCDRAgent (MSI is currently x64 only)
 
-### .NET Core Agent is in preview
-### .NET 4.7 Agent for .NET Core Server is in preview
-
 ## Server/Host Requirements
 * Azure Active Directory (Basic)
 * Azure Web App (Free F1 or better)
 * SSL
 
-### Server running .NET Core is in preview
+## Server Core
+Server Core is running on .NET Core 2.1. and can only host a single instance.
+> Note: Server Core is not compatible with the existing .NET4.6 Agent. please use the new Agent for Server Core.
+
+### Docker
+A preconfigured Docker image is available at: https://hub.docker.com/r/zanderr/devcdr_server_core/
+or just run:
+`docker pull zanderr/devcdr_server_core`
 
 # DEMO
 https://devcdr.azurewebsites.net/ 
