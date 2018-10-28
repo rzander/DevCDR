@@ -71,7 +71,7 @@ namespace DevCDRServer.Controllers
             {
                 Request.ToString();
                 string sLocalURL = Request.GetEncodedUrl().Replace("/getps", "");
-                if (System.IO.File.Exists(spath + "/inventory.ps1"))
+                if (System.IO.File.Exists(Path.Combine(spath , "inventory.ps1")))
                 {
                     
                     string sFile = System.IO.File.ReadAllText(spath + "/inventory.ps1");

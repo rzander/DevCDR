@@ -71,7 +71,10 @@ namespace DevCDRServer.Controllers
             ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default";
             ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             ViewBag.Endpoint = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat";
-            ViewBag.MSI = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgenTCore.msi";
+            if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCore.msi")))
+                ViewBag.MSI = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCore.msi";
+            else
+                ViewBag.MSI = "https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi";
             ViewBag.Route = "/chat";
             return View();
         }
