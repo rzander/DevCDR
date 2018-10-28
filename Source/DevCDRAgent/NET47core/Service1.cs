@@ -9,8 +9,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Management.Automation;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,6 +30,7 @@ namespace DevCDRAgent
         private static HubConnection connection;
         private static string sScriptResult = "";
         private bool isconnected = false;
+        private bool isstopping = false;
         public string Uri { get; set; } = Properties.Settings.Default.Endpoint;
 
         public Service1(string Host)
@@ -63,6 +66,9 @@ namespace DevCDRAgent
                                 System.Threading.Thread.Sleep(1000);
 
                                 connection.SendAsync("Inventory", Hostname);
+
+                                Properties.Settings.Default.InventorySuccess = DateTime.Now;
+                                Properties.Settings.Default.Save();
                             }
                         }
 
@@ -78,6 +84,9 @@ namespace DevCDRAgent
                                 System.Threading.Thread.Sleep(3000);
 
                                 connection.SendAsync("HealthCheck", Hostname);
+
+                                Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
+                                Properties.Settings.Default.Save();
                             }
                         }
                     }
@@ -111,7 +120,7 @@ namespace DevCDRAgent
 
         protected override void OnStart(string[] args)
         {
-            
+            isstopping = false;
             sScriptResult = DateTime.Now.ToString();
             tReCheck.Elapsed -= TReCheck_Elapsed;
             tReCheck.Elapsed += TReCheck_Elapsed;
@@ -135,23 +144,29 @@ namespace DevCDRAgent
 
             connection.Closed += async (error) =>
             {
-                try
+                if (!isstopping)
                 {
-                    await Task.Delay(new Random().Next(0, 5) * 1000); // wait 0-5s
-                    await connection.StartAsync();
-                    isconnected = true;
-                    Console.WriteLine("Connected with " + Uri);
-                    Connect();
+                    try
+                    {
+                        await Task.Delay(new Random().Next(0, 5) * 1000); // wait 0-5s
+                        await connection.StartAsync();
+                        isconnected = true;
+                        Console.WriteLine("Connected with " + Uri);
+                        Properties.Settings.Default.LastConnection = DateTime.Now;
+                        Properties.Settings.Default.ConnectionErrors = 0;
+                        Properties.Settings.Default.Save();
+                        Connect();
 
-                }
-                catch(Exception ex)
-                {
-                    isconnected = false;
-                    Console.WriteLine(ex.Message);
-                    Trace.WriteLine("\tError: " + ex.Message + " " + DateTime.Now.ToString());
-                    Random rnd = new Random();
-                    tReInit.Interval = 10000 + rnd.Next(1, 90000); //randomize ReInit intervall
-                    Program.MinimizeFootprint();
+                    }
+                    catch (Exception ex)
+                    {
+                        isconnected = false;
+                        Console.WriteLine(ex.Message);
+                        Trace.WriteLine("\tError: " + ex.Message + " " + DateTime.Now.ToString());
+                        Random rnd = new Random();
+                        tReInit.Interval = 10000 + rnd.Next(1, 90000); //randomize ReInit intervall
+                        Program.MinimizeFootprint();
+                    }
                 }
             };
 
@@ -161,6 +176,9 @@ namespace DevCDRAgent
                 isconnected = true;
                 Console.WriteLine("Connected with " + Uri);
                 Trace.WriteLine("Connected with " + Uri + " " + DateTime.Now.ToString());
+                Properties.Settings.Default.LastConnection = DateTime.Now;
+                Properties.Settings.Default.ConnectionErrors = 0;
+                Properties.Settings.Default.Save();
                 Connect();
             }
             catch(Exception ex)
@@ -168,6 +186,27 @@ namespace DevCDRAgent
                 isconnected = false;
                 Console.WriteLine(ex.Message);
                 Trace.WriteLine("\tError: " + ex.Message + " " + DateTime.Now.ToString());
+
+                Properties.Settings.Default.ConnectionErrors++;
+                Properties.Settings.Default.Save();
+
+                //Only fallback if we have internet...
+                if (IsConnectedToInternet())
+                {
+                    //Fallback to default endpoint after 3Days and 15 Errors
+                    if (((DateTime.Now - Properties.Settings.Default.LastConnection).TotalDays > 3) && (Properties.Settings.Default.ConnectionErrors >= 15))
+                    {
+                        Uri = "https://devcdrcore.azurewebsites.net/chat";
+                        Hostname = Environment.MachineName + "_BAD";
+                    }
+                }
+                else
+                {
+                    //No Internet, lets ignore connection errors...
+                    Properties.Settings.Default.ConnectionErrors = 0;
+                    Properties.Settings.Default.Save();
+                }
+
                 Random rnd = new Random();
                 tReInit.Interval = 10000 + rnd.Next(1, 90000); //randomize ReInit intervall
                 Program.MinimizeFootprint();
@@ -176,35 +215,6 @@ namespace DevCDRAgent
 
 
         }
-
-        private Task Connection_Closed(Exception arg)
-        {
-            Console.WriteLine(arg.Message);
-            return null;
-        }
-
-        //private void Connection_StateChanged(StateChange obj)
-        //{
-        //    if (serviceController1.Status != ServiceControllerStatus.StopPending)
-        //    {
-        //        Console.WriteLine("State: " + obj.NewState.ToString());
-        //        if (obj.NewState == Microsoft.AspNet.SignalR.Client.ConnectionState.Disconnected)
-        //        {
-        //        }
-
-        //        if (obj.NewState == Microsoft.AspNet.SignalR.Client.ConnectionState.Reconnecting)
-        //        {
-        //        }
-
-        //        if (obj.NewState == Microsoft.AspNet.SignalR.Client.ConnectionState.Connected)
-        //        {
-        //        }
-
-        //        if (obj.NewState == Microsoft.AspNet.SignalR.Client.ConnectionState.Connecting)
-        //        {
-        //        }
-        //    }
-        //}
 
         private void Connect()
         {
@@ -310,9 +320,9 @@ namespace DevCDRAgent
                 {
                     try
                     {
-                        Properties.Settings.Default.InventorySuccess = new DateTime();
-                        Properties.Settings.Default.HealthCheckSuccess = new DateTime();
-                        Properties.Settings.Default.Save();
+                        //Properties.Settings.Default.InventorySuccess = new DateTime();
+                        //Properties.Settings.Default.HealthCheckSuccess = new DateTime();
+                        //Properties.Settings.Default.Save();
 
                         Random rnd = new Random();
                         tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
@@ -351,9 +361,7 @@ namespace DevCDRAgent
                         //connection.InvokeAsync("Status", new object[] { Hostname, sResult }).ContinueWith(task1 =>
                         //{
                         //});
-                        connection.InvokeAsync("Status",  Hostname, sResult).ContinueWith(task1 =>
-                        {
-                        });
+                        connection.InvokeAsync("Status", Hostname, sResult).Wait(1000);
                         Trace.WriteLine(" done.");
                         Program.MinimizeFootprint();
                     }
@@ -427,7 +435,7 @@ namespace DevCDRAgent
                             RestartService();
 
                                     //Update Advanced Installer Persistent Properties
-                                    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{0AC43E24-4308-4BE7-A369-D50DB4056B32}", true);
+                                    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
                             if (myKey != null)
                             {
                                 myKey.SetValue("INSTANCE", s1.Trim(), RegistryValueKind.String);
@@ -455,7 +463,7 @@ namespace DevCDRAgent
                                 RestartService();
 
                                         //Update Advanced Installer Persistent Properties
-                                        RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{0AC43E24-4308-4BE7-A369-D50DB4056B32}", true);
+                                        RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
                                 if (myKey != null)
                                 {
                                     myKey.SetValue("ENDPOINT", s1.Trim(), RegistryValueKind.String);
@@ -483,7 +491,7 @@ namespace DevCDRAgent
                             RestartService();
 
                                     //Update Advanced Installer Persistent Properties
-                                    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{0AC43E24-4308-4BE7-A369-D50DB4056B32}", true);
+                                    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
                             if (myKey != null)
                             {
                                 myKey.SetValue("GROUPS", s1.Trim(), RegistryValueKind.String);
@@ -772,6 +780,7 @@ namespace DevCDRAgent
         {
             try
             {
+                isstopping = true;
                 Trace.WriteLine(DateTime.Now.ToString() + "\t stopping DevCDRAgent...");
                 Trace.Flush();
                 Trace.Listeners.Clear();
@@ -824,6 +833,25 @@ namespace DevCDRAgent
                 sScriptResult = e.ItemAdded.ToString();
                 Trace.WriteLine(e.ItemAdded.ToString());
             }
+        }
+
+        public static bool IsConnectedToInternet()
+        {
+            if (System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
+            {
+                using (WebClient webClient = new WebClient())
+                {
+                    try
+                    {
+                        string sResult = webClient.DownloadString("http://www.msftncsi.com/ncsi.txt");
+                        if (sResult == "Microsoft NCSI")
+                            return true;
+                    }
+                    catch { }
+                }
+            }
+
+            return false;
         }
     }
 }

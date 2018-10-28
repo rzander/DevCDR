@@ -183,6 +183,7 @@ namespace DevCDRAgent.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2018-10-01")]
         public global::System.DateTime HealthCheckSuccess {
             get {
                 return ((global::System.DateTime)(this["HealthCheckSuccess"]));
@@ -194,6 +195,7 @@ namespace DevCDRAgent.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2018-10-01")]
         public global::System.DateTime InventorySuccess {
             get {
                 return ((global::System.DateTime)(this["InventorySuccess"]));
@@ -209,6 +211,30 @@ namespace DevCDRAgent.Properties {
         public int InventoryCheckHours {
             get {
                 return ((int)(this["InventoryCheckHours"]));
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2018-10-01")]
+        public global::System.DateTime LastConnection {
+            get {
+                return ((global::System.DateTime)(this["LastConnection"]));
+            }
+            set {
+                this["LastConnection"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int ConnectionErrors {
+            get {
+                return ((int)(this["ConnectionErrors"]));
+            }
+            set {
+                this["ConnectionErrors"] = value;
             }
         }
     }
