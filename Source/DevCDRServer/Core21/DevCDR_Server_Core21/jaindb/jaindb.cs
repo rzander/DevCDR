@@ -267,6 +267,8 @@ namespace jaindb
             }
             catch (Exception ex)
             {
+                Debug.WriteLine(ex.Message);
+
                 if (!Directory.Exists(Path.Combine(FilePath, Collection)))
                     Directory.CreateDirectory(Path.Combine(FilePath, Collection));
 

@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Extensions;
 using System.Text;
+using System.Diagnostics;
 
 namespace DevCDRServer.Controllers
 {
@@ -439,6 +440,7 @@ namespace DevCDRServer.Controllers
                     }
                     catch (Exception ex)
                     {
+                        Debug.WriteLine(ex.Message);
                     }
                 }
 
@@ -451,6 +453,7 @@ namespace DevCDRServer.Controllers
                     }
                     catch (Exception ex)
                     {
+                        Debug.WriteLine(ex.Message);
                     }
                 }
 

@@ -1,0 +1,7 @@
+﻿docker pull zanderr/devcdr_server_core 
+
+#SSL Cert devcdr.pfx is for localhost only...
+docker run --name devcdr_server_core -p 8000:80 -p 8001:443 -e ASPNETCORE_URLS="https://+;http://+" -e ASPNETCORE_HTTPS_PORT=8001 -e ASPNETCORE_Kestrel__Certificates__Default__Password="tom2ate" -e ASPNETCORE_Kestrel__Certificates__Default__Path=wwwroot/devcdr.pfx zanderr/devcdr_server_core 
+
+#Note: Variable ASPNETCORE_ENVIRONMENT must be set to "Development" to suppress AzureAD authentication
+Start-Process "https://localhost:8001/"
