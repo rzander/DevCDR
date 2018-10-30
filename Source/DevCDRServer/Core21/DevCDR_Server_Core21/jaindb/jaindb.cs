@@ -78,7 +78,7 @@ namespace jaindb
                 {
                     if (UseFileStore || UseCosmosDB)
                     {
-                        sResult = File.ReadAllText(Path.Combine(FilePath, "_Key", name.TrimStart('#', '@'), value + ".json"));
+                        sResult = File.ReadAllText(Path.Combine(FilePath, "_key", name.TrimStart('#', '@'), value + ".json"));
 
                         //Cache result in Memory
                         if (!string.IsNullOrEmpty(sResult))
@@ -102,6 +102,8 @@ namespace jaindb
 
         public static void WriteHash(ref JToken oRoot, ref JObject oStatic, string Collection)
         {
+            Collection = Collection.ToLower(); //all lowercase
+
             if (ReadOnly)
                 return;
             try
@@ -139,6 +141,8 @@ namespace jaindb
 
         public static bool WriteHash(string Hash, string Data, string Collection)
         {
+            Collection = Collection.ToLower(); //all lowercase
+
             if (ReadOnly)
                 return false;
 
@@ -176,8 +180,8 @@ namespace jaindb
 
                             string sID = jObj["#id"].ToString();
 
-                            if (!Directory.Exists(Path.Combine(FilePath, "_Key")))
-                                Directory.CreateDirectory(Path.Combine(FilePath, "_Key"));
+                            if (!Directory.Exists(Path.Combine(FilePath, "_key")))
+                                Directory.CreateDirectory(Path.Combine(FilePath, "_key"));
 
                             //Store KeyNames
                             foreach (JProperty oSub in jObj.Properties())
@@ -192,7 +196,7 @@ namespace jaindb
                                             {
                                                 if (oSubSub.ToString() != sID)
                                                 {
-                                                    string sDir = Path.Combine(FilePath, "_Key" , oSub.Name.ToLower().TrimStart('#'));
+                                                    string sDir = Path.Combine(FilePath, "_key" , oSub.Name.ToLower().TrimStart('#'));
 
                                                     //Remove invalid Characters in Path
                                                     foreach (var sChar in Path.GetInvalidPathChars())
@@ -218,7 +222,7 @@ namespace jaindb
                                             {
                                                 try
                                                 {
-                                                    string sDir = Path.Combine(FilePath, "_Key" , oSub.Name.ToLower().TrimStart('#'));
+                                                    string sDir = Path.Combine(FilePath, "_key" , oSub.Name.ToLower().TrimStart('#'));
 
                                                     //Remove invalid Characters in Path
                                                     foreach (var sChar in Path.GetInvalidPathChars())
@@ -300,6 +304,7 @@ namespace jaindb
         }
         public static string ReadHash(string Hash, string Collection)
         {
+            Collection = Collection.ToLower(); //all lowercase
             string sResult = "";
             try
             {
@@ -559,9 +564,9 @@ namespace jaindb
                         }
 
                         if (!UseCosmosDB)
-                            WriteHashAsync(DeviceID, JsonConvert.SerializeObject(oChain), "_Chain").ConfigureAwait(false);
+                            WriteHashAsync(DeviceID, JsonConvert.SerializeObject(oChain), "_chain").ConfigureAwait(false);
                         else
-                            WriteHashAsync(DeviceID, JsonConvert.SerializeObject(oChain), "_Chain").Wait();
+                            WriteHashAsync(DeviceID, JsonConvert.SerializeObject(oChain), "_chain").Wait();
 
 
                         //Add missing attributes
@@ -589,9 +594,9 @@ namespace jaindb
                         if (!UseCosmosDB)
                         {
                             if (blockType == BlockType)
-                                WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_Full").ConfigureAwait(false);
+                                WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_full").ConfigureAwait(false);
                             else
-                                WriteHashAsync(DeviceID + "_" + blockType, jTemp.ToString(Formatting.None), "_Full").ConfigureAwait(false);
+                                WriteHashAsync(DeviceID + "_" + blockType, jTemp.ToString(Formatting.None), "_full").ConfigureAwait(false);
                         }
                         else
                         {
@@ -622,23 +627,23 @@ namespace jaindb
 
                     //Only store Full data for default BlockType
                     if (blockType == BlockType)
-                        WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_Full").ConfigureAwait(false);
+                        WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_full").ConfigureAwait(false);
                 }
 
                 //JSort(oStatic);
                 if (!UseCosmosDB)
                 {
                     if (blockType == BlockType)
-                        WriteHashAsync(sResult, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_Assets").ConfigureAwait(false);
+                        WriteHashAsync(sResult, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_assets").ConfigureAwait(false);
                     else
-                        WriteHashAsync(sResult + "_" + blockType, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_Assets").ConfigureAwait(false);
+                        WriteHashAsync(sResult + "_" + blockType, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_assets").ConfigureAwait(false);
                 }
                 else
                 {
                     //On CosmosDB, store full document as Asset
                     if (jTemp["_objectid"] == null)
                         jTemp.AddFirst(new JProperty("_objectid", DeviceID));
-                    WriteHashAsync(sResult, jTemp.ToString(Formatting.None), "_Assets").Wait();
+                    WriteHashAsync(sResult, jTemp.ToString(Formatting.None), "_assets").Wait();
                 }
 
 
@@ -665,9 +670,9 @@ namespace jaindb
                 {
                     string sFull = "";
                     if (blockType == BlockType)
-                        sFull = ReadHash(DeviceID, "_Full");
+                        sFull = ReadHash(DeviceID, "_full");
                     else
-                        sFull = ReadHash(DeviceID + "_" + blockType, "_Full");
+                        sFull = ReadHash(DeviceID + "_" + blockType, "_full");
 
                     if (!string.IsNullOrEmpty(sFull))
                     {
@@ -679,9 +684,9 @@ namespace jaindb
 
                 string sData = "";
                 if (blockType == BlockType)
-                    sData = ReadHash(oRaw["_hash"].ToString(), "_Assets");
+                    sData = ReadHash(oRaw["_hash"].ToString(), "_assets");
                 else
-                    sData = ReadHash(oRaw["_hash"].ToString() + "_" + blockType, "_Assets");
+                    sData = ReadHash(oRaw["_hash"].ToString() + "_" + blockType, "_assets");
 
                 if (!UseCosmosDB)
                 {
@@ -810,7 +815,20 @@ namespace jaindb
                         if (Index == -1)
                         {
                             //Cache Full
-                            WriteHashAsync(DeviceID, oInv.ToString(), "_full").ConfigureAwait(false);
+                            if (!File.Exists(Path.Combine(FilePath, "_full", DeviceID + ".json")))
+                            {
+                                WriteHashAsync(DeviceID, oInv.ToString(), "_full").ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    //Cache in Memory
+                                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(60)); //cache full for 60s
+                                    _cache.Set("RH-" + "_full" + "-" + DeviceID, oInv.ToString(), cacheEntryOptions);
+                                }
+                                catch { }
+                            }
                         }
 
                         /*var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(60)); //cache full for 60s
@@ -882,7 +900,7 @@ namespace jaindb
             try
             {
 
-                string sChain = ReadHash(DeviceID, "_Chain");
+                string sChain = ReadHash(DeviceID, "_chain");
                 var oChain = JsonConvert.DeserializeObject<Blockchain>(sChain);
                 foreach (block oBlock in oChain.Chain.Where(t => t.blocktype == blockType))
                 {
@@ -931,7 +949,7 @@ namespace jaindb
 
             try
             {
-                string sChain = ReadHash(DeviceID, "_Chain");
+                string sChain = ReadHash(DeviceID, "_chain");
                 var oChain = JsonConvert.DeserializeObject<Blockchain>(sChain);
                 foreach (block oBlock in oChain.Chain.Where(t => t.blocktype == blockType))
                 {
@@ -1400,7 +1418,7 @@ namespace jaindb
             {
                 if (UseFileStore)
                 {
-                    foreach (var oFile in new DirectoryInfo(Path.Combine(FilePath, "_Assets")).GetFiles("*.json"))
+                    foreach (var oFile in new DirectoryInfo(Path.Combine(FilePath, "_assets")).GetFiles("*.json"))
                     {
                         bool foundData = false;
                         JObject jObj = GetRaw(File.ReadAllText(oFile.FullName), paths);
@@ -1573,7 +1591,7 @@ namespace jaindb
             {
                 Change oRes = new Change();
                 oRes.id = sID;
-                var jObj = JObject.Parse(ReadHash(sID, "_Chain"));
+                var jObj = JObject.Parse(ReadHash(sID, "_chain"));
                 oRes.lastChange = new DateTime(jObj["Chain"].Last["timestamp"].Value<long>());
                 if(DateTime.Now.Subtract(oRes.lastChange) > age)
                 {
@@ -1609,7 +1627,7 @@ namespace jaindb
                 {
                     if (UseFileStore)
                     {
-                        foreach (var oFile in new DirectoryInfo(Path.Combine(FilePath, "_Chain")).GetFiles("*.json"))
+                        foreach (var oFile in new DirectoryInfo(Path.Combine(FilePath, "_chain")).GetFiles("*.json"))
                         {
                             lResult.Add(System.IO.Path.GetFileNameWithoutExtension(oFile.Name));
                         }
@@ -1717,7 +1735,7 @@ namespace jaindb
                     {
                         try
                         {
-                            var jObj = JObject.Parse(ReadHash(sID, "_Chain"));
+                            var jObj = JObject.Parse(ReadHash(sID, "_chain"));
                             foreach (var sBlock in jObj.SelectTokens("Chain[*].data"))
                             {
                                 try
@@ -1725,7 +1743,7 @@ namespace jaindb
                                     string sBlockID = sBlock.Value<string>();
                                     if (!string.IsNullOrEmpty(sBlockID))
                                     {
-                                        var jBlock = GetRaw(ReadHash(sBlockID, "_Assets"));
+                                        var jBlock = GetRaw(ReadHash(sBlockID, "_assets"));
                                         jBlock.Remove("#id"); //old Version of jainDB 
                                         //jBlock.Remove("_date");
                                         jBlock.Remove("_index");
