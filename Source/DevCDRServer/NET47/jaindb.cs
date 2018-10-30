@@ -80,7 +80,7 @@ namespace jaindb
             catch { }
             try
             {
-                sResult = File.ReadAllText(FilePath + "\\_Key" + "\\" + name.TrimStart('#', '@') + "\\" + value + ".json");
+                sResult = File.ReadAllText(Path.Combine(FilePath, "_Key", name.TrimStart('#', '@'), value + ".json"));
 
                 //Cache result in Memory
                 if (!string.IsNullOrEmpty(sResult))
@@ -121,7 +121,7 @@ namespace jaindb
                     {
                         ((JObject)oClass).Add("##hash", sHash);
 
-                        WriteHashAsync(sHash, oRoot.ToString(Formatting.None), Collection);
+                        WriteHashAsync(sHash, oRoot.ToString(Formatting.None), Collection).ConfigureAwait(false);
 
                         oRoot = oClass;
                     }
@@ -163,8 +163,8 @@ namespace jaindb
                         Hash = Hash.Replace(sChar.ToString(), "");
                     }
 
-                        if (!Directory.Exists(FilePath + "\\" + Collection))
-                        Directory.CreateDirectory(FilePath + "\\" + Collection);
+                    if (!Directory.Exists(Path.Combine(FilePath, Collection)))
+                        Directory.CreateDirectory(Path.Combine(FilePath, Collection));
 
                     switch (Collection.ToLower())
                     {
@@ -175,8 +175,8 @@ namespace jaindb
 
                             string sID = jObj["#id"].ToString();
 
-                            if (!Directory.Exists(FilePath + "\\_Key"))
-                                Directory.CreateDirectory(FilePath + "\\_Key");
+                            if (!Directory.Exists(Path.Combine(FilePath , "Key")))
+                                Directory.CreateDirectory(Path.Combine(FilePath ,"_Key"));
 
                             //Store KeyNames
                             foreach (JProperty oSub in jObj.Properties())
@@ -191,7 +191,7 @@ namespace jaindb
                                             {
                                                 if (oSubSub.ToString() != sID)
                                                 {
-                                                    string sDir = FilePath + "\\_Key" + "\\" + oSub.Name.ToLower().TrimStart('#');
+                                                    string sDir = Path.Combine(FilePath , "_Key" , oSub.Name.ToLower().TrimStart('#'));
 
                                                     //Remove invalid Characters in Path
                                                     foreach (var sChar in Path.GetInvalidPathChars())
@@ -202,7 +202,7 @@ namespace jaindb
                                                     if (!Directory.Exists(sDir))
                                                         Directory.CreateDirectory(sDir);
 
-                                                    File.WriteAllText(sDir + "\\" + oSubSub.ToString() + ".json", sID);
+                                                    File.WriteAllText(Path.Combine(sDir , oSubSub.ToString() + ".json"), sID);
                                                 }
                                             }
                                             catch { }
@@ -217,7 +217,7 @@ namespace jaindb
                                             {
                                                 try
                                                 {
-                                                    string sDir = FilePath + "\\_Key" + "\\" + oSub.Name.ToLower().TrimStart('#');
+                                                    string sDir = Path.Combine(FilePath , "_Key" , oSub.Name.ToLower().TrimStart('#'));
 
                                                     //Remove invalid Characters in Path
                                                     foreach (var sChar in Path.GetInvalidPathChars())
@@ -228,7 +228,7 @@ namespace jaindb
                                                     if (!Directory.Exists(sDir))
                                                         Directory.CreateDirectory(sDir);
 
-                                                    File.WriteAllText(sDir + "\\" + (string)oSub.Value + ".json", sID);
+                                                    File.WriteAllText(Path.Combine(sDir, (string)oSub.Value + ".json"), sID);
                                                 }
                                                 catch { }
                                             }
@@ -239,23 +239,23 @@ namespace jaindb
 
                             lock (locker) //only one write operation
                             {
-                                File.WriteAllText(FilePath + "\\" + Collection + "\\" + Hash + ".json", Data);
+                                File.WriteAllText(Path.Combine(FilePath , Collection , Hash + ".json"), Data);
                             }
                             break;
 
                         case "_chain":
                             lock (locker) //only one write operation
                             {
-                                File.WriteAllText(FilePath + "\\" + Collection + "\\" + Hash + ".json", Data);
+                                File.WriteAllText(Path.Combine(FilePath , Collection , Hash + ".json"), Data);
                             }
                             break;
 
                         default:
-                            if (!File.Exists(FilePath + "\\" + Collection + "\\" + Hash + ".json")) //We do not have to create the same hash file twice...
+                            if (!File.Exists(Path.Combine(FilePath , Collection , Hash + ".json"))) //We do not have to create the same hash file twice...
                             {
                                 lock (locker) //only one write operation
                                 {
-                                    File.WriteAllText(FilePath + "\\" + Collection + "\\" + Hash + ".json", Data);
+                                    File.WriteAllText(Path.Combine(FilePath, Collection, Hash + ".json"), Data);
                                 }
                             }
                             break;
@@ -267,14 +267,14 @@ namespace jaindb
             }
             catch (Exception ex)
             {
-                if (!Directory.Exists(FilePath + "\\" + Collection))
-                    Directory.CreateDirectory(FilePath + "\\" + Collection);
+                if (!Directory.Exists(Path.Combine(FilePath, Collection)))
+                    Directory.CreateDirectory(Path.Combine(FilePath, Collection));
 
-                if (!File.Exists(FilePath + "\\" + Collection + "\\" + Hash + ".json")) //We do not have to create the same hash file twice...
+                if (!File.Exists(Path.Combine(FilePath, Collection, Hash + ".json"))) //We do not have to create the same hash file twice...
                 {
                     lock (locker) //only one write operation
                     {
-                        File.WriteAllText(FilePath + "\\" + Collection + "\\" + Hash + ".json", Data);
+                        File.WriteAllText(Path.Combine(FilePath, Collection, Hash + ".json"), Data);
                     }
                 }
 
@@ -326,7 +326,7 @@ namespace jaindb
                             Hash = Hash.Replace(sChar.ToString(), "");
                         }
 
-                        sResult = File.ReadAllText(FilePath + "\\" + Coll2 + "\\" + Hash + ".json");
+                        sResult = File.ReadAllText(Path.Combine(FilePath , Coll2 , Hash + ".json"));
 
 #if DEBUG
                         //Check if hashes are valid...
@@ -678,6 +678,10 @@ namespace jaindb
                             oInv.Add(new JProperty("_date", oRaw["_date"]));
                         if (oInv["_hash"] == null)
                             oInv.Add(new JProperty("_hash", oRaw["_hash"]));
+
+                        //Set index and date from blockchain as the index and hash can be from a previous block
+                        oInv["_index"] = oRaw["_index"];
+                        oInv["_date"] = oRaw["_inventoryDate"];
                     }
                     catch { }
 
@@ -792,7 +796,7 @@ namespace jaindb
                     if (Index == -1)
                     {
                         //Cache Full
-                        if (!File.Exists(FilePath + "\\" + "_full" + "\\" + DeviceID + ".json"))
+                        if (!File.Exists(Path.Combine(FilePath , "_full" , DeviceID + ".json")))
                         {
                             WriteHashAsync(DeviceID, oInv.ToString(), "_full").ConfigureAwait(false);
                         }
