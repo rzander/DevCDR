@@ -411,7 +411,7 @@ namespace DevCDRServer.Controllers
         [Authorize]
         [Route("diff")]
         [HttpGet]
-        public ActionResult Diff(string id, int l =-1, int r = -1)
+        public ActionResult Diff(string id, int l = -1, int r = -1)
         {
             ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             string spath = Path.Combine(_env.WebRootPath, "jaindb");
@@ -419,17 +419,16 @@ namespace DevCDRServer.Controllers
 
             if (!string.IsNullOrEmpty(id))
             {
-
-                var oL = jDB.GetFull(id, l);
-                if (r == -1)
+                var oR = jDB.GetFull(id, r);
+                if (l == -1)
                 {
                     try
                     {
-                        r = (int)oL["_index"] - 1;
+                        l = (int)oR["_index"] - 1;
                     }
                     catch { }
                 }
-                var oR = jDB.GetFull(id, r);
+                var oL = jDB.GetFull(id, l);
 
                 //remove all @ attributes
                 foreach (var oKey in oL.Descendants().Where(t => t.Type == JTokenType.Property && ((JProperty)t).Name.StartsWith("@")).ToList())
