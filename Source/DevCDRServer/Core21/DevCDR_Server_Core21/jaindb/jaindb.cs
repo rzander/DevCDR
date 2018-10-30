@@ -335,7 +335,7 @@ namespace jaindb
 
 #if DEBUG
                         //Check if hashes are valid...
-                        if (Collection.ToLower() != "_full" && Collection.ToLower() != "_chain" && Collection.ToLower() != "_assets")
+                        if (Collection != "_full" && Collection != "_chain" && Collection != "_assets")
                         {
                             var jData = JObject.Parse(sResult);
                             /*if (jData["#id"] != null)
@@ -378,7 +378,7 @@ namespace jaindb
         public static Blockchain GetChain(string DeviceID)
         {
             Blockchain oChain;
-            string sData = ReadHash(DeviceID, "_Chain");
+            string sData = ReadHash(DeviceID, "_chain");
             if (string.IsNullOrEmpty(sData))
             {
                 oChain = new Blockchain("", "root", 0);
@@ -695,12 +695,19 @@ namespace jaindb
                         oInv = JObject.Parse(sData);
                         try
                         {
+
+
                             if (oInv["_index"] == null)
                                 oInv.Add(new JProperty("_index", oRaw["_index"]));
                             if (oInv["_date"] == null)
                                 oInv.Add(new JProperty("_date", oRaw["_date"]));
+
                             if (oInv["_hash"] == null)
                                 oInv.Add(new JProperty("_hash", oRaw["_hash"]));
+
+                            //Set index and date from blockchain as the index and hash can be from a previous block
+                            oInv["_index"] = oRaw["_index"];
+                            oInv["_date"] = oRaw["_inventoryDate"];
                         }
                         catch { }
 
