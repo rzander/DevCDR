@@ -1,140 +1,91 @@
 {
-    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "siteName": {
-            "type": "string"
-        },
-        "appServicePlanName": {
-            "type": "string"
-        },
-        "hostingPlanName": {
-            "type": "string"
-        },
-        "siteLocation": {
-            "type": "string",
-            "defaultValue": "West Europe"
-        },
-        "sku": {
-            "type": "string",
-            "allowedValues": [
-                "Free",
-                "Shared",
-                "Basic",
-                "Standard"
-            ],
-            "defaultValue": "Free"
-        },
-        "workerSize": {
-            "type": "string",
-            "allowedValues": [
-                "0",
-                "1",
-                "2"
-            ],
-            "defaultValue": "0"
-        },
-        "repoUrl": {
-            "type": "string"
-        },
-        "branch": {
-            "type": "string"
-        },
-        "isManualIntegration": {
-            "type": "bool",
-            "defaultValue": true
-        },
-        "isMercurial": {
-            "type": "bool",
-            "defaultValue": false
-        }
+      "siteName": {
+        "type": "string"
+      },
+      "hostingPlanName": {
+        "type": "string"
+      },
+      "siteLocation": {
+        "type": "string",
+        "defaultValue":"East US"
+      },
+      "sku": {
+        "type": "string",
+        "allowedValues": [
+          "Free",
+          "Shared",
+          "Basic",
+          "Standard"
+        ],
+        "defaultValue": "Free"
+      },
+      "workerSize": {
+        "type": "string",
+        "allowedValues": [
+          "0",
+          "1",
+          "2"
+        ],
+        "defaultValue": "0"
+      },
+      "repoUrl": {
+        "type": "string"
+      },
+      "branch": {
+        "type": "string"
+      },
+      "isMercurial":{
+        "type": "bool",
+        "defaultValue":false
+      }
     },
     "resources": [
-        {
-            "apiVersion": "2015-08-01",
-            "name": "[parameters('appServicePlanName')]",
-            "type": "Microsoft.Web/serverfarms",
-            "location": "[parameters('siteLocation')]",
-            "name": "[parameters('hostingPlanName')]",
-            "sku": "[parameters('sku')]",
-            "workerSize": "[parameters('workerSize')]",
-            "numberOfWorkers": 1
+      {
+        "apiVersion": "2015-04-01",
+        "name": "[parameters('hostingPlanName')]",
+        "type": "Microsoft.Web/serverfarms",
+        "location": "[parameters('siteLocation')]",
+        "properties": {
+          "name": "[parameters('hostingPlanName')]",
+          "sku": "[parameters('sku')]",
+          "workerSize": "[parameters('workerSize')]",
+          "numberOfWorkers": 1
+        }
+      },
+      {
+        "apiVersion": "2015-04-01",
+        "name": "[parameters('siteName')]",
+        "type": "Microsoft.Web/sites",
+        "location": "[parameters('siteLocation')]",
+        "tags": {
+          "[concat('hidden-related:', resourceGroup().id, '/providers/Microsoft.Web/serverfarms/', parameters('hostingPlanName'))]": "Resource"
         },
-        {
-            "apiVersion": "2015-08-01",
-            "name": "[parameters('siteName')]",
-            "type": "Microsoft.Web/sites",
-            "location": "[parameters('siteLocation')]",
-            "tags": {
-                "[concat('hidden-related:', resourceGroup().id, '/providers/Microsoft.Web/serverfarms/', parameters('hostingPlanName'))]": "Resource"
-            },
+        "dependsOn": [
+          "[resourceId('Microsoft.Web/serverfarms', parameters('hostingPlanName'))]"
+        ],
+        "properties": {
+          "name": "[parameters('siteName')]",
+          "serverFarmId": "[parameters('hostingPlanName')]"
+        },
+        "resources": [
+          {
+            "apiVersion": "2015-04-01",
+            "name": "web",
+            "type": "sourcecontrols",
             "dependsOn": [
-                "[resourceId('Microsoft.Web/serverfarms', parameters('hostingPlanName'))]"
+              "[resourceId('Microsoft.Web/Sites', parameters('siteName'))]"
             ],
             "properties": {
-                "name": "[parameters('siteName')]",
-                "serverFarmId": "[parameters('hostingPlanName')]"
-            },
-            "resources": [
-                {
-                    "apiVersion": "2015-04-01",
-                    "name": "web",
-                    "type": "sourcecontrols",
-                    "dependsOn": [
-                        "[resourceId('Microsoft.Web/Sites', parameters('siteName'))]"
-                    ],
-                    "properties": {
-                        "RepoUrl": "[parameters('repoUrl')]",
-                        "branch": "[parameters('branch')]",
-                        "IsManualIntegration": "[parameters('isManualIntegration')]",
-                        "IsMercurial": "[parameters('isMercurial')]"
-                    }
-                },
-                {
-                    "apiVersion": "2015-08-01",
-                    "name": "web",
-                    "type": "config",
-                    "dependsOn": [
-                        "[resourceId('Microsoft.Web/Sites', parameters('siteName'))]"
-                    ],
-                    "properties": {
-                        "phpVersion": "",
-                        "netFrameworkVersion": "v4.0",
-                        "use32BitWorkerProcess": false, /* 64-bit platform */
-                        "webSocketsEnabled": true,
-                        "alwaysOn": true,
-                        "remoteDebuggingEnabled": false,
-                        "remoteDebuggingVersion": "VS2013",
-                        "virtualApplications": [
-                            {
-                                "virtualPath": "/",
-                                "physicalPath": "site\\wwwroot"
-                            },
-                            {
-                                "virtualPath": "/MyApp",
-                                "physicalPath": "site\\wwwroot"
-                            }
-                        ],
-                        "defaultDocuments": [
-                            "index.html",
-                            "hostingstart.html"
-                        ]
-                    }
-                },
-                {
-                    "apiVersion": "2015-08-01",
-                    "name": "appsettings",
-                    "type": "config",
-                    "dependsOn": [
-                        "[resourceId('Microsoft.Web/Sites', parameters('siteName'))]"
-                    ],
-                    "properties": {
-                        "REPORTUSER": "DEMO",
-                        "REPORTPASSWORD": "password",
-                        "ASPNETCORE_ENVIRONMENT": "Development"
-                    }
-                }
-            ]
-        }
+              "RepoUrl": "[parameters('repoUrl')]",
+              "branch": "[parameters('branch')]",
+              "IsManualIntegration": true,
+              "IsMercurial": "[parameters('isMercurial')]"
+            }
+          }
+        ]
+      }
     ]
-}
+  }
