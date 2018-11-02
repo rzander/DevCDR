@@ -76,6 +76,7 @@
             "comments": "Generalized from resource: '/subscriptions/86742d5c-25c6-4948-b87b-0a8fa785ea82/resourceGroups/devcdrcore/providers/Microsoft.Web/sites/devcdrcore/config/web'.",
             "type": "Microsoft.Web/sites/config",
             "name": "appsettings",
+            "location": "[parameters('location')]",
             "apiVersion": "2016-08-01",
             "properties": {
                 "numberOfWorkers": 1,
@@ -180,7 +181,7 @@
                 "reservedInstanceCount": 0
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', parameters('sites_devcdrcore_name'))]"
+                "[resourceId('Microsoft.Web/sites', variables('appServicePlanName'))]"
             ]
         }
     ]
