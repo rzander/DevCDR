@@ -701,7 +701,6 @@ namespace jaindb
                                 oInv.Add(new JProperty("_index", oRaw["_index"]));
                             if (oInv["_date"] == null)
                                 oInv.Add(new JProperty("_date", oRaw["_date"]));
-
                             if (oInv["_hash"] == null)
                                 oInv.Add(new JProperty("_hash", oRaw["_hash"]));
 

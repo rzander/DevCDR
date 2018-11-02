@@ -1,20 +1,19 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Reflection;
-using Microsoft.AspNetCore.Mvc;
-using DevCDR;
 using System.IO;
-using System.Text;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Linq;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http.Extensions;
+using System.Reflection;
+using System.Text;
 
 namespace DevCDRServer.Controllers
 {
@@ -41,8 +40,8 @@ namespace DevCDRServer.Controllers
             ViewBag.Route = "/chat";
 
             int itotalDeviceCount = -1;
-            
-           itotalDeviceCount = new JainDBController(_env, _cache).totalDeviceCount(Path.Combine(_env.WebRootPath, "jaindb\\_Chain"));
+
+            itotalDeviceCount = new JainDBController(_env, _cache).totalDeviceCount(Path.Combine(_env.WebRootPath, "jaindb\\_Chain"));
 
             int iDefault = ClientCount("Default");
             int iOnlineCount = iDefault;
@@ -505,7 +504,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
-                    _hubContext.Clients.Client(sID).SendAsync("restartservice","HUB");
+                    _hubContext.Clients.Client(sID).SendAsync("restartservice", "HUB");
                 }
             }
         }
@@ -531,7 +530,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
-                    _hubContext.Clients.Client(sID).SendAsync("rzinstall" , Args);
+                    _hubContext.Clients.Client(sID).SendAsync("rzinstall", Args);
                 }
             }
         }
@@ -577,7 +576,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
-                    _hubContext.Clients.Client(sID).SendAsync("rzupdate" ,Args);
+                    _hubContext.Clients.Client(sID).SendAsync("rzupdate", Args);
                 }
             }
         }
@@ -827,12 +826,12 @@ namespace DevCDRServer.Controllers
             string sFile = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.file").Value<string>()); //get command
             string sInstance = oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
             string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
-            
+
             string sFilePath = Path.Combine(_env.WebRootPath, sFile);
 
             if (System.IO.File.Exists(sFilePath))
             {
-                if (!sFilePath.StartsWith(Path.Combine(_env.WebRootPath, "PSScripts/")))
+                if (!sFilePath.StartsWith(Path.Combine(_env.WebRootPath, "PSScripts")))
                     return new ContentResult();
 
                 string sCommand = System.IO.File.ReadAllText(sFilePath);
