@@ -96,7 +96,7 @@
                         "netFrameworkVersion": "v4.0",
                         "use32BitWorkerProcess": true,
                         "webSocketsEnabled": true,
-                        "alwaysOn": true,
+                        "alwaysOn": false,
                         "remoteDebuggingEnabled": false,
                         "remoteDebuggingVersion": "VS2013",
                         "virtualApplications": [
