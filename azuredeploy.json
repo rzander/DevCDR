@@ -67,7 +67,35 @@
             ],
             "properties": {
                 "name": "[parameters('siteName')]",
-                "serverFarmId": "[parameters('hostingPlanName')]"
+                "serverFarmId": "[parameters('hostingPlanName')]",
+                "siteConfig": {
+                    "appSettings": [
+                        {
+                            "name": "REPORTUSER", 
+                            "value": "DEMO"
+                        },
+                        {
+                            "name": "REPORTPASSWORD", 
+                            "value": "password" 
+                        },
+                        {
+                            "name": "ASPNETCORE_ENVIRONMENT", 
+                            "value": "Development" 
+                        },
+                        {
+                            "name": "AzureAD__TenantId", 
+                            "value": "[subscription().tenantId]" 
+                        },
+                        {
+                            "name": "AzureAD__Domain", 
+                            "value": "rzander.onmicrosoft.com" 
+                        },
+                        {
+                            "name": "AzureAD__ClientId", 
+                            "value": "ba8fd992-f3ed-4a38-b37f-0b6149bce880" 
+                        }
+                    ]
+                }
             },
             "resources": [
                 {
@@ -98,37 +126,13 @@
                         "webSocketsEnabled": true,
                         "alwaysOn": false,
                         "remoteDebuggingEnabled": false,
-                        "remoteDebuggingVersion": "VS2013",
+                        "remoteDebuggingVersion": "VS2017",
                         "virtualApplications": [
                             {
                                 "virtualPath": "/",
                                 "physicalPath": "site\\wwwroot"
-                            },
-                            {
-                                "virtualPath": "/MyApp",
-                                "physicalPath": "site\\wwwroot"
                             }
-                        ],
-                        "defaultDocuments": [
-                            "index.html",
-                            "hostingstart.html"
                         ]
-                    }
-                },
-                {
-                    "apiVersion": "2015-08-01",
-                    "name": "appsettings",
-                    "type": "config",
-                    "dependsOn": [
-                        "[resourceId('Microsoft.Web/Sites', parameters('siteName'))]"
-                    ],
-                    "properties": {
-                        "REPORTUSER": "DEMO",
-                        "REPORTPASSWORD": "password",
-                        "ASPNETCORE_ENVIRONMENT": "Development",
-                        "AzureAD__TenantId": "[subscription().tenantId]",
-                        "AzureAD__Domain": "",
-                        "AzureAD__ClientId": ""
                     }
                 }
             ]
