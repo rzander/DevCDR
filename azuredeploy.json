@@ -57,7 +57,6 @@
             "location": "[parameters('siteLocation')]",
             "name": "[parameters('hostingPlanName')]",
             "sku": "[parameters('sku')]",
-            "workerSize": "0",
             "numberOfWorkers": 1
         },
         {
