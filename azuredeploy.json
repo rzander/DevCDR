@@ -18,12 +18,11 @@
         "sku": {
             "type": "string",
             "allowedValues": [
-                "Free",
-                "Shared",
-                "Basic",
-                "Standard"
+                "F1",
+                "B1","B2","B3",
+                "S1","S2","S3"
             ],
-            "defaultValue": "Free"
+            "defaultValue": "F1"
         },
         "workerSize": {
             "type": "string",
