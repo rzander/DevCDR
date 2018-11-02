@@ -10,6 +10,8 @@ As soon as the devices have internet connection (also behind a Proxy), they will
     <img src="http://azuredeploy.net/deploybutton.png"/>
 </a>
 
+> Installation Manual on [Wiki](https://github.com/rzander/DevCDR/wiki/Deploy-to-Azure)
+
 ## Features
 * interactive Web frontend 
 * run PowerShell activities and custom commands in realtime
