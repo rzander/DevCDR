@@ -56,8 +56,7 @@
             "type": "Microsoft.Web/serverfarms",
             "location": "[parameters('siteLocation')]",
             "name": "[parameters('hostingPlanName')]",
-            "sku": "[parameters('sku')]",
-            "numberOfWorkers": 1
+            "sku": "[parameters('sku')]"
         },
         {
             "apiVersion": "2015-08-01",
