@@ -19,19 +19,14 @@
             "type": "string",
             "allowedValues": [
                 "F1",
-                "B1","B2","B3",
-                "S1","S2","S3"
+                "B1",
+                "B2",
+                "B3",
+                "S1",
+                "S2",
+                "S3"
             ],
             "defaultValue": "F1"
-        },
-        "workerSize": {
-            "type": "string",
-            "allowedValues": [
-                "0",
-                "1",
-                "2"
-            ],
-            "defaultValue": "0"
         },
         "repoUrl": {
             "type": "string"
@@ -54,8 +49,10 @@
             "name": "[parameters('appServicePlanName')]",
             "type": "Microsoft.Web/serverfarms",
             "location": "[parameters('siteLocation')]",
-            "name": "[parameters('hostingPlanName')]",
-            "sku": "[parameters('sku')]"
+            "sku": {
+                "name": "[parameters('sku')]"
+            },
+            "properties": {}
         },
         {
             "apiVersion": "2015-08-01",
