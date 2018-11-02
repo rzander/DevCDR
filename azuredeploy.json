@@ -94,7 +94,7 @@
                     "properties": {
                         "phpVersion": "",
                         "netFrameworkVersion": "v4.0",
-                        "use32BitWorkerProcess": false, /* 64-bit platform */
+                        "use32BitWorkerProcess": true,
                         "webSocketsEnabled": true,
                         "alwaysOn": true,
                         "remoteDebuggingEnabled": false,
@@ -125,7 +125,10 @@
                     "properties": {
                         "REPORTUSER": "DEMO",
                         "REPORTPASSWORD": "password",
-                        "ASPNETCORE_ENVIRONMENT": "Development"
+                        "ASPNETCORE_ENVIRONMENT": "Development",
+                        "AzureAD__TenantId": "[subscription().tenantId]",
+                        "AzureAD__Domain": "",
+                        "AzureAD__ClientId": ""
                     }
                 }
             ]
