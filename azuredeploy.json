@@ -93,6 +93,14 @@
                         {
                             "name": "AzureAD__ClientId", 
                             "value": "ba8fd992-f3ed-4a38-b37f-0b6149bce880" 
+                        },
+                        {
+                            "name": "JAINDBURL", 
+                            "value": "" 
+                        },
+                        {
+                            "name": "INSTANCETITLE", 
+                            "value": "Default Environment" 
                         }
                     ]
                 }

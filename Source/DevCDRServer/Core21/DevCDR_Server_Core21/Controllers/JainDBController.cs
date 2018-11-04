@@ -1,19 +1,22 @@
 ﻿using jaindb;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Reflection;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http.Extensions;
 using System.Text;
-using System.Diagnostics;
 
 namespace DevCDRServer.Controllers
 {
@@ -55,8 +58,26 @@ namespace DevCDRServer.Controllers
             using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
                 sParams = reader.ReadToEnd();
 
-            //param = Request.Path.Substring(Request.Path.LastIndexOf('/') + 1);
-            return jDB.UploadFull(sParams, param, blockType);
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
+            {
+                return jDB.UploadFull(sParams, param, blockType);
+            }
+            else
+            {
+                using (HttpClient oClient = new HttpClient())
+                {
+                    oClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    HttpContent oCont = new StringContent(sParams);
+                    var response = oClient.PostAsync((Environment.GetEnvironmentVariable("JainDBURL") + "/upload/" + param), oCont );
+                    response.Wait(15000);
+                    if (response.IsCompleted)
+                    {
+                        return response.Result.Content.ReadAsStringAsync().Result;
+                    }
+                }
+            }
+
+            return "";
         }
 
         [AllowAnonymous]
@@ -72,9 +93,9 @@ namespace DevCDRServer.Controllers
             {
                 Request.ToString();
                 string sLocalURL = Request.GetEncodedUrl().Replace("/getps", "");
-                if (System.IO.File.Exists(Path.Combine(spath , "inventory.ps1")))
+                if (System.IO.File.Exists(Path.Combine(spath, "inventory.ps1")))
                 {
-                    
+
                     string sFile = System.IO.File.ReadAllText(spath + "/inventory.ps1");
                     sResult = sFile.Replace("%LocalURL%", sLocalURL).Replace(":%WebPort%", "");
 
@@ -111,15 +132,47 @@ namespace DevCDRServer.Controllers
             var query = System.Web.HttpUtility.ParseQueryString(sQuery);
             string sKey = query["id"];
 
-            if (string.IsNullOrEmpty(sKey))
-                sKey = jDB.LookupID(query.Keys[0], query.GetValues(0)[0]);
-            //int index = -1;
-            if (!int.TryParse(query["index"], out int index))
-                index = -1;
-            if (!string.IsNullOrEmpty(sKey))
-                return jDB.GetFull(sKey, index, blockType);
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
+            {
+                if (string.IsNullOrEmpty(sKey))
+                    sKey = jDB.LookupID(query.Keys[0], query.GetValues(0)[0]);
+                //int index = -1;
+                if (!int.TryParse(query["index"], out int index))
+                    index = -1;
+                if (!string.IsNullOrEmpty(sKey))
+                    return jDB.GetFull(sKey, index, blockType);
+                else
+                    return null;
+            }
             else
-                return null;
+            {
+                if (!string.IsNullOrEmpty(sKey))
+                {
+                    using (HttpClient oClient = new HttpClient())
+                    {
+                        var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + sKey);
+                        response.Wait(15000);
+                        if (response.IsCompleted)
+                        {
+                            return JObject.Parse(response.Result);
+                        }
+                    }
+                }
+                else
+                {
+                    using (HttpClient oClient = new HttpClient())
+                    {
+                        var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?" + query.Keys[0] + "=" + query.GetValues(0)[0]);
+                        response.Wait(15000);
+                        if (response.IsCompleted)
+                        {
+                            return JObject.Parse(response.Result);
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
 
         [HttpGet]
@@ -137,11 +190,28 @@ namespace DevCDRServer.Controllers
             {
                 //string sUri = Microsoft.AspNetCore.Http.Extensions.UriHelper.GetDisplayUrl(Request);
                 var query = System.Web.HttpUtility.ParseQueryString(sQuery);
-                string qpath = (query[null] ?? "").Replace(',',';');
-                string qsel = (query["$select"] ?? "").Replace(',', ';');
-                string qexc = (query["$exclude"] ?? "").Replace(',', ';');
-                string qwhe = (query["$where"] ?? "").Replace(',', ';');
-                return await jDB.QueryAsync(qpath, qsel, qexc, qwhe);
+
+                if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
+                {
+                    string qpath = (query[null] ?? "").Replace(',', ';');
+                    string qsel = (query["$select"] ?? "").Replace(',', ';');
+                    string qexc = (query["$exclude"] ?? "").Replace(',', ';');
+                    string qwhe = (query["$where"] ?? "").Replace(',', ';');
+                    return await jDB.QueryAsync(qpath, qsel, qexc, qwhe);
+                }
+                else
+                {
+                    using (HttpClient oClient = new HttpClient())
+                    {
+                        var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/query?" + sQuery );
+                        response.Wait(15000);
+                        if (response.IsCompleted)
+                        {
+                            return JArray.Parse(response.Result);
+                        }
+                    }
+                }
+                    
             }
             return null;
         }
@@ -158,7 +228,7 @@ namespace DevCDRServer.Controllers
                 }
 
                 if (string.IsNullOrEmpty(sPath))
-                    sPath = Path.Combine(_env.WebRootPath, "jaindb\\_Chain");
+                    sPath = Path.Combine(_env.WebRootPath, "jaindb", "_chain");
 
                 if (Directory.Exists(sPath))
                     iCount = Directory.GetFiles(sPath).Count(); //count Blockchain Files
@@ -180,16 +250,35 @@ namespace DevCDRServer.Controllers
         public ActionResult Inv(string id, string name = "", int index = -1, string blockType = "INV")
         {
             ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
+
+            JObject oInv = new JObject();
             string spath = Path.Combine(_env.WebRootPath, "jaindb");
-            jaindb.jDB.FilePath = spath;
 
-            if (!string.IsNullOrEmpty(name))
-                id = jDB.LookupID("name", name);
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
+            {
+                jaindb.jDB.FilePath = spath;
 
-            if (string.IsNullOrEmpty(id))
-                return Redirect("../DevCdr/Dashboard");
+                if (!string.IsNullOrEmpty(name))
+                    id = jDB.LookupID("name", name);
 
-            var oInv = jDB.GetFull(id, index, blockType);
+                if (string.IsNullOrEmpty(id))
+                    return Redirect("../DevCdr/Dashboard");
+
+                oInv = jDB.GetFull(id, index, blockType);
+
+            }
+            else
+            {
+                using (HttpClient oClient = new HttpClient())
+                {
+                    var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + id);
+                    response.Wait(15000);
+                    if (response.IsCompleted)
+                    {
+                        oInv = JObject.Parse(response.Result);
+                    }
+                }
+            }
 
             if (oInv != new JObject())
             {
@@ -202,10 +291,10 @@ namespace DevCDRServer.Controllers
                     {
                         TimeSpan tDiff = DateTime.Now.ToUniversalTime() - (DateTime)oInv["_date"];
                         if (tDiff.TotalDays >= 2)
-                            ViewBag.LastInv = ((int)tDiff.TotalDays).ToString() + " days"; 
+                            ViewBag.LastInv = ((int)tDiff.TotalDays).ToString() + " days";
                         else
                         {
-                            if((tDiff.TotalHours >= 1))
+                            if ((tDiff.TotalHours >= 1))
                                 ViewBag.LastInv = ((int)tDiff.TotalHours).ToString() + " hours";
                             else
                                 ViewBag.LastInv = ((int)tDiff.TotalMinutes).ToString() + " minutes";
@@ -262,7 +351,7 @@ namespace DevCDRServer.Controllers
                     List<string> lUnknSW = new List<string>();
 
                     //Check if device has all required SW installed
-#region CoreApplications 
+                    #region CoreApplications 
                     ViewBag.CoreStyle = "alert-danger";
                     try
                     {
@@ -277,7 +366,7 @@ namespace DevCDRServer.Controllers
                                 {
                                     lCoreApps.Add("<p class=\"col-xs-offset-1 alert-success\">" + oRes.First()["DisplayName"].ToString() + "</p>");
 
-                                    foreach(var oItem in oRes.ToList())
+                                    foreach (var oItem in oRes.ToList())
                                     {
                                         oItem.Remove();
                                     }
@@ -296,15 +385,15 @@ namespace DevCDRServer.Controllers
                         }
                     }
                     catch { }
-#endregion
+                    #endregion
 
-#region IndividualSW 
+                    #region IndividualSW 
                     try
                     {
                         var aIndApps = System.IO.File.ReadAllLines(Path.Combine(spath, "IndSW_" + sInstance + ".txt")).ToList();
-                        foreach(var xSW in oInv["Software"])
+                        foreach (var xSW in oInv["Software"])
                         {
-                            if(aIndApps.Contains(xSW["DisplayName"].ToString().TrimEnd()))
+                            if (aIndApps.Contains(xSW["DisplayName"].ToString().TrimEnd()))
                             {
                                 lIndSW.Add("<p class=\"col-xs-offset-1 alert-info\">" + xSW["DisplayName"].ToString().TrimEnd() + " ; " + (xSW["DisplayVersion"] ?? "").ToString().Trim() + "</p>");
                             }
@@ -317,10 +406,10 @@ namespace DevCDRServer.Controllers
                     catch { }
 
 
-#endregion
+                    #endregion
 
                     ViewBag.CoreSW = lCoreApps.Distinct().OrderBy(t => t);
-                    ViewBag.IndSW = lIndSW.Distinct().OrderBy(t=>t);
+                    ViewBag.IndSW = lIndSW.Distinct().OrderBy(t => t);
                     ViewBag.UnknSW = lUnknSW.Distinct().OrderBy(t => t);
                     ViewBag.IndSWc = lIndSW.Distinct().OrderBy(t => t).Count();
                     ViewBag.UnknSWc = lUnknSW.Distinct().OrderBy(t => t).Count();
@@ -416,10 +505,12 @@ namespace DevCDRServer.Controllers
             ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             string spath = Path.Combine(_env.WebRootPath, "jaindb");
             jaindb.jDB.FilePath = spath;
+            JObject oL = new JObject();
+            JObject oR = new JObject();
 
-            if (!string.IsNullOrEmpty(id))
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
             {
-                var oR = jDB.GetFull(id, r);
+                oR = jDB.GetFull(id, r);
                 if (l == -1)
                 {
                     try
@@ -428,8 +519,39 @@ namespace DevCDRServer.Controllers
                     }
                     catch { }
                 }
-                var oL = jDB.GetFull(id, l);
+                oL = jDB.GetFull(id, l);
+            }
+            else
+            {
+                using (HttpClient oClient = new HttpClient())
+                {
+                    var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + id + "&index=" + r.ToString());
+                    response.Wait(15000);
+                    if (response.IsCompleted)
+                    {
+                        oR = JObject.Parse(response.Result);
+                    }
 
+                    if (l == -1)
+                    {
+                        try
+                        {
+                            l = (int)oR["_index"] - 1;
+                        }
+                        catch { }
+                    }
+
+                    response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + id + "&index=" + l.ToString());
+                    response.Wait(15000);
+                    if (response.IsCompleted)
+                    {
+                        oL = JObject.Parse(response.Result);
+                    }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(id))
+            {
                 //remove all @ attributes
                 foreach (var oKey in oL.Descendants().Where(t => t.Type == JTokenType.Property && ((JProperty)t).Name.StartsWith("@")).ToList())
                 {
@@ -478,10 +600,26 @@ namespace DevCDRServer.Controllers
 
             if (!string.IsNullOrEmpty(id))
             {
+                if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
+                {
+                    var oL = jDB.GetFull(id, l, blockType);
+                    ViewBag.jsonL = oL.ToString(Formatting.None);
+                }
+                else
+                {
+                    using (HttpClient oClient = new HttpClient())
+                    {
+                        var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + id + "?index=" + l);
+                        response.Wait(15000);
+                        if (response.IsCompleted)
+                        {
+                            var oL = JObject.Parse(response.Result);
+                            ViewBag.jsonL = oL.ToString(Formatting.None);
+                        }
+                    }
+                }
 
-                var oL = jDB.GetFull(id, l, blockType);
 
-                ViewBag.jsonL = oL.ToString(Formatting.None);
             }
             return View("InvJson");
         }
@@ -503,6 +641,33 @@ namespace DevCDRServer.Controllers
                 return jDB.GetJHistory(sKey, blockType);
             else
                 return null;
+        }
+
+#if DEBUG
+        [AllowAnonymous]
+#endif
+        [Authorize]
+        [HttpGet]
+        [Route("export")]
+        public JObject Export()
+        {
+            string sPath = ((Microsoft.AspNetCore.Http.Internal.DefaultHttpRequest)this.Request).Path;
+            string sQuery = ((Microsoft.AspNetCore.Http.Internal.DefaultHttpRequest)this.Request).QueryString.ToString();
+            try
+            {
+                var query = QueryHelpers.ParseQuery(sQuery);
+                string sTarget = query.FirstOrDefault(t => t.Key.ToLower() == "url").Value;
+
+                string sRemove = query.FirstOrDefault(t => t.Key.ToLower() == "remove").Value;
+
+                if (!string.IsNullOrEmpty(sTarget))
+                    jDB.Export(sTarget, sRemove ?? "");
+                else
+                    jDB.Export("http://localhost:5000", sRemove ?? "");
+            }
+            catch { }
+
+            return null;
         }
     }
 
@@ -528,7 +693,7 @@ namespace DevCDRServer.Controllers
         public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
 #if DEBUG
-                return;
+            return;
 #endif
             var req = filterContext.HttpContext.Request;
             string auth = req.Headers["Authorization"];
