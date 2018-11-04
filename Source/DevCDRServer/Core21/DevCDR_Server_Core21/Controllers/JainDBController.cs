@@ -646,7 +646,7 @@ namespace DevCDRServer.Controllers
 #if DEBUG
         [AllowAnonymous]
 #endif
-        [Authorize]
+        [BasicAuthenticationAttribute()]
         [HttpGet]
         [Route("export")]
         public JObject Export()
@@ -667,7 +667,7 @@ namespace DevCDRServer.Controllers
             }
             catch { }
 
-            return null;
+            return new JObject();
         }
     }
 
