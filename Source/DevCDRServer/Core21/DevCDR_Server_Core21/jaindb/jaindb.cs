@@ -1402,16 +1402,24 @@ namespace jaindb
 
         }
 
-        public static JArray QueryAll(string paths, string select, string exclude)
+        public static JArray QueryAll(string paths, string select, string exclude, string where)
         {
             paths = System.Net.WebUtility.UrlDecode(paths);
             select = System.Net.WebUtility.UrlDecode(select);
             exclude = System.Net.WebUtility.UrlDecode(exclude);
+            where = System.Net.WebUtility.UrlDecode(where);
+
             List<string> lExclude = new List<string>();
+            List<string> lWhere = new List<string>();
 
             if (!string.IsNullOrEmpty(exclude))
             {
                 lExclude = exclude.Split(";").ToList();
+            }
+
+            if (!string.IsNullOrEmpty(where))
+            {
+                lWhere = where.Split(";").ToList();
             }
 
             if (string.IsNullOrEmpty(select))
@@ -1436,6 +1444,69 @@ namespace jaindb
                                 jObj = GetFull(jObj["#id"].Value<string>(), jObj["_index"].Value<int>());
                             }
                             catch { }
+                        }
+
+                        //Where filter..
+                        if (lWhere.Count > 0)
+                        {
+                            bool bWhere = false;
+                            foreach (string sWhere in lWhere)
+                            {
+                                try
+                                {
+                                    string sPath = sWhere;
+                                    string sVal = "";
+                                    string sOp = "";
+                                    if (sWhere.Contains("=="))
+                                    {
+                                        sVal = sWhere.Split("==")[1];
+                                        sOp = "eq";
+                                        sPath = sWhere.Split("==")[0];
+                                    }
+                                    if (sWhere.Contains("!="))
+                                    {
+                                        sVal = sWhere.Split("!=")[1];
+                                        sOp = "ne";
+                                        sPath = sWhere.Split("!=")[0];
+                                    }
+
+                                    var jRes = jObj.SelectToken(sPath);
+                                    if (jRes == null)
+                                    {
+                                        bWhere = true;
+                                        continue;
+                                    }
+                                    else
+                                    {
+                                        switch (sOp)
+                                        {
+                                            case "eq":
+                                                if (sVal != jRes.ToString())
+                                                {
+                                                    bWhere = true;
+                                                    continue;
+                                                }
+                                                break;
+                                            case "ne":
+                                                if (sVal == jRes.ToString())
+                                                {
+                                                    bWhere = true;
+                                                    continue;
+                                                }
+                                                break;
+                                            default:
+                                                bWhere = true;
+                                                continue;
+                                        }
+                                    }
+                                }
+                                catch { }
+                            }
+
+                            if (bWhere)
+                            {
+                                continue;
+                            }
                         }
 
                         JObject oRes = new JObject();

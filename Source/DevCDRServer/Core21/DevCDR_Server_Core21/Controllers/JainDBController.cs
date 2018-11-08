@@ -175,6 +175,9 @@ namespace DevCDRServer.Controllers
             return null;
         }
 
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [HttpGet]
         [BasicAuthenticationAttribute()]
         [Route("query")]
@@ -641,6 +644,46 @@ namespace DevCDRServer.Controllers
                 return jDB.GetJHistory(sKey, blockType);
             else
                 return null;
+        }
+
+
+#if DEBUG
+        [AllowAnonymous]
+#endif
+        [HttpGet]
+        [BasicAuthenticationAttribute()]
+        [Route("queryAll")]
+        public JArray QueryAll()
+        {
+            string sPath = Path.Combine(_env.WebRootPath, "jaindb");
+            jDB.FilePath = sPath;
+
+            string sQuery = this.Request.QueryString.ToString();
+
+            var query = System.Web.HttpUtility.ParseQueryString(sQuery);
+
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
+            {
+                string qpath = (query[null] ?? "").Replace(',', ';');
+                string qsel = (query["$select"] ?? "").Replace(',', ';');
+                string qexc = (query["$exclude"] ?? "").Replace(',', ';');
+                string qwhe = (query["$where"] ?? "").Replace(',', ';');
+                return jDB.QueryAll(qpath, qsel, qexc, qwhe);
+            }
+            else
+            {
+                using (HttpClient oClient = new HttpClient())
+                {
+                    var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/queryAll?" + sQuery);
+                    response.Wait();
+                    if (response.IsCompleted)
+                    {
+                        return JArray.Parse(response.Result);
+                    }
+                }
+            }
+
+            return null;
         }
 
 #if DEBUG
