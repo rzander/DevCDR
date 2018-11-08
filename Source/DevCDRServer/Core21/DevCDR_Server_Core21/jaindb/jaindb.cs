@@ -1610,14 +1610,13 @@ namespace jaindb
                                 foreach (var oRem in oRes.SelectTokens(sExclude, false).ToList())
                                 {
                                     oRem.Parent.Remove();
-                                    //oRes.Remove(oRem.Path);
                                 }
                             }
                         }
                     }
-                    GC.Collect();
                     return aRes;
                 }
+                GC.Collect();
             }
             catch { }
 
