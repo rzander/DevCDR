@@ -20,8 +20,8 @@ using System.Text;
 
 namespace DevCDRServer.Controllers
 {
+    [Authorize]
     [Route("jaindb")]
-    [Microsoft.AspNetCore.Authorization.Authorize]
     public class JainDBController : Controller
     {
         private readonly IHostingEnvironment _env;
@@ -150,6 +150,12 @@ namespace DevCDRServer.Controllers
                 {
                     using (HttpClient oClient = new HttpClient())
                     {
+                        oClient.DefaultRequestHeaders.Clear();
+                        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTUSER")))
+                        {
+                            var byteArray = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("REPORTUSER") + ":" + Environment.GetEnvironmentVariable("REPORTPASSWORD"));
+                            oClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+                        }
                         var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + sKey);
                         response.Wait(15000);
                         if (response.IsCompleted)
@@ -206,6 +212,12 @@ namespace DevCDRServer.Controllers
                 {
                     using (HttpClient oClient = new HttpClient())
                     {
+                        oClient.DefaultRequestHeaders.Clear();
+                        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTUSER")))
+                        {
+                            var byteArray = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("REPORTUSER") + ":" + Environment.GetEnvironmentVariable("REPORTPASSWORD"));
+                            oClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+                        }
                         var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/query?" + sQuery );
                         response.Wait(15000);
                         if (response.IsCompleted)
@@ -274,6 +286,14 @@ namespace DevCDRServer.Controllers
             {
                 using (HttpClient oClient = new HttpClient())
                 {
+                    oClient.DefaultRequestHeaders.Clear();
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTUSER")))
+                    {
+                        var byteArray = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("REPORTUSER") + ":" + Environment.GetEnvironmentVariable("REPORTPASSWORD"));
+                        oClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+                    }
+
+
                     var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + id);
                     response.Wait(15000);
                     if (response.IsCompleted)
@@ -528,6 +548,12 @@ namespace DevCDRServer.Controllers
             {
                 using (HttpClient oClient = new HttpClient())
                 {
+                    oClient.DefaultRequestHeaders.Clear();
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTUSER")))
+                    {
+                        var byteArray = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("REPORTUSER") + ":" + Environment.GetEnvironmentVariable("REPORTPASSWORD"));
+                        oClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+                    }
                     var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + id + "&index=" + r.ToString());
                     response.Wait(15000);
                     if (response.IsCompleted)
@@ -612,7 +638,13 @@ namespace DevCDRServer.Controllers
                 {
                     using (HttpClient oClient = new HttpClient())
                     {
-                        var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + id + "?index=" + l);
+                        oClient.DefaultRequestHeaders.Clear();
+                        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTUSER")))
+                        {
+                            var byteArray = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("REPORTUSER") + ":" + Environment.GetEnvironmentVariable("REPORTPASSWORD"));
+                            oClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+                        }
+                        var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + id + "&index=" + l);
                         response.Wait(15000);
                         if (response.IsCompleted)
                         {
@@ -638,12 +670,33 @@ namespace DevCDRServer.Controllers
             string sQuery = this.Request.QueryString.ToString();
 
             var query = System.Web.HttpUtility.ParseQueryString(sQuery);
-            string sKey = query["id"];
+            string sKey = query["id"] ?? id;
 
-            if (!string.IsNullOrEmpty(sKey))
-                return jDB.GetJHistory(sKey, blockType);
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
+            {
+                if (!string.IsNullOrEmpty(sKey))
+                    return jDB.GetJHistory(sKey, blockType);
+            }
             else
-                return null;
+            {
+                using (HttpClient oClient = new HttpClient())
+                {
+                    oClient.DefaultRequestHeaders.Clear();
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTUSER")))
+                    {
+                        var byteArray = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("REPORTUSER") + ":" + Environment.GetEnvironmentVariable("REPORTPASSWORD"));
+                        oClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+                    }
+                    var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/GetHistory?id=" + sKey);
+                    response.Wait(15000);
+                    if (response.IsCompleted)
+                    {
+                        return JArray.Parse(response.Result);
+                    }
+                }
+            }
+
+            return null;
         }
 
 
@@ -674,6 +727,12 @@ namespace DevCDRServer.Controllers
             {
                 using (HttpClient oClient = new HttpClient())
                 {
+                    oClient.DefaultRequestHeaders.Clear();
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTUSER")))
+                    {
+                        var byteArray = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("REPORTUSER") + ":" + Environment.GetEnvironmentVariable("REPORTPASSWORD"));
+                        oClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+                    }
                     var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/queryAll?" + sQuery);
                     response.Wait();
                     if (response.IsCompleted)
