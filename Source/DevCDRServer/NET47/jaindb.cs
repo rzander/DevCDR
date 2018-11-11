@@ -1834,7 +1834,7 @@ namespace jaindb
                 new block
                 {
                     index = 0,
-                    timestamp = DateTime.Now.Ticks,
+                    timestamp = DateTime.Now.ToUniversalTime().Ticks,
                     previous_hash = new byte[0], //block.GetHash("genesis"),
                     data = Data, //!! Data is not stored !!
                     blocktype = Blocktype
@@ -1859,11 +1859,15 @@ namespace jaindb
             {
                 foreach (block bCheck in Chain.OrderByDescending(t => t.timestamp))
                 {
+                    if (bCheck.blocktype == "root")
+                        continue;
+
                     long Previous_nonce = 0;
 
                     var oParent = Chain.FirstOrDefault(t => t.hash == bCheck.previous_hash);
                     if (oParent != null)
                         Previous_nonce = oParent.nonce;
+
 
                     if (!bCheck.validate(Previous_nonce))
                         return false;
@@ -1935,7 +1939,7 @@ namespace jaindb
 
                 //FreeBlock.index = oParent.index + 1;
                 FreeBlock.data = Data;
-                FreeBlock.timestamp = DateTime.Now.Ticks;
+                FreeBlock.timestamp = DateTime.Now.ToUniversalTime().Ticks;
                 FreeBlock.calc_hash();
 
                 return FreeBlock;
@@ -1953,8 +1957,8 @@ namespace jaindb
 
                     var oNew = new block()
                     {
-                        index = ParentBlock.index + 1, //iIndex,
-                        timestamp = DateTime.Now.Ticks,
+                        index = ParentBlock.index + 1,
+                        timestamp = DateTime.Now.ToUniversalTime().Ticks,
                         previous_hash = ParentBlock.hash,
                         blocktype = Blocktype,
                         nonce = Mine(ParentBlock.nonce, Blocktype, ParentBlock.hash)
@@ -2092,7 +2096,7 @@ namespace jaindb
                                 if (nonce >= 9223372036854775807) //check overflow
                                 {
                                     nonce = 0; //reset nonce
-                                    timestamp = DateTime.Now.Ticks; //reset timestamp
+                                    timestamp = DateTime.Now.ToUniversalTime().Ticks; //reset timestamp
                                 }
                                 nonce++;
 
