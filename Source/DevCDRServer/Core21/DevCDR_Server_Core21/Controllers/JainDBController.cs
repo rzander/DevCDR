@@ -50,6 +50,7 @@ namespace DevCDRServer.Controllers
         [Route("upload/{param}")]
         public string Upload(string param, string blockType = "INV")
         {
+
             _cache.Remove("totalDeviceCount");
 
             jDB.FilePath = Path.Combine(_env.WebRootPath, "jaindb");
@@ -69,7 +70,7 @@ namespace DevCDRServer.Controllers
                     oClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                     HttpContent oCont = new StringContent(sParams);
                     var response = oClient.PostAsync((Environment.GetEnvironmentVariable("JainDBURL") + "/upload/" + param), oCont );
-                    response.Wait(15000);
+                    response.Wait(180000);
                     if (response.IsCompleted)
                     {
                         return response.Result.Content.ReadAsStringAsync().Result;
@@ -157,7 +158,7 @@ namespace DevCDRServer.Controllers
                             oClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
                         }
                         var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + sKey);
-                        response.Wait(15000);
+                        response.Wait(180000);
                         if (response.IsCompleted)
                         {
                             return JObject.Parse(response.Result);
@@ -231,29 +232,55 @@ namespace DevCDRServer.Controllers
             return null;
         }
 
+        [HttpGet]
+        [BasicAuthenticationAttribute()]
+        [Route("totalDeviceCount")]
         public int totalDeviceCount(string sPath = "")
         {
-            int iCount = 0;
-            try
+            int iCount = -1;
+
+            //Check if MemoryCache is initialized
+            if (_cache == null)
             {
-                //Check in MemoryCache
-                if (_cache.TryGetValue("totalDeviceCount", out iCount))
-                {
-                    return iCount;
-                }
-
-                if (string.IsNullOrEmpty(sPath))
-                    sPath = Path.Combine(_env.WebRootPath, "jaindb", "_chain");
-
-                if (Directory.Exists(sPath))
-                    iCount = Directory.GetFiles(sPath).Count(); //count Blockchain Files
-
-                var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(60)); //cache ID for 60s
-                _cache.Set("totalDeviceCount", iCount, cacheEntryOptions);
+                _cache = new MemoryCache(new MemoryCacheOptions());
             }
-            catch { }
 
-            return iCount;
+            //Check in MemoryCache
+            if (_cache.TryGetValue("totalDeviceCount", out iCount))
+            {
+                return iCount;
+            }
+
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
+            {
+                return jDB.totalDeviceCount(sPath);
+            }
+            else
+            {
+                using (HttpClient oClient = new HttpClient())
+                {
+                    oClient.DefaultRequestHeaders.Clear();
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTUSER")))
+                    {
+                        var byteArray = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("REPORTUSER") + ":" + Environment.GetEnvironmentVariable("REPORTPASSWORD"));
+                        oClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+                    }
+                    var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/totalDeviceCount");
+                    response.Wait(15000);
+                    if (response.IsCompleted)
+                    {
+                        iCount = int.Parse(response.Result);
+
+                        var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(60)); //cache ID for 60s
+                        _cache.Set("totalDeviceCount", iCount, cacheEntryOptions);
+
+                        return iCount;
+
+                    }
+                }
+            }
+
+            return -1;
         }
 
 #if DEBUG
@@ -295,7 +322,7 @@ namespace DevCDRServer.Controllers
 
 
                     var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + id);
-                    response.Wait(15000);
+                    response.Wait(180000);
                     if (response.IsCompleted)
                     {
                         oInv = JObject.Parse(response.Result);
@@ -555,7 +582,7 @@ namespace DevCDRServer.Controllers
                         oClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
                     }
                     var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + id + "&index=" + r.ToString());
-                    response.Wait(15000);
+                    response.Wait(180000);
                     if (response.IsCompleted)
                     {
                         oR = JObject.Parse(response.Result);
@@ -645,7 +672,7 @@ namespace DevCDRServer.Controllers
                             oClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
                         }
                         var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + id + "&index=" + l);
-                        response.Wait(15000);
+                        response.Wait(180000);
                         if (response.IsCompleted)
                         {
                             var oL = JObject.Parse(response.Result);
@@ -688,7 +715,7 @@ namespace DevCDRServer.Controllers
                         oClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
                     }
                     var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/GetHistory?id=" + sKey);
-                    response.Wait(15000);
+                    response.Wait(180000);
                     if (response.IsCompleted)
                     {
                         return JArray.Parse(response.Result);

@@ -108,10 +108,12 @@ namespace jaindb
                 return;
             try
             {
+                if (!oRoot.HasValues)
+                    return;
+
                 //JSort(oStatic);
                 string sHash = CalculateHash(oRoot.ToString(Newtonsoft.Json.Formatting.None));
-                if (string.IsNullOrEmpty(sHash))
-                    return;
+
                 string sPath = oRoot.Path;
 
                 var oClass = oStatic.SelectToken(sPath);// as JObject;
@@ -120,18 +122,20 @@ namespace jaindb
                 {
                     if (oClass.Type == JTokenType.Object)
                     {
-                        ((JObject)oClass).Add("##hash", sHash);
-                        if (!UseCosmosDB)
-                            WriteHashAsync(sHash, oRoot.ToString(Formatting.None), Collection).ConfigureAwait(false);
-                        else
+                        if (oClass["##hash"] == null)
                         {
-                            //No need to save hashes when using CosmosDB
-                            //WriteHashAsync(sHash, oRoot.ToString(Formatting.None), Collection).Wait();
+                            ((JObject)oClass).Add("##hash", sHash);
+                            if (!UseCosmosDB)
+                                WriteHash(sHash, oRoot.ToString(Formatting.None), Collection);
+                            else
+                            {
+                                //No need to save hashes when using CosmosDB
+                                //WriteHashAsync(sHash, oRoot.ToString(Formatting.None), Collection).Wait();
+                            }
+                            oRoot = oClass;
                         }
-                        oRoot = oClass;
                     }
                 }
-
             }
             catch (Exception ex)
             {
@@ -148,15 +152,26 @@ namespace jaindb
 
             try
             {
-                //Cache result in Memory
-                if (!string.IsNullOrEmpty(Data))
-                {
-                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(60)); //cache hash for 60s
-                    _cache.Set("RH-" + Collection + "-" + Hash, Data, cacheEntryOptions);
-                }
-
                 if (string.IsNullOrEmpty(Data) || Data == "null")
                     return true;
+
+                //Check if MemoryCache is initialized
+                if (_cache == null)
+                {
+                    _cache = new MemoryCache(new MemoryCacheOptions());
+                }
+
+                string sResult = "";
+                //Try to get value from Memory
+                if (_cache.TryGetValue("RH-" + Collection + "-" + Hash, out sResult))
+                {
+                    if (sResult == Data)
+                        return true; //Do not write the hash again
+                }
+
+                //Cache Data
+                var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(30)); //cache hash for 30s
+                _cache.Set("RH-" + Collection + "-" + Hash, Data, cacheEntryOptions);
 
                 if (UseFileStore)
                 {
@@ -196,7 +211,7 @@ namespace jaindb
                                             {
                                                 if (oSubSub.ToString() != sID)
                                                 {
-                                                    string sDir = Path.Combine(FilePath, "_key" , oSub.Name.ToLower().TrimStart('#'));
+                                                    string sDir = Path.Combine(FilePath, "_key", oSub.Name.ToLower().TrimStart('#'));
 
                                                     //Remove invalid Characters in Path
                                                     foreach (var sChar in Path.GetInvalidPathChars())
@@ -207,7 +222,7 @@ namespace jaindb
                                                     if (!Directory.Exists(sDir))
                                                         Directory.CreateDirectory(sDir);
 
-                                                    File.WriteAllText(Path.Combine(sDir , oSubSub.ToString() + ".json"), sID);
+                                                    File.WriteAllText(Path.Combine(sDir, oSubSub.ToString() + ".json"), sID);
                                                 }
                                             }
                                             catch { }
@@ -222,7 +237,7 @@ namespace jaindb
                                             {
                                                 try
                                                 {
-                                                    string sDir = Path.Combine(FilePath, "_key" , oSub.Name.ToLower().TrimStart('#'));
+                                                    string sDir = Path.Combine(FilePath, "_key", oSub.Name.ToLower().TrimStart('#'));
 
                                                     //Remove invalid Characters in Path
                                                     foreach (var sChar in Path.GetInvalidPathChars())
@@ -233,7 +248,7 @@ namespace jaindb
                                                     if (!Directory.Exists(sDir))
                                                         Directory.CreateDirectory(sDir);
 
-                                                    File.WriteAllText(Path.Combine(sDir , (string)oSub.Value + ".json"), sID);
+                                                    File.WriteAllText(Path.Combine(sDir, (string)oSub.Value + ".json"), sID);
                                                 }
                                                 catch { }
                                             }
@@ -244,23 +259,23 @@ namespace jaindb
 
                             lock (locker) //only one write operation
                             {
-                                File.WriteAllText(Path.Combine(FilePath, Collection , Hash + ".json"), Data);
+                                File.WriteAllText(Path.Combine(FilePath, Collection, Hash + ".json"), Data);
                             }
                             break;
 
                         case "_chain":
                             lock (locker) //only one write operation
                             {
-                                File.WriteAllText(Path.Combine(FilePath, Collection , Hash + ".json"), Data);
+                                File.WriteAllText(Path.Combine(FilePath, Collection, Hash + ".json"), Data);
                             }
                             break;
 
                         default:
-                            if (!File.Exists(Path.Combine(FilePath, Collection , Hash + ".json"))) //We do not have to create the same hash file twice...
+                            if (!File.Exists(Path.Combine(FilePath, Collection, Hash + ".json"))) //We do not have to create the same hash file twice...
                             {
                                 lock (locker) //only one write operation
                                 {
-                                    File.WriteAllText(Path.Combine(FilePath, Collection , Hash + ".json"), Data);
+                                    File.WriteAllText(Path.Combine(FilePath, Collection, Hash + ".json"), Data);
                                 }
                             }
                             break;
@@ -276,11 +291,11 @@ namespace jaindb
                 if (!Directory.Exists(Path.Combine(FilePath, Collection)))
                     Directory.CreateDirectory(Path.Combine(FilePath, Collection));
 
-                if (!File.Exists(Path.Combine(FilePath, Collection , Hash + ".json"))) //We do not have to create the same hash file twice...
+                if (!File.Exists(Path.Combine(FilePath, Collection, Hash + ".json"))) //We do not have to create the same hash file twice...
                 {
                     lock (locker) //only one write operation
                     {
-                        File.WriteAllText(Path.Combine(FilePath, Collection , Hash + ".json"), Data);
+                        File.WriteAllText(Path.Combine(FilePath, Collection, Hash + ".json"), Data);
                     }
                 }
 
@@ -304,8 +319,9 @@ namespace jaindb
         }
         public static string ReadHash(string Hash, string Collection)
         {
-            Collection = Collection.ToLower(); //all lowercase
             string sResult = "";
+            Collection = Collection.ToLower();
+
             try
             {
                 //Check if MemoryCache is initialized
@@ -319,52 +335,49 @@ namespace jaindb
                 {
                     return sResult;
                 }
-                else
-                {
-                    if (UseFileStore)
-                    {
-                        string Coll2 = Collection;
-                        //Remove invalid Characters in Path anf File
-                        foreach (var sChar in Path.GetInvalidPathChars())
-                        {
-                            Coll2 = Coll2.Replace(sChar.ToString(), "");
-                            Hash = Hash.Replace(sChar.ToString(), "");
-                        }
 
-                        sResult = File.ReadAllText(Path.Combine(FilePath, Coll2 , Hash + ".json"));
+                if (UseFileStore)
+                {
+                    string Coll2 = Collection;
+                    //Remove invalid Characters in Path anf File
+                    foreach (var sChar in Path.GetInvalidPathChars())
+                    {
+                        Coll2 = Coll2.Replace(sChar.ToString(), "");
+                        Hash = Hash.Replace(sChar.ToString(), "");
+                    }
+
+                    sResult = File.ReadAllText(Path.Combine(FilePath, Coll2, Hash + ".json"));
 
 #if DEBUG
-                        //Check if hashes are valid...
-                        if (Collection != "_full" && Collection != "_chain" && Collection != "_assets")
-                        {
-                            var jData = JObject.Parse(sResult);
-                            /*if (jData["#id"] != null)
-                                jData.Remove("#id");*/
-                            if (jData["_date"] != null)
-                                jData.Remove("_date");
-                            if (jData["_index"] != null)
-                                jData.Remove("_index");
+                    //Check if hashes are valid...
+                    if (Collection != "_full" && Collection != "_chain" && Collection != "_assets")
+                    {
+                        var jData = JObject.Parse(sResult);
+                        /*if (jData["#id"] != null)
+                            jData.Remove("#id");*/
+                        if (jData["_date"] != null)
+                            jData.Remove("_date");
+                        if (jData["_index"] != null)
+                            jData.Remove("_index");
 
-                            string s1 = CalculateHash(jData.ToString(Formatting.None));
-                            if (Hash != s1)
-                            {
-                                s1.ToString();
-                                return "";
-                            }
+                        string s1 = CalculateHash(jData.ToString(Formatting.None));
+                        if (Hash != s1)
+                        {
+                            s1.ToString();
+                            return "";
                         }
+                    }
 #endif
 
 
-                        //Cache result in Memory
-                        if (!string.IsNullOrEmpty(sResult))
-                        {
-                            var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(60)); //cache hash for 60s
-                            _cache.Set("RH-" + Collection + "-" + Hash, sResult, cacheEntryOptions);
-                        }
-
-                        return sResult;
+                    //Cache result in Memory
+                    if (!string.IsNullOrEmpty(sResult))
+                    {
+                        var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(60)); //cache hash for 60s
+                        _cache.Set("RH-" + Collection + "-" + Hash, sResult, cacheEntryOptions);
                     }
 
+                    return sResult;
                 }
             }
             catch (Exception ex)
@@ -564,9 +577,9 @@ namespace jaindb
                         }
 
                         if (!UseCosmosDB)
-                            WriteHashAsync(DeviceID, JsonConvert.SerializeObject(oChain), "_chain").ConfigureAwait(false);
+                            WriteHash(DeviceID, JsonConvert.SerializeObject(oChain), "_chain");
                         else
-                            WriteHashAsync(DeviceID, JsonConvert.SerializeObject(oChain), "_chain").Wait();
+                            WriteHash(DeviceID, JsonConvert.SerializeObject(oChain), "chain");
 
 
                         //Add missing attributes
@@ -594,9 +607,9 @@ namespace jaindb
                         if (!UseCosmosDB)
                         {
                             if (blockType == BlockType)
-                                WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_full").ConfigureAwait(false);
+                                WriteHash(DeviceID, jTemp.ToString(Formatting.None), "_full");
                             else
-                                WriteHashAsync(DeviceID + "_" + blockType, jTemp.ToString(Formatting.None), "_full").ConfigureAwait(false);
+                                WriteHash(DeviceID + "_" + blockType, jTemp.ToString(Formatting.None), "_full");
                         }
                         else
                         {
@@ -627,23 +640,23 @@ namespace jaindb
 
                     //Only store Full data for default BlockType
                     if (blockType == BlockType)
-                        WriteHashAsync(DeviceID, jTemp.ToString(Formatting.None), "_full").ConfigureAwait(false);
+                        WriteHash(DeviceID, jTemp.ToString(Formatting.None), "_full");
                 }
 
                 //JSort(oStatic);
                 if (!UseCosmosDB)
                 {
                     if (blockType == BlockType)
-                        WriteHashAsync(sResult, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_assets").ConfigureAwait(false);
+                        WriteHash(sResult, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_assets");
                     else
-                        WriteHashAsync(sResult + "_" + blockType, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_assets").ConfigureAwait(false);
+                        WriteHash(sResult + "_" + blockType, oStatic.ToString(Newtonsoft.Json.Formatting.None), "_assets");
                 }
                 else
                 {
                     //On CosmosDB, store full document as Asset
                     if (jTemp["_objectid"] == null)
                         jTemp.AddFirst(new JProperty("_objectid", DeviceID));
-                    WriteHashAsync(sResult, jTemp.ToString(Formatting.None), "_assets").Wait();
+                    WriteHash(sResult, jTemp.ToString(Formatting.None), "assets");
                 }
 
 
@@ -695,8 +708,6 @@ namespace jaindb
                         oInv = JObject.Parse(sData);
                         try
                         {
-
-
                             if (oInv["_index"] == null)
                                 oInv.Add(new JProperty("_index", oRaw["_index"]));
                             if (oInv["_date"] == null)
@@ -823,7 +834,7 @@ namespace jaindb
                             //Cache Full
                             if (!File.Exists(Path.Combine(FilePath, "_full", DeviceID + ".json")))
                             {
-                                WriteHashAsync(DeviceID, oInv.ToString(), "_full").ConfigureAwait(false);
+                                WriteHash(DeviceID, oInv.ToString(), "_full");
                             }
                             else
                             {
@@ -1195,7 +1206,7 @@ namespace jaindb
             where = System.Net.WebUtility.UrlDecode(where);
 
             List<string> lExclude = new List<string>();
-            List<string> lWhere= new List<string>();
+            List<string> lWhere = new List<string>();
 
             if (!string.IsNullOrEmpty(exclude))
             {
@@ -1223,7 +1234,7 @@ namespace jaindb
                     var jObj = GetFull(sHash);
 
                     //Where filter..
-                    if(lWhere.Count > 0)
+                    if (lWhere.Count > 0)
                     {
                         bool bWhere = false;
                         foreach (string sWhere in lWhere)
@@ -1279,7 +1290,7 @@ namespace jaindb
                             catch { }
                         }
 
-                        if(bWhere)
+                        if (bWhere)
                         {
                             continue;
                         }
@@ -1616,7 +1627,6 @@ namespace jaindb
                     }
                     return aRes;
                 }
-                GC.Collect();
             }
             catch { }
 
@@ -1627,7 +1637,7 @@ namespace jaindb
 
         public class Change
         {
-            public ChangeType changeType; 
+            public ChangeType changeType;
             public DateTime lastChange;
             public int index;
             public string id;
@@ -1669,7 +1679,7 @@ namespace jaindb
                 oRes.id = sID;
                 var jObj = JObject.Parse(ReadHash(sID, "_chain"));
                 oRes.lastChange = new DateTime(jObj["Chain"].Last["timestamp"].Value<long>());
-                if(DateTime.Now.Subtract(oRes.lastChange) > age)
+                if (DateTime.Now.Subtract(oRes.lastChange) > age)
                 {
                     continue;
                 }
@@ -1679,15 +1689,15 @@ namespace jaindb
                 else
                     oRes.changeType = ChangeType.New;
 
-                if(changeType >= 0)
+                if (changeType >= 0)
                 {
-                    if(((int)oRes.changeType) != changeType)
+                    if (((int)oRes.changeType) != changeType)
                         continue;
                 }
 
                 lRes.Add(oRes);
             }
-            return JArray.Parse(JsonConvert.SerializeObject(lRes.OrderBy(t=>t.id).ToList(), Formatting.None));
+            return JArray.Parse(JsonConvert.SerializeObject(lRes.OrderBy(t => t.id).ToList(), Formatting.None));
         }
 
         /// <summary>
@@ -1778,7 +1788,7 @@ namespace jaindb
                     });
                 }
 
-                if(UseRethinkDB)
+                if (UseRethinkDB)
                 {
                     var tFind = await FindHashOnContentAsync(searchstring);
 
@@ -1919,6 +1929,40 @@ namespace jaindb
                 if (prop.Value is JObject)
                     JSort((JObject)prop.Value);
             }
+        }
+
+        public static int totalDeviceCount(string sPath = "")
+        {
+            int iCount = 0;
+            try
+            {
+                //Check if MemoryCache is initialized
+                if (_cache == null)
+                {
+                    _cache = new MemoryCache(new MemoryCacheOptions());
+                }
+
+                //Check in MemoryCache
+                if (_cache.TryGetValue("totalDeviceCount", out iCount))
+                {
+                    return iCount;
+                }
+
+                if (UseFileStore)
+                {
+                    if (string.IsNullOrEmpty(sPath))
+                        sPath = Path.Combine(FilePath, "jaindb", "_chain");
+
+                    if (Directory.Exists(sPath))
+                        iCount = Directory.GetFiles(sPath).Count(); //count Blockchain Files
+
+                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(60)); //cache ID for 60s
+                    _cache.Set("totalDeviceCount", iCount, cacheEntryOptions);
+                }
+            }
+            catch { }
+
+            return iCount;
         }
     }
 }
