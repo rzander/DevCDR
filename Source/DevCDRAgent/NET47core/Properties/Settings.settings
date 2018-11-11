@@ -77,7 +77,7 @@ $OS = (OS)
 $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
 $object = New-Object -TypeName PSObject
 $object | Add-Member -MemberType NoteProperty -Name "Hostname" -Value (hostname).ToUpper()
-$object | Add-Member -MemberType NoteProperty -Name "id" -Value (GetMyID).ToUpper()
+$object | Add-Member -MemberType NoteProperty -Name "id" -Value (GetMyID)
 $object | Add-Member -MemberType NoteProperty -Name "Internal IP" -Value ((Test-Connection (hostname) -Count 1).IPV4Address.IPAddressToString)
 $object | Add-Member -MemberType NoteProperty -Name "Last Reboot" -Value $OS.LastBootUpTime
 $object | Add-Member -MemberType NoteProperty -Name "Reboot Pending" -Value (RebootPending)
@@ -91,8 +91,8 @@ $object | ConvertTo-Json
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUcmBxV0dpFXOWJ6G2dhmfIXaH
-# kQKgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUmDv3ITcblKJ01dRsYHBIPOdv
+# FHmgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -157,16 +157,15 @@ $object | ConvertTo-Json
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSv
-# eeIOrrknCt1QElBpvWaXb6BZZjANBgkqhkiG9w0BAQEFAASCAQCQc6sQeJvikzTb
-# 7TfelGD4PKEeDS7aFkyZLfG/PDPhnz0Rq+p8VXucEZtENSkX6Z763ic4Vh9OqbwB
-# GWw9nqdEf/YnvCEBpMLSgVv9loB9hekAR7aCL17oa2htu4rFlaMgGeOFWXP9DwQJ
-# qxe2FxTbdvPY+owoxC8pIkuEGRRs0wkRtvkPVNZ3aMIkzqnoDsD0hFIONQC+3UW2
-# r1ZqgtwJ9uj6ewhocWuaA2XiuFcyvPQ+r8qLd/mQvXt5Om6tnFjijh+1vJqgoupN
-# zXdSaLUUemsqtgwdPXYyhvq4QjWXKLTtn8f5+WcT6tLIpTpOWsZlp1xsrPbC5A6g
-# GoSHVplk
-# SIG # End signature block
-</Value>
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQJ
+# El4ETitv3UVMbn6i9NzdpesjmDANBgkqhkiG9w0BAQEFAASCAQBZP3Lt9Uza5HeL
+# 92i7pAKXjbiCtwn6JwxudoYNGrjea3qjtb2F1d4m8034YTqESHvRJ2ezQtdMozI2
+# Sc7ovKoFxjizqsYmSiLgCHT6u9nL3KoYQp5Pg5gnfWAWiQvmYGK8ZPy6bSI6D+cg
+# mf24F0dAPalm1p+itwLJHlpx4l6E179y208pb/gLNVTEUwfO4HaNpxIKNq6SDNo3
+# Fi4An59H5G0H5cu7VFJ7XQjr/IRHrK7XH6xH1MDO1mzyd03YT745/P3DoiVRnbM8
+# 9IEoJ60Wmhf7ueeGRgUg/NXO9Y5oFuRHjBvWLj5E+bgEZHWOpBJA8J/fZIJOqz6p
+# vAEoyWlM
+# SIG # End signature block</Value>
     </Setting>
     <Setting Name="Groups" Type="System.String" Scope="Application">
       <Value Profile="(Default)">unknown</Value>
