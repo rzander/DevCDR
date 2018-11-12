@@ -277,7 +277,9 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
-    <Compile Include="jaindb.cs" />
+    <Compile Include="jaindb\BlockChain.cs" />
+    <Compile Include="jaindb\Hash.cs" />
+    <Compile Include="jaindb\jaindb.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Startup.cs" />
   </ItemGroup>

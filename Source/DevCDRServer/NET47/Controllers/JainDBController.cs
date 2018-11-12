@@ -13,6 +13,7 @@ using System.Web;
 using System.Web.Mvc;
 using System.Runtime.Caching;
 using System.Web.Caching;
+using System.Net.Http;
 
 namespace DevCDRServer.Controllers
 {
@@ -468,6 +469,48 @@ namespace DevCDRServer.Controllers
                 return jDB.GetJHistory(sKey, blockType);
             else
                 return null;
+        }
+
+        [HttpGet]
+        [BasicAuthenticationAttribute("DEMO", "password")]
+        [Route("queryAll")]
+        public JArray QueryAll()
+        {
+            string sPath = HttpContext.Server.MapPath("~/App_Data/JainDB");
+            jDB.FilePath = sPath;
+
+            string sQuery = this.Request.QueryString.ToString();
+
+            var query = System.Web.HttpUtility.ParseQueryString(sQuery);
+
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
+            {
+                string qpath = (query[null] ?? "").Replace(',', ';');
+                string qsel = (query["$select"] ?? "").Replace(',', ';');
+                string qexc = (query["$exclude"] ?? "").Replace(',', ';');
+                string qwhe = (query["$where"] ?? "").Replace(',', ';');
+                return jDB.QueryAll(qpath, qsel, qexc, qwhe);
+            }
+            else
+            {
+                using (HttpClient oClient = new HttpClient())
+                {
+                    oClient.DefaultRequestHeaders.Clear();
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTUSER")))
+                    {
+                        var byteArray = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("REPORTUSER") + ":" + Environment.GetEnvironmentVariable("REPORTPASSWORD"));
+                        oClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+                    }
+                    var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/queryAll?" + sQuery);
+                    response.Wait();
+                    if (response.IsCompleted)
+                    {
+                        return JArray.Parse(response.Result);
+                    }
+                }
+            }
+
+            return null;
         }
     }
 
