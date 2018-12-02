@@ -20,7 +20,15 @@
     <DockerTargetOS>Linux</DockerTargetOS>
     <UserSecretsId>93ce79d7-2e37-460b-bc67-a091d9b812b5</UserSecretsId>
     <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="jaindb\**" />
+    <Content Remove="jaindb\**" />
+    <EmbeddedResource Remove="jaindb\**" />
+    <None Remove="jaindb\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <Content Remove="bundleconfig.json" />
@@ -31,15 +39,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="jaindb.base" Version="1.0.3" />
+    <PackageReference Include="jaindb.storage.FileStore" Version="1.0.3" />
+    <PackageReference Include="jaindb.storage.Memory" Version="1.0.3" />
     <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.0.4" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.1.1" />
-    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.1.5" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.1.6" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="jaindb\" />
     <Folder Include="wwwroot\PSScripts\" />
   </ItemGroup>
 

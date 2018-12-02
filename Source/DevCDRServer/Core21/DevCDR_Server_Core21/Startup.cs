@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace DevCDR
 {
@@ -96,6 +97,10 @@ namespace DevCDR
                     name: "default",
                     template: "{controller=DevCDR}/{action=Dashboard}/{id?}");
             });
+
+            Console.WriteLine("loading JainDB plugins:");
+            jaindb.jDB.loadPlugins();
+            Console.WriteLine("");
         }
     }
 }

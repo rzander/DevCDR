@@ -31,7 +31,6 @@ namespace DevCDRServer.Controllers
         {
             _env = env;
             _cache = memoryCache;
-            jDB._cache = memoryCache;
         }
 
         [AllowAnonymous]
@@ -772,32 +771,30 @@ namespace DevCDRServer.Controllers
             return null;
         }
 
-#if DEBUG
-        [AllowAnonymous]
-#endif
-        [BasicAuthenticationAttribute()]
-        [HttpGet]
-        [Route("export")]
-        public JObject Export()
-        {
-            string sPath = ((Microsoft.AspNetCore.Http.Internal.DefaultHttpRequest)this.Request).Path;
-            string sQuery = ((Microsoft.AspNetCore.Http.Internal.DefaultHttpRequest)this.Request).QueryString.ToString();
-            try
-            {
-                var query = QueryHelpers.ParseQuery(sQuery);
-                string sTarget = query.FirstOrDefault(t => t.Key.ToLower() == "url").Value;
 
-                string sRemove = query.FirstOrDefault(t => t.Key.ToLower() == "remove").Value;
+        //[BasicAuthenticationAttribute()]
+        //[HttpGet]
+        //[Route("export")]
+        //public JObject Export()
+        //{
+        //    string sPath = ((Microsoft.AspNetCore.Http.Internal.DefaultHttpRequest)this.Request).Path;
+        //    string sQuery = ((Microsoft.AspNetCore.Http.Internal.DefaultHttpRequest)this.Request).QueryString.ToString();
+        //    try
+        //    {
+        //        var query = QueryHelpers.ParseQuery(sQuery);
+        //        string sTarget = query.FirstOrDefault(t => t.Key.ToLower() == "url").Value;
 
-                if (!string.IsNullOrEmpty(sTarget))
-                    jDB.Export(sTarget, sRemove ?? "");
-                else
-                    jDB.Export("http://localhost:5000", sRemove ?? "");
-            }
-            catch { }
+        //        string sRemove = query.FirstOrDefault(t => t.Key.ToLower() == "remove").Value;
 
-            return new JObject();
-        }
+        //        if (!string.IsNullOrEmpty(sTarget))
+        //            jDB.Export(sTarget, sRemove ?? "");
+        //        else
+        //            jDB.Export("http://localhost:5000", sRemove ?? "");
+        //    }
+        //    catch { }
+
+        //    return new JObject();
+        //}
     }
 
 
