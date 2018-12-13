@@ -196,7 +196,7 @@ namespace DevCDRAgent
                     //Fallback to default endpoint after 3Days and 15 Errors
                     if (((DateTime.Now - Properties.Settings.Default.LastConnection).TotalDays > 3) && (Properties.Settings.Default.ConnectionErrors >= 15))
                     {
-                        Uri = "https://devcdrcore.azurewebsites.net/chat";
+                        Uri = Properties.Settings.Default.FallbackEndpoint;
                         Hostname = Environment.MachineName + "_BAD";
                     }
                 }
