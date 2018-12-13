@@ -26,10 +26,10 @@ if (get-process logonui -ea SilentlyContinue) {
 
     #List of managed Software.
     $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "KeePass", "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", 
-        "AdobeReader DC", "Sonos Controller", "Microsoft Azure PowerShell", 
+        "AdobeReader DC", "Microsoft Azure PowerShell", 
         "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
         "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", 
-		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "TeamViewer" )
+		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "TeamViewer", "Microsoft Azure Information Protection" )
 
     #Find Software Updates
     $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename
@@ -51,8 +51,8 @@ if (get-process logonui -ea SilentlyContinue) {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkLFOEAKxzk1vuDxObjpJX5PJ
-# 9PWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURwfTQ7QL300poSYRId+n0TkV
+# oeWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -117,12 +117,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSq
-# 0Rge8Fsp8EQu9gorkGDcmvaNPDANBgkqhkiG9w0BAQEFAASCAQBlrvOxLDRlLYyz
-# 4YjD/dILI3h89eLy5H7JWK1wyeqkFXs/rSIcA17Diezo4la9Cy27dEMy0n7QvaVE
-# rVbNYIxsDhzpj2bIjBlxXWHZIONDfyU2SQfzQGI1lkbGO8585kNCvzaj7sDmZhuU
-# 5b31ijaEFAsr1iOf+Mv6Wj704c1KxObyoybG9S3sziE8X/G+bJsHrkv316AGYl77
-# davU4aOeheoDANj2nvUi9T/S+vHN4YLzN+mFvDlQAiub7yCfDkEZLSjUM4F0bO7z
-# YJz1bI8hi5HbrB6nUXH2mieKJdSL2OGilj1eouDGRsIv0MNV3PS4LUZhQmqP9Qby
-# uw1Rmggm
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSu
+# /L+6vIb8nyVMnUx08cITcuue6jANBgkqhkiG9w0BAQEFAASCAQAvaXMRv6ZzyqWG
+# xbLCkSvhpz3BBll/RKDPuK5JIN6Oy8xWaI8iP5b9FophaQv/3OMIgz1+t+YklXuu
+# XZte0d22kg4LCj2lg9p7NFaotQ0N6BKjtU7Sv+dZDW52haYyn8Fb6F4qJF0sLT5c
+# GZENPx/xaTJrfpQi6nUKWrVpefzY4E5Q9AummqFYpyXs5kw10HF8OkhMhlOWmsrf
+# +U4XZ68W5iST2RG57Om6+SsI/Q07bVXxTD9zXS0cCitDY0/g8OR0KigO6vy7j/BQ
+# rLlPZPjXXdTOaZxAGGM62ZkE76c4HMywM7fmFL9LJS11eRfc2OIYHTkPcyC7r55M
+# olslxFAD
 # SIG # End signature block
