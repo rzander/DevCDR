@@ -252,6 +252,16 @@
                                         RunPS('Get-BitLockerVolume | select MountPoint, ProtectionStatus | ConvertTo-Json', 'GetBitLockerStatus');
                                     }
                                 },
+                                "invOSBitlockerKey": {
+                                    "name": "BitLocker Recovery Key",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Get-BitLockerVolume | ? {$_.KeyProtector.KeyProtectorType -eq "RecoveryPassword"} | Select-Object MountPoint,@@{Label="Key";Expression={"$($_.KeyProtector.RecoveryPassword)"}}', 'GetBitLockerKey');
+                                    }
+                                },
                                 "invOSSecBoot": {
                                     "name": "SecureBoot Status",
                                     icon: function (opt, $itemElement, itemKey, item) {
