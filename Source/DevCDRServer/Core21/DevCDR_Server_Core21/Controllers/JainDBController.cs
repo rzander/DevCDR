@@ -20,7 +20,6 @@ using System.Text;
 
 namespace DevCDRServer.Controllers
 {
-    [AllowAnonymous]
     [Route("jaindb")]
     public class JainDBController : Controller
     {
