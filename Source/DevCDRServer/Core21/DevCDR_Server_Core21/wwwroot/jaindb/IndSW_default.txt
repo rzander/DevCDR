@@ -1,8 +1,8 @@
 ﻿.NET Core SDK 1.0.0 (x64) Installer (x64)
 .NET Core SDK 1.0.4 (x64)
 .NET Core SDK 1.1.0 (x64)
-7-Zip 18.05 (x64 edition)
-7-Zip 18.05 (x64)
+7-Zip 18.06 (x64 edition)
+7-Zip 18.06 (x64)
 Access Panel Extension
 Active Directory Rights Management Services Client 2.1
 Adobe Acrobat Reader DC
@@ -110,7 +110,7 @@ Microsoft Azure Libraries for .NET – v2.9
 Microsoft Azure Mobile App SDK V3.0
 Microsoft Azure PowerShell - November 2018
 Microsoft Azure Storage Emulator - v5.7
-Microsoft Azure Storage Explorer version 1.5.0
+Microsoft Azure Storage Explorer version 1.6.1
 Microsoft Dynamics 365 für Microsoft Office Outlook
 Microsoft Help Viewer 2.2
 Microsoft Intune Management Extension
@@ -166,8 +166,8 @@ Microsoft Visual Studio 2010-Tools für Office-Laufzeit (x64) Language Pack - DE
 Microsoft Visual Studio 2017
 Microsoft Visual Studio Code
 Microsoft Web Platform Installer 5.0
-Mozilla Firefox 63.0.3 (x64 de)
-Mozilla Firefox 63.0.3 (x64 en-US)
+Mozilla Firefox 64.0 (x64 de)
+Mozilla Firefox 64.0 (x64 en-US)
 Mozilla Maintenance Service
 MySQL Workbench 8.0 CE
 Notepad++ (32-bit x86)
@@ -211,19 +211,19 @@ Windows 10 Update Assistant
 Windows Admin Center
 Windows Assessment and Deployment Kit - Windows 10
 WinRAR 5.50 (64-Bit)
-WinSCP 5.13.5
+WinSCP 5.13.6
 Wireshark 2.6.2 64-bit
 XAMPP
 XMind 8 Update 5 (v3.7.5)
 XMind 8 Update 8 (v3.7.8)
 Active Directory Authentication Library for SQL Server
-Advanced Installer 15.4
+Advanced Installer 15.5.1
 Android SDK Tools
 Azure Cosmos DB Emulator
 BayHubTech Flash Memory Card Windows Driver
 Docker for Windows
 FileZilla Client 3.36.0
-Git version 2.19.1
+Git version 2.20.1
 GitHub Desktop Machine-Wide Installer
 Google Earth Pro
 Greenfish Icon Editor Pro 3.6
@@ -276,7 +276,7 @@ Microsoft SQL Server 2017
 Microsoft SQL Server 2017 Policies
 Microsoft SQL Server 2017 T-SQL Language Service
 Microsoft SQL Server Data Tools - enu (14.0.61021.0)
-Microsoft SQL Server Management Studio - 17.8.1
+Microsoft SQL Server Management Studio - 17.9.1
 Microsoft System CLR Types for SQL Server 2014
 Microsoft System CLR Types for SQL Server 2014
 Microsoft System CLR Types for SQL Server 2016
