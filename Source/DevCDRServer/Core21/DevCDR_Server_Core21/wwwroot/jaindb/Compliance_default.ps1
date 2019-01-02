@@ -24,6 +24,14 @@ if (get-process logonui -ea SilentlyContinue) {
 	Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -Name 'DORestrictPeerSelectionBy' -Value 1 -ea SilentlyContinue 
 	#endregion
 
+	#Fix unknown local Admins on CloudJoined Devices
+	if (Get-LocalGroupMember -SID S-1-5-32-544 -ea SilentlyContinue) {} else {
+		$localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
+		$Group = [ADSI]"WinNT://localhost/$LocalGroup,group"
+		$members = $Group.psbase.Invoke("Members")
+		$members | ForEach-Object { $_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -like "S-1-12-1-*" } | ForEach-Object { Remove-LocalGroupMember -Name $localgroup $_ } 
+	}
+
     #List of managed Software.
     $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "KeePass", "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", 
         "AdobeReader DC", "Microsoft Azure PowerShell", 
@@ -44,15 +52,15 @@ if (get-process logonui -ea SilentlyContinue) {
 
 	#Cleanup Temp
 	if((Get-ChildItem "$($env:windir)\Temp\*" -Recurse).Count -gt 100) {
-		Remove-Item "$($env:windir)\Temp\*" -Force -Recurse -Exclude devcdr.log -ea SilentlyContinue
+		Remove-Item "$($env:windir)\Temp\*" -Force -Recurse -Exclude devcdrcore.log -ea SilentlyContinue
 	}
 }
 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURwfTQ7QL300poSYRId+n0TkV
-# oeWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZu2RDrm50j+eZ17gUMq1kl0t
+# KkegggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -117,12 +125,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSu
-# /L+6vIb8nyVMnUx08cITcuue6jANBgkqhkiG9w0BAQEFAASCAQAvaXMRv6ZzyqWG
-# xbLCkSvhpz3BBll/RKDPuK5JIN6Oy8xWaI8iP5b9FophaQv/3OMIgz1+t+YklXuu
-# XZte0d22kg4LCj2lg9p7NFaotQ0N6BKjtU7Sv+dZDW52haYyn8Fb6F4qJF0sLT5c
-# GZENPx/xaTJrfpQi6nUKWrVpefzY4E5Q9AummqFYpyXs5kw10HF8OkhMhlOWmsrf
-# +U4XZ68W5iST2RG57Om6+SsI/Q07bVXxTD9zXS0cCitDY0/g8OR0KigO6vy7j/BQ
-# rLlPZPjXXdTOaZxAGGM62ZkE76c4HMywM7fmFL9LJS11eRfc2OIYHTkPcyC7r55M
-# olslxFAD
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ+
+# rUqedN7uB2KX9v5K3LlFHxGImTANBgkqhkiG9w0BAQEFAASCAQDBgz6zkmWN3iLY
+# u2VX7vmSA5vq/xohxuYGfQFvISZAW7HVh7aETBKVfNhhg+IqRvcTtPGGKpm91n5m
+# MgcmJUKZqkk4P5TAsYfJaGRd/drwgtvqLHqrw0Cid/yE5c7pIhygHsbqFqnPeTAM
+# i06Y45DWLwclK27NsmYlcsw4pd/vbYItbH52dKF9/vd43JOHzL4jBiZ7SKfltTpe
+# i+Zhtp+7d+PRVSGlNIOVrI5NPda30OdgIl+FfiNoqS1s9Ep4wGsV/GO0fpybn3Ql
+# jaUhuRo+hXZCklSHhjbmgO996w13ltVh31qSLGID6lHesCsMnvJ7UjGKcGS3wqdE
+# 30eSWjZz
 # SIG # End signature block
