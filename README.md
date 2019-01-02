@@ -18,7 +18,7 @@ Get a free instance:
 * Install Software directly from https://RuckZuck.tools
 * Inventory
   * Custom Inventory (PowerShell)
-  * Blockchain based archive (JainDB)
+  * Blockchain based archive ([JainDB](https://github.com/rzander/jaindb))
   * Inventory-History with visual Differential and Timeline of changes
   * Custom Reporting with Excel or PowerBI
 * Scheduled PowerShell script for Health- and Compliance-checks
