@@ -2,7 +2,12 @@
 
 #Install RuckZuck Provider for OneGet if missing...
 if(Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) {} else {
-	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.10/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.12/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+}
+
+if((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.6.2.12"))
+{
+	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.12/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
 #Update DevCDRAgent
@@ -59,8 +64,8 @@ if (get-process logonui -ea SilentlyContinue) {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZu2RDrm50j+eZ17gUMq1kl0t
-# KkegggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHqVFb3HAD2uY3IwDmuwD7KA3
+# 5L2gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -125,12 +130,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ+
-# rUqedN7uB2KX9v5K3LlFHxGImTANBgkqhkiG9w0BAQEFAASCAQDBgz6zkmWN3iLY
-# u2VX7vmSA5vq/xohxuYGfQFvISZAW7HVh7aETBKVfNhhg+IqRvcTtPGGKpm91n5m
-# MgcmJUKZqkk4P5TAsYfJaGRd/drwgtvqLHqrw0Cid/yE5c7pIhygHsbqFqnPeTAM
-# i06Y45DWLwclK27NsmYlcsw4pd/vbYItbH52dKF9/vd43JOHzL4jBiZ7SKfltTpe
-# i+Zhtp+7d+PRVSGlNIOVrI5NPda30OdgIl+FfiNoqS1s9Ep4wGsV/GO0fpybn3Ql
-# jaUhuRo+hXZCklSHhjbmgO996w13ltVh31qSLGID6lHesCsMnvJ7UjGKcGS3wqdE
-# 30eSWjZz
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRs
+# mpadecKpFL8FpUhSt4xekgkQfTANBgkqhkiG9w0BAQEFAASCAQCTw0Nz6rrDDgYX
+# Oz5WGgIRAbVR2Eza7NX/wrqHlUlH7NaIX7gNBBtjru7/lhpnG+u1oXfoGqn0o3xX
+# kAKZVErcxnIQXe4Q3zNwdgbzFIIeEWH5EVgynFqj4frnh+tvbmhMOasi93JAyjMu
+# RSWm7DSAg7XQ2nbvN6FRTcg9YhlizCgNv5+0gpYL/OpnMEr9x/+pfLLOF5SZwYlZ
+# kFDgre1PR+pCCpze52oKM+CCjB7dtCaLlDLAPvdfAlOS8BQRI+juxe4IsWR+UONj
+# NF3cdFR9sOSFasAJPvAKBAwdjg+WU45LTVWawLrf4PYM4oI6rDeAxpsXKDmHf79e
+# tvOTv0H6
 # SIG # End signature block
