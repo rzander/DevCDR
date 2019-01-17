@@ -39,7 +39,7 @@ Get a free instance:
 * SSL
 
 ## Server Core
-Server Core is running on .NET Core 2.1. and can only host a single instance.
+Server Core is running on .NET Core 2.2. and can only host a single instance.
 > Note: Server Core is not compatible with the existing .NET4.6 Agent. please use the new Agent for Server Core.
 
 ### Docker
