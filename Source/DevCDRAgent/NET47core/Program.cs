@@ -21,23 +21,23 @@ namespace DevCDRAgent
             //Log File cleanup
             try
             {
-                if (System.IO.File.Exists("%temp%\\devcdrcore.log"))
+                if (System.IO.File.Exists(Environment.ExpandEnvironmentVariables("%temp%\\devcdrcore.log")))
                 {
-                    var log = new System.IO.FileInfo("%temp%\\devcdrcore.log");
+                    var log = new System.IO.FileInfo(Environment.ExpandEnvironmentVariables("%temp%\\devcdrcore.log"));
                     if (log.Length > 5242880) //File is more than 5MB
                     {
-                        if (System.IO.File.Exists("%temp%\\devcdrcore_.log"))
+                        if (System.IO.File.Exists(Environment.ExpandEnvironmentVariables("%temp%\\devcdrcore_.log")))
                         {
-                            System.IO.File.Delete("%temp%\\devcdrcore_.log");
+                            System.IO.File.Delete(Environment.ExpandEnvironmentVariables("%temp%\\devcdrcore_.log"));
                         }
 
-                        System.IO.File.Move("%temp%\\devcdrcore.log", "%temp%\\devcdrcore_.log");
+                        System.IO.File.Move(Environment.ExpandEnvironmentVariables("%temp%\\devcdrcore.log"), Environment.ExpandEnvironmentVariables("%temp%\\devcdrcore_.log"));
                     }
                 }
             }
             catch { }
 
-            Trace.Listeners.Add(new TextWriterTraceListener(Environment.ExpandEnvironmentVariables("%temp%\\devcdrcore.log")));
+            Trace.Listeners.Add(new TextWriterTraceListener(Environment.ExpandEnvironmentVariables(Environment.ExpandEnvironmentVariables("%temp%\\devcdrcore.log"))));
             Trace.AutoFlush = true;
             Trace.WriteLine("Starting DevCDRAgent... " + DateTime.Now.ToString());
             Trace.Indent();
