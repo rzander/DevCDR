@@ -4,7 +4,7 @@ The Web-based Admin console allows to trigger actions against a single or multip
 
 Summary: https://rzander.azurewebsites.net/device-commander/
 
-As soon as the devices have internet connection (also behind a Proxy), they will pop up in the Web-Console. Now can run some predefined commands or any custom PowerShell code and the Devices will respond in Realtime.
+Get a free instance:
 
 <a href="https://azuredeploy.net/?repository=https://github.com/rzander/devcdr/tree/ServerCore21" target="_blank">
     <img src="http://azuredeploy.net/deploybutton.png"/>
@@ -18,7 +18,7 @@ As soon as the devices have internet connection (also behind a Proxy), they will
 * Install Software directly from https://RuckZuck.tools
 * Inventory
   * Custom Inventory (PowerShell)
-  * Blockchain based archive (JainDB)
+  * Blockchain based archive ([JainDB](https://github.com/rzander/jaindb))
   * Inventory-History with visual Differential and Timeline of changes
   * Custom Reporting with Excel or PowerBI
 * Scheduled PowerShell script for Health- and Compliance-checks
@@ -39,7 +39,7 @@ As soon as the devices have internet connection (also behind a Proxy), they will
 * SSL
 
 ## Server Core
-Server Core is running on .NET Core 2.1. and can only host a single instance.
+Server Core is running on .NET Core 2.2. and can only host a single instance.
 > Note: Server Core is not compatible with the existing .NET4.6 Agent. please use the new Agent for Server Core.
 
 ### Docker
