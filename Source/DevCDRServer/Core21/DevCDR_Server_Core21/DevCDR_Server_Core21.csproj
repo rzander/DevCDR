@@ -6,16 +6,16 @@
     <Authors>Roger Zander</Authors>
     <Company>Zander Tools</Company>
     <Product>DevCDR Server Core</Product>
-    <Copyright>Copyright (c) 2018 by Roger Zander</Copyright>
+    <Copyright>Copyright (c) 2019 by Roger Zander</Copyright>
     <PackageLicenseUrl>https://github.com/rzander/DevCDR/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/rzander/DevCDR</PackageProjectUrl>
     <Description>lightweight Client/Server Management tool</Description>
     <ApplicationIcon />
     <OutputType>Exe</OutputType>
     <StartupObject></StartupObject>
-    <AssemblyVersion>2.0.0.10</AssemblyVersion>
+    <AssemblyVersion>2.0.0.11</AssemblyVersion>
     <WebProject_DirectoryAccessLevelKey>0</WebProject_DirectoryAccessLevelKey>
-    <FileVersion>2.0.0.10</FileVersion>
+    <FileVersion>2.0.0.11</FileVersion>
     <Version>2.0.0</Version>
     <DockerTargetOS>Linux</DockerTargetOS>
     <UserSecretsId>93ce79d7-2e37-460b-bc67-a091d9b812b5</UserSecretsId>
@@ -45,7 +45,7 @@
     <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.1.1" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.4.4" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.2.1" />
   </ItemGroup>
 
