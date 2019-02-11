@@ -211,7 +211,7 @@ namespace DevCDRServer.Controllers
             {
                 string sCat = SWResults("");
                 JArray oCat = JArray.Parse(sCat);
-                lRZCat = JArray.Parse(sCat).SelectTokens("..Shortname").Values<string>().OrderBy(t => t).ToList();
+                lRZCat = JArray.Parse(sCat).SelectTokens("..ShortName").Values<string>().OrderBy(t => t).ToList();
             }
             catch { }
 
