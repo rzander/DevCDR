@@ -258,7 +258,20 @@ namespace RZUpdate
                 try
                 {
                     JavaScriptSerializer ser = new JavaScriptSerializer();
-                    AddSoftware lRes = ser.Deserialize<AddSoftware>(File.ReadAllText(sFile));
+                    string sJson = File.ReadAllText(sFile);
+                    AddSoftware lRes;
+
+                    //Check if it's an Arrya (new in V2)
+                    if (sJson.TrimStart().StartsWith("["))
+                    {
+                        List<AddSoftware> lItems = ser.Deserialize<List<AddSoftware>>(sJson);
+                        lRes = lItems[0];
+                    }
+                    else
+                    {
+                        lRes = ser.Deserialize<AddSoftware>(sJson);
+                    }
+
                     if (lRes.PreRequisites != null)
                     {
                         lRes.PreRequisites = lRes.PreRequisites.Where(x => !string.IsNullOrEmpty(x)).ToArray();
@@ -325,6 +338,7 @@ namespace RZUpdate
                 if (SW.Image == null)
                 {
                     SW.Image = RZRestAPI.GetIcon(SW.SWId);
+                    downloadTask.Image = SW.Image;
                 }
             }
             catch { }
@@ -394,6 +408,9 @@ namespace RZUpdate
                 }
             }
 
+            if (SW.PreRequisites == null)
+                SW.PreRequisites = new string[0];
+
 
         }
 
@@ -455,10 +472,6 @@ namespace RZUpdate
 
                 }
 
-
-
-
-
                 downloadTask = new DLTask() { ProductName = SW.ProductName, ProductVersion = SW.ProductVersion, Manufacturer = SW.Manufacturer, Shortname = SW.Shortname, Image = SW.Image, Files = SW.Files };
 
                 foreach (contentFiles vFile in SW.Files)
@@ -466,6 +479,9 @@ namespace RZUpdate
                     if (string.IsNullOrEmpty(vFile.HashType))
                         vFile.HashType = "MD5";
                 }
+
+                if (SW.PreRequisites == null)
+                    SW.PreRequisites = new string[0];
             }
             catch { }
         }
@@ -542,6 +558,7 @@ namespace RZUpdate
             {
                 foreach (var vFile in SW.Files)
                 {
+                    bool bDLSuccess = false;
                     try
                     {
                         if (string.IsNullOrEmpty(vFile.URL))
@@ -629,20 +646,7 @@ namespace RZUpdate
                             }
                             else
                             {
-
-                                if (SendFeedback)
-                                {
-                                    if (SW.SWId > 0)
-                                    {
-                                        RZRestAPI.TrackDownloads2(SW.SWId, SW.Architecture);
-                                    }
-                                    else
-                                    {
-                                        //Depreciated
-                                        //RZRestAPI.TrackDownloads(SW.ContentID);
-                                    }
-                                }
-
+                                bDLSuccess = true;
                             }
 
                             //Sleep 1s to complete
@@ -775,7 +779,14 @@ namespace RZUpdate
                         Console.WriteLine("ERROR: " + ex.Message);
                         bError = true;
                     }
+
+                    if (SendFeedback && bDLSuccess)
+                    {
+                        RZRestAPI.TrackDownloads2(SW.SWId, SW.Architecture, SW.Shortname);
+                    }
                 }
+
+
             }
             else
             {
@@ -865,10 +876,17 @@ namespace RZUpdate
             bool bAutoInstall = downloadTask.AutoInstall;
             downloadTask = new DLTask() { ProductName = SW.ProductName, ProductVersion = SW.ProductVersion, Manufacturer = SW.Manufacturer, Shortname = SW.Shortname, Image = SW.Image, Files = SW.Files };
 
-            if (SW.PreRequisites.Length > 0)
+            if (SW.PreRequisites != null)
             {
-                downloadTask.WaitingForDependency = true;
-                downloadTask.AutoInstall = false;
+                if (SW.PreRequisites.Length > 0)
+                {
+                    downloadTask.WaitingForDependency = true;
+                    downloadTask.AutoInstall = false;
+                }
+                else
+                {
+                    downloadTask.AutoInstall = bAutoInstall;
+                }
             }
             else
             {
@@ -971,7 +989,7 @@ namespace RZUpdate
                         downloadTask.Installing = true;
                         ProgressDetails(this.downloadTask, EventArgs.Empty);
 
-                        var oResult = _RunPS(psPath + SW.PSPreInstall + ";" + SW.PSInstall + ";" + SW.PSPostInstall + ";$ExitCode", "", new TimeSpan(0, 30, 0));
+                        var oResult = _RunPS(psPath + SW.PSPreInstall + ";" + SW.PSInstall + ";" + SW.PSPostInstall + ";$ExitCode", "", new TimeSpan(0, 60, 0));
 
                         try
                         {
@@ -1631,7 +1649,7 @@ namespace RZUpdate
         /// <returns></returns>
         public static PSDataCollection<PSObject> _RunPS(string PSScript, string WorkingDir = "", TimeSpan? Timeout = null)
         {
-            TimeSpan timeout = new TimeSpan(0, 5, 0); //default timeout = 5min
+            TimeSpan timeout = new TimeSpan(0, 15, 0); //default timeout = 15min
 
             if (Timeout != null)
                 timeout = (TimeSpan)Timeout;
