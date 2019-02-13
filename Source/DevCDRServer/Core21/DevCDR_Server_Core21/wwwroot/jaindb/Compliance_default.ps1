@@ -2,12 +2,12 @@
 
 #Install RuckZuck Provider for OneGet if missing...
 if(Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) {} else {
-	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.12/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.13/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
-if((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.6.2.12"))
+if((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.6.2.13"))
 {
-	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.12/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.13/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
 #Update DevCDRAgent
@@ -38,11 +38,11 @@ if (get-process logonui -ea SilentlyContinue) {
 	}
 
     #List of managed Software.
-    $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "KeePass", "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", 
-        "AdobeReader DC", "Microsoft Azure PowerShell", 
+    $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", 
+        "AdobeReader DC",  
         "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
         "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", 
-		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "TeamViewer", "Microsoft Azure Information Protection" )
+		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "Microsoft Azure Information Protection" )
 
     #Find Software Updates
     $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename
@@ -64,8 +64,8 @@ if (get-process logonui -ea SilentlyContinue) {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHqVFb3HAD2uY3IwDmuwD7KA3
-# 5L2gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQlu+aRcDq4yoHbGpJ5LDQ03b
+# UHCgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -130,12 +130,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRs
-# mpadecKpFL8FpUhSt4xekgkQfTANBgkqhkiG9w0BAQEFAASCAQCTw0Nz6rrDDgYX
-# Oz5WGgIRAbVR2Eza7NX/wrqHlUlH7NaIX7gNBBtjru7/lhpnG+u1oXfoGqn0o3xX
-# kAKZVErcxnIQXe4Q3zNwdgbzFIIeEWH5EVgynFqj4frnh+tvbmhMOasi93JAyjMu
-# RSWm7DSAg7XQ2nbvN6FRTcg9YhlizCgNv5+0gpYL/OpnMEr9x/+pfLLOF5SZwYlZ
-# kFDgre1PR+pCCpze52oKM+CCjB7dtCaLlDLAPvdfAlOS8BQRI+juxe4IsWR+UONj
-# NF3cdFR9sOSFasAJPvAKBAwdjg+WU45LTVWawLrf4PYM4oI6rDeAxpsXKDmHf79e
-# tvOTv0H6
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTQ
+# 7hkoXLLuPgao8pADJ2HqQwicnDANBgkqhkiG9w0BAQEFAASCAQCyEjbuK15PoVyD
+# jjxjs5GZTdlrKe/KfzpohTr0EeBhuLL5WfywJEKE8fWsundjC674vhjkYdeGg2h3
+# PgBx8SCzU8eqbeATBxANPnxH15URZYk/rFjMTZbgUtADEq+QKGHbI7NzA6aL3KRV
+# +ke4yN+vSc60VM4WO22IyCDtcCRGHrGqwB0catB4k77vEWcFZseQNm1qvTp45gLy
+# WKtYbCRCPl9DHJgXYIiiVKeurEbQH3nyYIo1lZunQ8lg4I938Bn7lh9ZGnHNKg3A
+# O8Ugi6p7rCpNGfaj+wBWrLqUb3LDVKSeM+5PRWIbgeqHdX8GV6wL57vjeVHp5+mL
+# WLqbABB0
 # SIG # End signature block
