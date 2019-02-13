@@ -591,7 +591,7 @@ namespace DevCDRAgent
 
                                     oScan.GetSWRepository().Wait(30000);
                                     oScan.SWScan().Wait(30000);
-                                    oScan.CheckUpdates(null).Wait(30000);
+                                    oScan.CheckUpdates(null).Wait(60000);
 
                                     if (string.IsNullOrEmpty(s1))
                                     {
@@ -751,13 +751,15 @@ namespace DevCDRAgent
                     tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
                 }
 
+                if (oRZSW.SoftwareUpdate.SW.PreRequisites == null)
+                    oRZSW.SoftwareUpdate.SW.PreRequisites = new string[0];
+
                 foreach (string sPreReq in oRZSW.SoftwareUpdate.SW.PreRequisites)
                 {
                     if (!string.IsNullOrEmpty(sPreReq))
                     {
                         RZUpdater oRZSWPreReq = new RZUpdater();
                         oRZSWPreReq.SoftwareUpdate = new SWUpdate(sPreReq);
-
                         sScriptResult = "..downloading dependencies (" + oRZSWPreReq.SoftwareUpdate.SW.Shortname + ")";
                         rnd = new Random();
                         tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
@@ -789,6 +791,7 @@ namespace DevCDRAgent
 
                 if (oRZSW.SoftwareUpdate.Download().Result)
                 {
+
                     sScriptResult = "..installing " + oRZSW.SoftwareUpdate.SW.Shortname;
                     rnd = new Random();
                     tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit

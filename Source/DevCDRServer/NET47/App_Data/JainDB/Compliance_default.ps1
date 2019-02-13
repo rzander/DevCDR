@@ -2,13 +2,13 @@
 
 #Install RuckZuck Provider for OneGet if missing...
 if(Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) {} else {
-	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.10/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.13/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
 #Update DevCDRAgent
-#if([version](get-item "C:\Program Files\DevCDRAgent\DevCDRAgent.exe").VersionInfo.FileVersion -lt [version]"1.0.0.13") { 
-#	&msiexec -i https://itnetxdevcdr.azurewebsites.net/DevCDRAgent.msi INSTANCE=itnetx ENDPOINT=https://itnetxdevcdr.azurewebsites.net/Chat /qn REBOOT=REALLYSUPPRESS  
-#}
+if([version](get-item "C:\Program Files\DevCDRAgent\DevCDRAgent.exe").VersionInfo.FileVersion -lt [version]"1.0.0.17") { 
+	&msiexec -i https://devcdr.azurewebsites.net/DevCDRAgent.msi INSTANCE=itnetx ENDPOINT=https://devcdr.azurewebsites.net/Chat /qn REBOOT=REALLYSUPPRESS  
+}
 
 #Only Update SW if LockScreen (LogonUI) is present
 if (get-process logonui -ea SilentlyContinue) {
@@ -29,7 +29,7 @@ if (get-process logonui -ea SilentlyContinue) {
         "AdobeReader DC", "Microsoft Azure PowerShell", 
         "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
         "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", 
-		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "TeamViewer", "Microsoft Azure Information Protection" )
+		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "Microsoft Azure Information Protection" )
 
     #Find Software Updates
     $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename
@@ -51,8 +51,8 @@ if (get-process logonui -ea SilentlyContinue) {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURwfTQ7QL300poSYRId+n0TkV
-# oeWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUo/uz4jsKn+o4TeCNL8Mw3MT6
+# AVegggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -117,12 +117,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSu
-# /L+6vIb8nyVMnUx08cITcuue6jANBgkqhkiG9w0BAQEFAASCAQAvaXMRv6ZzyqWG
-# xbLCkSvhpz3BBll/RKDPuK5JIN6Oy8xWaI8iP5b9FophaQv/3OMIgz1+t+YklXuu
-# XZte0d22kg4LCj2lg9p7NFaotQ0N6BKjtU7Sv+dZDW52haYyn8Fb6F4qJF0sLT5c
-# GZENPx/xaTJrfpQi6nUKWrVpefzY4E5Q9AummqFYpyXs5kw10HF8OkhMhlOWmsrf
-# +U4XZ68W5iST2RG57Om6+SsI/Q07bVXxTD9zXS0cCitDY0/g8OR0KigO6vy7j/BQ
-# rLlPZPjXXdTOaZxAGGM62ZkE76c4HMywM7fmFL9LJS11eRfc2OIYHTkPcyC7r55M
-# olslxFAD
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS1
+# 0Pe1YSYV+gP50I2EgpN7hkn3ZjANBgkqhkiG9w0BAQEFAASCAQC8ETNnKwi6Bk+e
+# 0U59xjScoyrY/K5fGSWN6A5XoDflW6AcG2+/J8R52c48urKLBrjksGwUXdLnvVY8
+# e4p9SQ1h8hLGLu/h22OAhZIiDeiyZM4+xMFsxBe6Ev1RhwJ/vzO2suCnJeC6vtDB
+# e4M/cyqrsmpGEt1gFqyngMLIKiPP5dMUM9iTMQnXSh9r5LLMABz9OO78h5+1G5JP
+# MmR5k7SRuXsuI9B4/A/MZ7L3HqQoX9rqNa3e9Yjn20U/jFJdaw6iS5eLwYGSk9As
+# t9gr05wgWZnNJMS/vpPGJ6D9XSeCNesdAORdxJE1X/yDti/iSOmv4cVoDBqZott4
+# 7plCk3vC
 # SIG # End signature block
