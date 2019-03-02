@@ -21,7 +21,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - DevCDR</title>
-
+    <link rel="icon" type="image/x-icon" href="~/favicon.ico">
     <environment include="Development">
         <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
         <link rel="stylesheet" href="~/css/site.css" />
@@ -52,7 +52,7 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a asp-area="" asp-controller="DevCDR" asp-action="Dashboard" class="navbar-brand">DevCDR_Server_Core21</a>
+                <a asp-area="" asp-controller="DevCDR" asp-action="Dashboard" class="navbar-brand">DevCDR Server Core</a>
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
@@ -69,9 +69,8 @@
 
     <div class="container body-content">
         @RenderBody()
-        <hr />
-        <footer class="footer" >
-            <p>&copy; 2018 by Roger Zander - Version: @ViewBag.appVersion</p>
+        <footer class="footer">
+            <p>&copy; 2019 by Roger Zander - Version: @ViewBag.appVersion</p>
         </footer>
     </div>
 

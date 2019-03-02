@@ -2,12 +2,28 @@
 
 #Install RuckZuck Provider for OneGet if missing...
 if(Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) {} else {
-	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.10/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.14/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+}
+
+if((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.6.2.14"))
+{
+	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.14/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+}
+
+#Update DevCDRAgentCore
+if([version](get-item "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.19") {
+	[xml]$a =gc "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+	$EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+	$EP > $env:temp\ep.log
+	&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT="$($EP)" /qn REBOOT=REALLYSUPPRESS  
 }
 
 #Only Update SW if LockScreen (LogonUI) is present
 if (get-process logonui -ea SilentlyContinue) {
 	
+	#Disable FastBoot
+	New-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' -Name 'HiberbootEnabled' -Value 0 -PropertyType DWord -Force -ea SilentlyContinue;
+
 	#region Select a method to restrict Peer Selection on DeliveryOptimization
 	#Create the key if missing 
 	If((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization') -eq $false ) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -force -ea SilentlyContinue } 
@@ -16,12 +32,20 @@ if (get-process logonui -ea SilentlyContinue) {
 	Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -Name 'DORestrictPeerSelectionBy' -Value 1 -ea SilentlyContinue 
 	#endregion
 
+	#Fix unknown local Admins on CloudJoined Devices
+	if (Get-LocalGroupMember -SID S-1-5-32-544 -ea SilentlyContinue) {} else {
+		$localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
+		$Group = [ADSI]"WinNT://localhost/$LocalGroup,group"
+		$members = $Group.psbase.Invoke("Members")
+		$members | ForEach-Object { $_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -like "S-1-12-1-*" } | ForEach-Object { Remove-LocalGroupMember -Name $localgroup $_ } 
+	}
+
     #List of managed Software.
-    $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Greenshot" , "KeePass", "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", 
-        "AdobeReader DC", "Sonos Controller", "Microsoft Azure PowerShell", 
+    $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", 
+        "AdobeReader DC",  
         "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
         "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", 
-		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "TeamViewer", "WinRAR", "paint.net" )
+		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "Microsoft Azure Information Protection" )
 
     #Find Software Updates
     $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename
@@ -36,17 +60,15 @@ if (get-process logonui -ea SilentlyContinue) {
 
 	#Cleanup Temp
 	if((Get-ChildItem "$($env:windir)\Temp\*" -Recurse).Count -gt 100) {
-		Remove-Item "$($env:windir)\Temp\*" -Force -Recurse -Exclude devcdr.log -ea SilentlyContinue
+		Remove-Item "$($env:windir)\Temp\*" -Force -Recurse -Exclude devcdrcore.log -ea SilentlyContinue
 	}
 }
-
-
 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUc2n3Y+XRgfjQfVwjicZcpukC
-# r9SgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZxSfpr+MUZnHd8Rz1FctmyVa
+# PAugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -111,12 +133,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRd
-# ZQQhfzDQY/vlx6ZLVXWL5WMFhTANBgkqhkiG9w0BAQEFAASCAQAKHSIR54YZVMaV
-# ex/uJkaRtzLYqo9g+Wj+NVbYjVw7hNzsZfQYzqXw1uaF2qA85cKYhMBDh4L14arV
-# +DRrJXMsjApaAAd5PTtcKeO9DPB2TKHlNHFrtdA6klZfSZVPIh3qbGHMsEzduKOu
-# Kn+lOO0AXslHnZmuMXinO8NeaVrBaV4KXvTmsH7Ws35LHm3XesAtCTKuGSOeVVUS
-# jLT/8mpFdqB5gvprC7a14V29nIcTFlS3vBVP0dr5X8r22DRkedTD4dvizVTNUgDW
-# 8dbWkCo3X8EU88FtZN789cTkfavLND/+lqM1htb37X7++h1dQW+IurrzmyT4yFZq
-# PaOc8tuu
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBT0
+# m+djM1EB7ZTTS8Pk6rUHTsWcyDANBgkqhkiG9w0BAQEFAASCAQBbebtDn5F312Q+
+# CzEmD85GqXKgWS2k3a2TOG1axbqvuAPt8Hcqo9JFLg9etr4Jsyi65yv1LU23wtra
+# tCBMqPDkeyc3QyRL9H1dMDbpkim5irNc4TTUdMv9oVUPwjk2iFuYl1GtAJFUvfWx
+# 6uTSOsOWnKRQXFMc7uDoHPyCReRG2rNH5LjkHN4XgIF6PlFFqYepgGAUSPuU4f0C
+# eIpGMf1+p9YHXN/dQqre4CD1ZwVgq5Oxrued4Ad1gVUDJiJILx8dP1U4fyZXOjYl
+# q+LpiDj8G9RAgrP5bVdu8/uWR0D6wtv5uUk4tDpnkmr6n4exePADOzJdRuJC6mbg
+# qIx7RY64
 # SIG # End signature block

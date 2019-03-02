@@ -67,7 +67,7 @@
             },
             onclick: function (item, element, event) {
                 //alert(item.index);
-                window.location.href = "Diff?id=@ViewBag.Id&l=" + item.index;
+                window.location.href = "Diff?id=@ViewBag.Id&r=" + item.index;
             },
             data: hist
 
@@ -76,7 +76,6 @@
 </script>
 
 <div id="visual" class=""></div>
-<hr />
 <div id="annotated"></div>
 <script type="text/javascript">
     $(function () {
@@ -89,10 +88,10 @@
                 // try to find an id property, otherwise just use the index in the array
                 return obj.name || obj.id || obj._id || obj.PropertyName || obj.name || obj.DisplayName || obj.DeviceID || obj.HotFixID || '$$index:' + index;
             }
-        }).diff(right, left);
+        }).diff(left, right);
 
         // beautiful html diff
-        document.getElementById('visual').innerHTML = jsondiffpatch.formatters.html.format(delta, left);
+        document.getElementById('visual').innerHTML = jsondiffpatch.formatters.html.format(delta, right);
         jsondiffpatch.formatters.html.hideUnchanged();
         // self-explained json
         //document.getElementById('annotated').innerHTML = jsondiffpatch.formatters.annotated.format(delta, left);

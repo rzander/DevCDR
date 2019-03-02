@@ -5,13 +5,13 @@ function GetHash([string]$txt) {
 function GetMD5([string]$txt) {
     $md5 = new-object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
     $utf8 = new-object -TypeName System.Text.ASCIIEncoding
-    return Base58(@(0xd5, 0x10) + $md5.ComputeHash($utf8.GetBytes($txt))) #To store hash in Miltihash format, we add a 0xD5 to make it an MD5 and an 0x10 means 10Bytes length
+    return Base58(@(0xd5, 0x10) + $md5.ComputeHash($utf8.GetBytes($txt))) #To store hash in Multihash format, we add a 0xD5 to make it an MD5 and an 0x10 means 10Bytes length
 }
 
 function GetSHA2_256([string]$txt) {
     $sha = new-object -TypeName System.Security.Cryptography.SHA256CryptoServiceProvider
     $utf8 = new-object -TypeName System.Text.ASCIIEncoding
-    return Base58(@(0x12, 0x20) + $sha.ComputeHash($utf8.GetBytes($txt))) #To store hash in Miltihash format, we add a 0x12 to make it an SHA256 and an 0x20 means 32Bytes length
+    return Base58(@(0x12, 0x20) + $sha.ComputeHash($utf8.GetBytes($txt))) #To store hash in Multihash format, we add a 0x12 to make it an SHA256 and an 0x20 means 32Bytes length
 }
 
 function Base58([byte[]]$data) {
@@ -154,9 +154,9 @@ function SetID {
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#SerialNumber" -Value (getinv -Name "Computer" -WMIClass "win32_SystemEnclosure" -Properties @("SerialNumber"))."SerialNumber" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "@MAC" -Value (get-wmiobject -class "Win32_NetworkAdapterConfiguration" | Where-Object {($_.IpEnabled -Match "True")}).MACAddress.Replace(':', '-')
 		
-		[xml]$xml = Get-Content "$($env:programfiles)\DevCDRAgent\DevCDRAgent.exe.config"
-		$inst = $xml.configuration.applicationSettings.'DevCDRAgent.Properties.Settings'.setting | Where-Object { $_.name -eq 'Instance' }
-		$AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRInstance" -Value $inst.value
+		[xml]$a =gc "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+		$EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+		$AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDREndpoint" -Value $EP
         return $null
     }   
 }
@@ -196,16 +196,18 @@ getinv -Name "CDROM" -WMIClass "Win32_CDROMDrive" -Properties @("Capabilities", 
 
 #getinv -Name "Driver" -WMIClass "Win32_PnPSignedDriver" -Properties @("DeviceID","DeviceName", "DriverDate", "DriverProviderName", "DriverVersion", "FriendlyName", "HardWareID", "InfName" ) -AppendObject ([ref]$object)
 getinv -Name "Printer" -WMIClass "Win32_Printer" -Properties @("DeviceID","CapabilityDescriptions","DriverName", "Local" , "Network", "PrinterPaperNames") -AppendObject ([ref]$object)
-getinv -Name "OptionalFeature" -WMIClass "Win32_OptionalFeature" -Properties @("Caption", "Name", "InstallState" ) -AppendObject ([ref]$object)
 
+#getinv -Name "OptionalFeature" -WMIClass "Win32_OptionalFeature" -Properties @("Caption", "Name", "InstallState" ) -AppendObject ([ref]$object)
+$feature = Get-WindowsOptionalFeature -Online | Select-Object @{N = 'Name'; E = {$_.FeatureName}} , @{N = 'InstallState'; E = {$_.State.tostring()}} 
+$object | Add-Member -MemberType NoteProperty -Name "OptionalFeature" -Value ($feature)
 
-$user = Get-LocalUser | Select-Object Description, Enabled, UserMayChangePassword, PasswordRequired, Name, @{N = '@PasswordLastSet'; E = {[System.DateTime](($_.PasswordLastSet).ToUniversalTime())}}, @{N = 'id'; E = {$_.SID}} | Sort-Object -Property Name
+$user = Get-LocalUser | Select-Object Description, Enabled, UserMayChangePassword, PasswordRequired, Name, @{N = '@PasswordLastSet'; E = {[System.DateTime](($_.PasswordLastSet).ToUniversalTime())}}, @{N = 'id'; E = {$_.SID.Value.ToString()}} | Sort-Object -Property Name
 $object | Add-Member -MemberType NoteProperty -Name "LocalUsers" -Value ($user)
 
-$locAdmin = Get-LocalGroupMember -SID S-1-5-32-544 | Select-Object @{N = 'Name'; E = {$_.Name.Replace($($env:Computername) + "\", "")}}, ObjectClass, @{Name = 'PrincipalSource'; Expression = {$_.PrincipalSource.ToString()}}, @{Name = 'id'; Expression = {$_.SID.Value}} | Sort-Object -Property Name
+$locAdmin = Get-LocalGroupMember -SID S-1-5-32-544 | Select-Object @{N = 'Name'; E = {$_.Name.Replace($($env:Computername) + "\", "")}}, ObjectClass, @{Name = 'PrincipalSource'; Expression = {$_.PrincipalSource.ToString()}}, @{Name = 'id'; Expression = {$_.SID.Value.ToString()}} | Sort-Object -Property Name
 $object | Add-Member -MemberType NoteProperty -Name "LocalAdmins" -Value ($locAdmin)
 
-$locGroup = Get-LocalGroup | Select-Object Description, Name, PrincipalSource, ObjectClass, @{N = 'id'; E = {$_.SID}}  | Sort-Object -Property Name
+$locGroup = Get-LocalGroup | Select-Object Description, Name, PrincipalSource, ObjectClass, @{N = 'id'; E = {$_.SID.Value.ToString()}}  | Sort-Object -Property Name
 $object | Add-Member -MemberType NoteProperty -Name "LocalGroups" -Value ($locGroup)
 
 $fw = Get-NetFirewallProfile | select Name, Enabled
@@ -214,7 +216,9 @@ $object | Add-Member -MemberType NoteProperty -Name "Firewall" -Value ($fw)
 $tpm = get-tpm
 $object | Add-Member -MemberType NoteProperty -Name "TPM" -Value ($tpm)
 
-$bitlocker = Get-BitLockerVolume | select MountPoint, EncryptionMethod, AutoUnlockEnabled, AutoUnlockKeyStored, MetadataVersion, VolumeStatus, ProtectionStatus, LockStatus, EncryptionPercentage, WipePercentage, VolumeType
+$bitlocker = Get-BitLockerVolume | ? { $_.VolumeType -eq 'OperatingSystem' } | select MountPoint, @{N = 'EncryptionMethod'; E = {$_.EncryptionMethod.ToString()}} , AutoUnlockEnabled, AutoUnlockKeyStored, MetadataVersion, VolumeStatus, ProtectionStatus, LockStatus, EncryptionPercentage, WipePercentage, @{N = 'VolumeType'; E = {$_.VolumeType.ToString()}}, KeyProtector | ConvertTo-Json | ConvertFrom-Json
+$bitlocker.KeyProtector | % { $_ | Add-Member -MemberType NoteProperty -Name "#RecoveryPassword" -Value ($_.RecoveryPassword)}
+$bitlocker.KeyProtector | % { $_.PSObject.Properties.Remove('KeyProtectorId'); $_.PSObject.Properties.Remove('RecoveryPassword') }
 $object | Add-Member -MemberType NoteProperty -Name "BitLocker" -Value ($bitlocker)
 
 $defender = Get-MpPreference | select * -ExcludeProperty ComputerID, PSComputerName, Cim*
@@ -262,15 +266,15 @@ $object.OS.Version = $object.OS.Version + "." + $UBR
 SetID([ref] $object)
 
 $id = $object."#id"
-$con = $object | ConvertTo-Json -Compress
+$con = $object | ConvertTo-Json -Depth 5 -Compress
 Write-Host "Device ID: $($id)"
 Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" -Method Post -Body $con -ContentType "application/json; charset=utf-8")
 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU76/F3OnFFGf9Ns0ItkrZYst8
-# x22gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXR+rzvyIBAZ8nPAIoqS170zk
+# RkegggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -335,12 +339,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTR
-# Vx/WqhLI2jzq3Ck4R/ytXGERQDANBgkqhkiG9w0BAQEFAASCAQBAm2lArl/aLC7q
-# rwZnxdeK7j1qESIVCYLkAI2YgvjWnepx1OKcKao5Q8Qs4ElpXWyCRVhZFNvmNfAd
-# G3vKPtyqU8CvFVbCSfQ97RzOoOALBZx4mWAaRYfm19C6ijF824prFK0lcWU07XQK
-# W2rtTH8aikAgWGG63SR93cvU2w9FLMupP3ftf976ubRWRAhj3e2upF1+iWC97Ygu
-# 6qJuuw+M+df3y95NQbn22MHE0lU+5OzdJHWYpa/ELuK57DkiboN/hSVMQ6FE39Kn
-# C5y2w5S0UJCncrcDUqpq49iqAsoPJNfeyGZSfQXJbS4uubJlpnzGT2x53b7kbfqt
-# LDLPZbFl
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTg
+# cI9aUCVvKR40tsZJGpjG+vJnFjANBgkqhkiG9w0BAQEFAASCAQCz5ZadPWFDsiZp
+# 5Ym/nwVWsVJ+NdEaXzZv7lhWuOD9mURnl2oPobGPIifzmzIpWh/ckXM+OLRoz2hw
+# XH8QzGJkBEWAlYKvJbfRx/DiMkHkcZhlTMti9W4O7vihjVmu+cgaD7yEyEEIcl16
+# J6Sa5HeQv9Y4eNDez/ByiQoaTUkZbQktT2+MF+8LJ8pASoLAz+3dj/PbPwIp+U/S
+# SN3chg5ewvTocknyrZhwQqWeCyqClqqiKxcqNskm+1quAkVknQIFYV8Wy0AZf155
+# UU4Y0spdsNjrpoRg06TY9nlPpZmNq5AUyVFOIDrgfAU+cYxgst1EIEij7aRKw1iF
+# 1uTFXm12
 # SIG # End signature block
