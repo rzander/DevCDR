@@ -877,14 +877,10 @@ namespace DevCDRServer.Controllers
         {
             string sCatFile = @"/App_Data/rzcat.json";
             string sResult = "";
-            string sURL = "https://ruckzuck.azurewebsites.net/wcf/RZService.svc";
+            string sURL = "https://ruckzuck.tools";
 
             sCatFile = Path.Combine(_env.WebRootPath, "rzcat.json");
-            //sCatFile = HttpContext.Server.MapPath("~/App_Data/rzcat.json");
-            //if (_cache.TryGetValue("SWResult-" + Searchstring, out sResult))
-            //{
-            //    return sResult;
-            //}
+
             try
             {
                 if (string.IsNullOrEmpty(Searchstring))
@@ -909,7 +905,7 @@ namespace DevCDRServer.Controllers
                 HttpClient oClient = new HttpClient();
                 oClient.DefaultRequestHeaders.Accept.Clear();
                 oClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                var response = oClient.GetStringAsync(sURL + "/rest/SWResults?search=" + Searchstring);
+                var response = oClient.GetStringAsync(sURL + "/rest/v2/getcatalog");
                 response.Wait(10000); //10s max.
                 if (response.IsCompleted)
                 {

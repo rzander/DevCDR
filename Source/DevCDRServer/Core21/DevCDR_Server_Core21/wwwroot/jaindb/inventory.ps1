@@ -5,13 +5,13 @@ function GetHash([string]$txt) {
 function GetMD5([string]$txt) {
     $md5 = new-object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
     $utf8 = new-object -TypeName System.Text.ASCIIEncoding
-    return Base58(@(0xd5, 0x10) + $md5.ComputeHash($utf8.GetBytes($txt))) #To store hash in Miltihash format, we add a 0xD5 to make it an MD5 and an 0x10 means 10Bytes length
+    return Base58(@(0xd5, 0x10) + $md5.ComputeHash($utf8.GetBytes($txt))) #To store hash in Multihash format, we add a 0xD5 to make it an MD5 and an 0x10 means 10Bytes length
 }
 
 function GetSHA2_256([string]$txt) {
     $sha = new-object -TypeName System.Security.Cryptography.SHA256CryptoServiceProvider
     $utf8 = new-object -TypeName System.Text.ASCIIEncoding
-    return Base58(@(0x12, 0x20) + $sha.ComputeHash($utf8.GetBytes($txt))) #To store hash in Miltihash format, we add a 0x12 to make it an SHA256 and an 0x20 means 32Bytes length
+    return Base58(@(0x12, 0x20) + $sha.ComputeHash($utf8.GetBytes($txt))) #To store hash in Multihash format, we add a 0x12 to make it an SHA256 and an 0x20 means 32Bytes length
 }
 
 function Base58([byte[]]$data) {
@@ -154,9 +154,9 @@ function SetID {
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#SerialNumber" -Value (getinv -Name "Computer" -WMIClass "win32_SystemEnclosure" -Properties @("SerialNumber"))."SerialNumber" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "@MAC" -Value (get-wmiobject -class "Win32_NetworkAdapterConfiguration" | Where-Object {($_.IpEnabled -Match "True")}).MACAddress.Replace(':', '-')
 		
-		[xml]$xml = Get-Content "$($env:programfiles)\DevCDRAgent\DevCDRAgent.exe.config"
-		$inst = $xml.configuration.applicationSettings.'DevCDRAgent.Properties.Settings'.setting | Where-Object { $_.name -eq 'Instance' }
-		$AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRInstance" -Value $inst.value
+		[xml]$a =gc "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+		$EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+		$AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDREndpoint" -Value $EP
         return $null
     }   
 }
@@ -273,8 +273,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUfvUBo1f9epiShLllzM2E7zQN
-# ihKgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXR+rzvyIBAZ8nPAIoqS170zk
+# RkegggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -339,12 +339,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQi
-# 7rdsVBqsHc5xeSnI2ximnv8r5DANBgkqhkiG9w0BAQEFAASCAQBmGsLHZVavtwmo
-# xPi1aKNaMrUoIzAOFcKCiGBNVTZbk9gdasolOYpfPpretfrBz1bFby6h2px6B7oa
-# pYUgV7CVVRp2MorH7H2k9wXDOo8Hym4E6d+evHUXM89hxqcjx/yTGYZVKUu42JPj
-# srZOgRthK9kwsA+yWTw/ToJLqmym3EKp9QMLWHJNp5vxFhNE9Wq7xQf4IHM2XMXW
-# LzYZmma1qJ3WaEAluxSBOgbvZYaGjEpr3vrl7jX43+yiSyYnHPygP0qUMZF7aptI
-# a/aXVrCy0chjV/zpWfoQNQaNPMtWtn9lzW02ZEY1Yk7gJi3Lc62yFLa6MzwEYokb
-# udClKQ65
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTg
+# cI9aUCVvKR40tsZJGpjG+vJnFjANBgkqhkiG9w0BAQEFAASCAQCz5ZadPWFDsiZp
+# 5Ym/nwVWsVJ+NdEaXzZv7lhWuOD9mURnl2oPobGPIifzmzIpWh/ckXM+OLRoz2hw
+# XH8QzGJkBEWAlYKvJbfRx/DiMkHkcZhlTMti9W4O7vihjVmu+cgaD7yEyEEIcl16
+# J6Sa5HeQv9Y4eNDez/ByiQoaTUkZbQktT2+MF+8LJ8pASoLAz+3dj/PbPwIp+U/S
+# SN3chg5ewvTocknyrZhwQqWeCyqClqqiKxcqNskm+1quAkVknQIFYV8Wy0AZf155
+# UU4Y0spdsNjrpoRg06TY9nlPpZmNq5AUyVFOIDrgfAU+cYxgst1EIEij7aRKw1iF
+# 1uTFXm12
 # SIG # End signature block
