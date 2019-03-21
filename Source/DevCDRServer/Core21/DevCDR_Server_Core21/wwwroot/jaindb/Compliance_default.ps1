@@ -2,18 +2,21 @@
 
 #Install RuckZuck Provider for OneGet if missing...
 if(Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) {} else {
-	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.14/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.0.1/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
-if((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.6.2.14"))
+if((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.7.0.1"))
 {
-	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.14/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.0.1/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
-#Update DevCDRAgent
-#if([version](get-item "C:\Program Files\DevCDRAgent\DevCDRAgent.exe").VersionInfo.FileVersion -lt [version]"1.0.0.13") { 
-#	&msiexec -i https://itnetxdevcdr.azurewebsites.net/DevCDRAgent.msi INSTANCE=itnetx ENDPOINT=https://itnetxdevcdr.azurewebsites.net/Chat /qn REBOOT=REALLYSUPPRESS  
-#}
+#Update DevCDRAgentCore
+if([version](get-item "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.20") {
+	[xml]$a =gc "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+	$EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+	$EP > $env:temp\ep.log
+	&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT="$($EP)" /qn REBOOT=REALLYSUPPRESS  
+}
 
 #Only Update SW if LockScreen (LogonUI) is present
 if (get-process logonui -ea SilentlyContinue) {
@@ -39,7 +42,7 @@ if (get-process logonui -ea SilentlyContinue) {
 
     #List of managed Software.
     $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", 
-        "AdobeReader DC",  
+        "AdobeReader DC",  "Microsoft Power BI Desktop",
         "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
         "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", 
 		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "Microsoft Azure Information Protection" )
@@ -64,8 +67,8 @@ if (get-process logonui -ea SilentlyContinue) {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxpdJOQkq62Z+JLrGfkPu28vT
-# HmGgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUcRQyJqOT3QsY9Oom4RqZNSiI
+# AU6gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -130,12 +133,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRn
-# G2m96cyeZQbUJpm1OTSyW2VJ0jANBgkqhkiG9w0BAQEFAASCAQAa9wsQuBBlwJgj
-# X1vjd3mkwOgHUFsFyrJbx/0V2qar7ft7DuegJQtmhTx61iwLaQsBEalfy/Uh3Zft
-# 7F85HDgDOUDO3iaVUULzEL19NBYLjcesDB2aTYbLu0PS5Tq3bzbxi5rkElZun6i0
-# lO1T5YYfdA/QOD82X9uFkzKs26Jv5xR9Z8326AH/Had8ZIuxD1jv07IeGFtdrP7a
-# HDcIaffev809Nsct0btLMt+iMaKbNxVr2eO0z4+2/dY+Kxan3SQSRyri0/bGsRqO
-# IxYccj/qVIjp/42XWRq/4UjEaSx3sD2NGSe351UCisCZB5u5ceqAP2WX5csDQjhN
-# CIxgr1a7
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQW
+# Hq81nPdGVWF6nC0b2o8jQDXa7zANBgkqhkiG9w0BAQEFAASCAQAQe7/3EDY6ZVw6
+# iPfQMJ70xLIxuE3ygFYkP3Eib5fYHzAs13Qd0hx89VNGfYsb8PazVr4/q8Zyzkvc
+# oX4qh1iq2pcFwTrOo1Pp1GVJDrNXSqZKhZIEs1FY6cfT8K8TYgX6vBdpLaRYdPyl
+# aD29rhDthSCRXQ+pcVGszMMFHVdxPxDLp7Yck/8B0sOU4D8K/wkyyeM9VhJ/AYo2
+# OKj8m9wIwsMcO4DHv2zyjL2jaGQbNaTo7kjWL9yxL9bXd2H6OwunbBHE/Xn7x01l
+# pNeOW5HxTp/bKXuAxg0BCkeWomvIlHap+QAhXgUMoaOyPc5PzY31Qv5OknyrUGVy
+# Ct5OHFj7
 # SIG # End signature block
