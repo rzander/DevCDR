@@ -186,14 +186,18 @@ namespace DevCDRServer.Controllers
         [HttpGet]
         [BasicAuthenticationAttribute()]
         [Route("query")]
-        public async System.Threading.Tasks.Task<JArray> Query()
+        public async System.Threading.Tasks.Task<JArray> Query(string sParams = "")
         {
             DateTime dStart = DateTime.Now;
 
             string sPath = Path.Combine(_env.WebRootPath, "jaindb");
             jDB.FilePath = sPath;
 
-            string sQuery = this.Request.QueryString.ToString();
+            string sQuery = sParams;
+
+            if (string.IsNullOrEmpty(sParams))
+                sQuery = this.Request.QueryString.ToString();
+                        
             if (sPath != "/favicon.ico")
             {
                 //string sUri = Microsoft.AspNetCore.Http.Extensions.UriHelper.GetDisplayUrl(Request);
