@@ -333,11 +333,28 @@ namespace DevCDRServer.Controllers
                     runUserCmd(lHostnames, sInstance, "", "");
                     break;
                 case "WOL":
-                    sendWOL(lHostnames, sInstance, sArgs.Split(',').ToList());
+                    sendWOL(lHostnames, sInstance, GetAllMACAddresses());
                     break;
             }
 
             return new ContentResult();
+        }
+
+        internal List<string> GetAllMACAddresses()
+        {
+            List<string> lResult = new List<string>();
+            var tItems = new JainDBController(_env, _cache).Query("$select=@MAC");
+            JArray jMacs = tItems.Result;
+
+            foreach(var jTok in jMacs.SelectTokens("..@MAC"))
+            {
+                if (jTok.Type == JTokenType.String)
+                    lResult.Add(jTok.Value<string>());
+                if (jTok.Type == JTokenType.Array)
+                    lResult.AddRange(jTok.Values<string>().ToList());
+            }
+
+            return lResult;
         }
 
         internal void RunCommand(List<string> Hostnames, string sCommand, string sInstance, string CmdName)
@@ -622,8 +639,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
-                    foreach (string sMAC in MAC)
-                        _hubContext.Clients.Client(sID).SendAsync("wol", sMAC);
+                    _hubContext.Clients.Client(sID).SendAsync("wol", string.Join(';', MAC));
                 }
             }
         }
@@ -877,14 +893,10 @@ namespace DevCDRServer.Controllers
         {
             string sCatFile = @"/App_Data/rzcat.json";
             string sResult = "";
-            string sURL = "https://ruckzuck.azurewebsites.net/wcf/RZService.svc";
+            string sURL = "https://ruckzuck.tools";
 
             sCatFile = Path.Combine(_env.WebRootPath, "rzcat.json");
-            //sCatFile = HttpContext.Server.MapPath("~/App_Data/rzcat.json");
-            //if (_cache.TryGetValue("SWResult-" + Searchstring, out sResult))
-            //{
-            //    return sResult;
-            //}
+
             try
             {
                 if (string.IsNullOrEmpty(Searchstring))
@@ -909,7 +921,7 @@ namespace DevCDRServer.Controllers
                 HttpClient oClient = new HttpClient();
                 oClient.DefaultRequestHeaders.Accept.Clear();
                 oClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                var response = oClient.GetStringAsync(sURL + "/rest/SWResults?search=" + Searchstring);
+                var response = oClient.GetStringAsync(sURL + "/rest/v2/getcatalog");
                 response.Wait(10000); //10s max.
                 if (response.IsCompleted)
                 {
