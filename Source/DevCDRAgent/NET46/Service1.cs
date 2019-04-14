@@ -3,6 +3,7 @@ using Microsoft.AspNet.SignalR.Client;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RuckZuck.Base;
 using RZUpdate;
 using System;
 using System.Collections.Generic;
@@ -605,13 +606,13 @@ namespace DevCDRAgent
                                     {
                                         if (string.IsNullOrEmpty(s1) || s1 == "HUB")
                                         {
-                                            RZInst(oSW.Shortname);
+                                            RZInst(oSW.ShortName);
                                         }
                                         else
                                         {
                                             var SWList = s1.Split(';');
-                                            if (SWList.Contains(oSW.Shortname))
-                                                RZInst(oSW.Shortname);
+                                            if (SWList.Contains(oSW.ShortName))
+                                                RZInst(oSW.ShortName);
                                         }
                                     }
                                 }
@@ -639,7 +640,7 @@ namespace DevCDRAgent
                                     List<string> lSW = new List<string>();
                                     foreach (var SW in oScan.NewSoftwareVersions)
                                     {
-                                        lSW.Add(SW.Shortname + " " + SW.ProductVersion + " (old:" + SW.MSIProductID + ")");
+                                        lSW.Add(SW.ShortName + " " + SW.ProductVersion + " (old:" + SW.MSIProductID + ")");
                                     }
 
                                     sScriptResult = JsonConvert.SerializeObject(lSW);
@@ -760,13 +761,13 @@ namespace DevCDRAgent
                     {
                         RZUpdater oRZSWPreReq = new RZUpdater();
                         oRZSWPreReq.SoftwareUpdate = new SWUpdate(sPreReq);
-                        sScriptResult = "..downloading dependencies (" + oRZSWPreReq.SoftwareUpdate.SW.Shortname + ")";
+                        sScriptResult = "..downloading dependencies (" + oRZSWPreReq.SoftwareUpdate.SW.ShortName + ")";
                         rnd = new Random();
                         tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
 
                         if (oRZSWPreReq.SoftwareUpdate.Download().Result)
                         {
-                            sScriptResult = "..installing dependencies (" + oRZSWPreReq.SoftwareUpdate.SW.Shortname + ")";
+                            sScriptResult = "..installing dependencies (" + oRZSWPreReq.SoftwareUpdate.SW.ShortName + ")";
                             rnd = new Random();
                             tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
 
@@ -776,7 +777,7 @@ namespace DevCDRAgent
                             }
                             else
                             {
-                                sScriptResult = oRZSWPreReq.SoftwareUpdate.SW.Shortname + " failed.";
+                                sScriptResult = oRZSWPreReq.SoftwareUpdate.SW.ShortName + " failed.";
                                 rnd = new Random();
                                 tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
                             }
@@ -785,26 +786,26 @@ namespace DevCDRAgent
 
                 }
 
-                sScriptResult = "..downloading " + oRZSW.SoftwareUpdate.SW.Shortname;
+                sScriptResult = "..downloading " + oRZSW.SoftwareUpdate.SW.ShortName;
                 rnd = new Random();
                 tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
 
                 if (oRZSW.SoftwareUpdate.Download().Result)
                 {
 
-                    sScriptResult = "..installing " + oRZSW.SoftwareUpdate.SW.Shortname;
+                    sScriptResult = "..installing " + oRZSW.SoftwareUpdate.SW.ShortName;
                     rnd = new Random();
                     tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
 
                     if (oRZSW.SoftwareUpdate.Install(false, true).Result)
                     {
-                        sScriptResult = "Installed: " + oRZSW.SoftwareUpdate.SW.Shortname;
+                        sScriptResult = "Installed: " + oRZSW.SoftwareUpdate.SW.ShortName;
                         rnd = new Random();
                         tReInit.Interval = rnd.Next(3000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
                     }
                     else
                     {
-                        sScriptResult = "Failed: " + oRZSW.SoftwareUpdate.SW.Shortname;
+                        sScriptResult = "Failed: " + oRZSW.SoftwareUpdate.SW.ShortName;
                         rnd = new Random();
                         tReInit.Interval = rnd.Next(3000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
                     }

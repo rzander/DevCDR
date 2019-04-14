@@ -2,11 +2,11 @@
 
 #Install RuckZuck Provider for OneGet if missing...
 if(Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) {} else {
-	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.6.2.13/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.0.2/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
 #Update DevCDRAgent
-if([version](get-item "C:\Program Files\DevCDRAgent\DevCDRAgent.exe").VersionInfo.FileVersion -lt [version]"1.0.0.17") { 
+if([version](get-item "C:\Program Files\DevCDRAgent\DevCDRAgent.exe").VersionInfo.FileVersion -lt [version]"1.0.0.18") { 
 	&msiexec -i https://devcdr.azurewebsites.net/DevCDRAgent.msi INSTANCE=itnetx ENDPOINT=https://devcdr.azurewebsites.net/Chat /qn REBOOT=REALLYSUPPRESS  
 }
 
@@ -51,8 +51,8 @@ if (get-process logonui -ea SilentlyContinue) {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUo/uz4jsKn+o4TeCNL8Mw3MT6
-# AVegggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUx7j0D0yAf5p+TGw86o05SCD5
+# BtagggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -117,12 +117,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS1
-# 0Pe1YSYV+gP50I2EgpN7hkn3ZjANBgkqhkiG9w0BAQEFAASCAQC8ETNnKwi6Bk+e
-# 0U59xjScoyrY/K5fGSWN6A5XoDflW6AcG2+/J8R52c48urKLBrjksGwUXdLnvVY8
-# e4p9SQ1h8hLGLu/h22OAhZIiDeiyZM4+xMFsxBe6Ev1RhwJ/vzO2suCnJeC6vtDB
-# e4M/cyqrsmpGEt1gFqyngMLIKiPP5dMUM9iTMQnXSh9r5LLMABz9OO78h5+1G5JP
-# MmR5k7SRuXsuI9B4/A/MZ7L3HqQoX9rqNa3e9Yjn20U/jFJdaw6iS5eLwYGSk9As
-# t9gr05wgWZnNJMS/vpPGJ6D9XSeCNesdAORdxJE1X/yDti/iSOmv4cVoDBqZott4
-# 7plCk3vC
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSM
+# 7VaLUcpYwi/gtoISAdpiP+pubjANBgkqhkiG9w0BAQEFAASCAQCHOZP+UHIX3yOi
+# e7DeObJlvzcg75R4jYoXVhn1LzyFmZRhsWI2ulCNxEJOdHRdM4mGPcCc54KGwxXA
+# eJOxx54a8QUd7z4YqInRlnf6CwqFHlAGV+H/ip+KCw0NURApvm1XUAGln3otRl0L
+# oo3hq2pTDJbgyqJwCHdVBH44+nUh5ViF15vqvTNF7F/3Yn1eCwsEfJA9hsRgKqtD
+# cThi1GZAVuYiMdvp3TrwVanQGtKX5ccjAgMgZT1uyEIGzmA1Tckj62JZRarGaZ+a
+# QCa+qgUo1+ltHY+V2cnomwKcdiP/N/lgLYCGPl4y6SgLdbgSPcjF5/6J6M05W+Wq
+# ZjZYpkO0
 # SIG # End signature block
