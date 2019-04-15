@@ -36,15 +36,15 @@ if (get-process logonui -ea SilentlyContinue) {
 	New-NetFirewallRule -DisplayName "WOL" -Direction Outbound -RemotePort 9 -Protocol UDP -Action Allow
 
 	#Fix unknown local Admins on CloudJoined Devices
-	if (Get-LocalGroupMember -SID S-1-5-32-544 -ea SilentlyContinue) {} else {
-		$localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
-		$Group = [ADSI]"WinNT://localhost/$LocalGroup,group"
-		$members = $Group.psbase.Invoke("Members")
-		$members | ForEach-Object { $_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -like "S-1-12-1-*" } | ForEach-Object { Remove-LocalGroupMember -Name $localgroup $_ } 
-	}
+	#if (Get-LocalGroupMember -SID S-1-5-32-544 -ea SilentlyContinue) {} else {
+	#	$localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
+	#	$Group = [ADSI]"WinNT://localhost/$LocalGroup,group"
+	#	$members = $Group.psbase.Invoke("Members")
+	#	$members | ForEach-Object { $_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -like "S-1-12-1-*" } | ForEach-Object { Remove-LocalGroupMember -Name $localgroup $_ } 
+	#}
 
     #List of managed Software.
-    $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", 
+    $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", "VSTO2010", "GIMP",
         "AdobeReader DC",  "Microsoft Power BI Desktop", "Putty", "WinSCP", "AdobeAir", "ShockwavePlayer",
         "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
         "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", 
@@ -70,8 +70,8 @@ if (get-process logonui -ea SilentlyContinue) {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUi3wqxt1Fznm8SGcbzIpUzOiJ
-# jNqgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqwrL/OaGMgd8DpUVdE/dwQlw
+# kl6gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -136,12 +136,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ6
-# nyCC7nM0ZlzZeGFeLlduBVFpGTANBgkqhkiG9w0BAQEFAASCAQAkwya+EEcrCDKj
-# u8ETFMimQ4/sq9Kq9ZIQ1gdPYsKizyRXZGxNSPO6EBQw7rG2zJBziz0ufCTf6tTS
-# dR75YPy+EwrEfxF8w63F30/W3yx1w4h+R3IuWmadtuKY42hOSkdh6Wf7VxKkv0H/
-# vuE07iHs4j45oMKKrewFGJnt+GPo6ORzoFQnbjx2nkBS/qh5E68o4uTtAgZLrXtk
-# XjnrS8XJW4af0C3ML7yl/qjBK0O42SBvFfndmTqVA9Wz4z90MJqlmWs3HaEp8e6y
-# OY/mVabmWkkdeBiB+qeIHcTIaXHetAELhX0V5lybrNd7VAXCbn+GNcU0dfMDJemp
-# 8IoKnCqb
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSn
+# qc3n5QRJqikbF270qt5rgaphMDANBgkqhkiG9w0BAQEFAASCAQBIrtxk5bK6uolR
+# MB8XU+eaMGNvE81jBvd8TVUVj6ragWvVnUA1402/RU36PCvrbczzlP4xodQqM/Bx
+# U6uGy23xeIwMjvZBtvGTuilJxhrERMT8qjAJqAjEymT6WoIcTja2DkT8LfNH/iC4
+# Tyxj+NgSS0OcaXXIL85ZS63U6zxP636R3jf7ygDcaPdxIRUN3BloMq6w0xbHcwBj
+# 2HMAeicRTwLRl3tU5+w2HOjMbcK7WDYB95Z8PiL3Zz7YgPlEy+HNddHZPHhu15YA
+# PvXH59h9NYEZeIgG5Rbj/VPvpt4ITXeVKqfd7cC4HgU0RCrg5N1G28BIyEIHD8Rg
+# smHGPaDH
 # SIG # End signature block
