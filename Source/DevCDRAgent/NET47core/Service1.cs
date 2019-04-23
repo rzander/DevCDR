@@ -354,6 +354,7 @@ namespace DevCDRAgent
                         else
                         {
                             tLastStatus = DateTime.Now;
+                            lConnectCount = 0;
                         }
 
                         Trace.Write(DateTime.Now.ToString() + "\t send status...");
