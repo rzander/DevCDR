@@ -26,6 +26,8 @@ namespace DevCDRAgent
     {
         private System.Timers.Timer tReCheck = new System.Timers.Timer(61000); //1min
         private System.Timers.Timer tReInit = new System.Timers.Timer(120100); //2min
+        private DateTime tLastStatus = new DateTime();
+        private long lConnectCount = 0;
 
         private static string Hostname = Environment.MachineName;
         private static HubConnection connection;
@@ -335,6 +337,25 @@ namespace DevCDRAgent
                 {
                     try
                     {
+                        if (lConnectCount == 0)
+                            tLastStatus = DateTime.Now;
+
+                        lConnectCount++;
+
+                        if((DateTime.Now - tLastStatus).TotalSeconds <= 60)
+                        {
+                            if(lConnectCount >= 20) //max 20 status per minute
+                            {
+                                Trace.Write(DateTime.Now.ToString() + "\t restarting service as Agent is looping...");
+                                Trace.Flush();
+                                RestartService();
+                            }
+                        }
+                        else
+                        {
+                            tLastStatus = DateTime.Now;
+                        }
+
                         Trace.Write(DateTime.Now.ToString() + "\t send status...");
                         string sResult = "{}";
                         using (PowerShell PowerShellInstance = PowerShell.Create())
@@ -543,19 +564,19 @@ namespace DevCDRAgent
                             Random rnd = new Random();
                             tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
 
-                                    RZUpdater oUpdate = new RZUpdater();
+                            RZUpdater oUpdate = new RZUpdater();
                             RZScan oScan = new RZScan(false, false);
 
-                            oScan.GetSWRepository().Wait(30000);
-                            oScan.SWScan().Wait(30000);
-                            oScan.CheckUpdates(null).Wait(30000);
+                            oScan.GetSWRepository().Wait(60000);
+                            oScan.SWScan().Wait(60000);
+                            oScan.CheckUpdates(null).Wait(60000);
 
                             if (string.IsNullOrEmpty(s1))
                             {
                                 sScriptResult = oScan.NewSoftwareVersions.Count.ToString() + " RZ updates found";
                                 rnd = new Random();
                                 tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
-                                    }
+                            }
 
                             List<string> lSW = new List<string>();
                             foreach (var oSW in oScan.NewSoftwareVersions)
