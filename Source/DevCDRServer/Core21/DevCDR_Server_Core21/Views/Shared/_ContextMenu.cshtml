@@ -407,6 +407,26 @@
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
                                         RunPS('Stop-Computer -Force', 'Shutdown...');
                                     }
+                                },
+                                "actOSSuspend": {
+                                    "name": "Suspend Computer",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Add-Type -Assembly System.Windows.Forms;[System.Windows.Forms.Application]::SetSuspendState("Suspend", $false, $true)', 'Suspend...');
+                                    }
+                                },
+                                "actOSHybernate": {
+                                    "name": "Hybernate Computer",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('shutdown /h', 'Hybernate...');
+                                    }
                                 }
                             }
                         },
