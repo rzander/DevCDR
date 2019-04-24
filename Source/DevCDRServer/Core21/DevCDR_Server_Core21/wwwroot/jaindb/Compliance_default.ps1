@@ -3,37 +3,37 @@
 # Source: https://www.powershellgallery.com/packages/NetMetered/1.0/Content/NetMetered.psm1
 # Created by:     Wil Taylor (wilfridtaylor@gmail.com) 
 function Test-NetMetered {
-    [void][Windows.Networking.Connectivity.NetworkInformation, Windows, ContentType = WindowsRuntime]
-    $networkprofile = [Windows.Networking.Connectivity.NetworkInformation]::GetInternetConnectionProfile()
+    try {
+        [void][Windows.Networking.Connectivity.NetworkInformation, Windows, ContentType = WindowsRuntime]
+        $networkprofile = [Windows.Networking.Connectivity.NetworkInformation]::GetInternetConnectionProfile()
     
-    if ($networkprofile -eq $null) {
-        Write-Warning "Can't find any internet connections!"
-        return $false
+        if ($networkprofile -eq $null) {
+            Write-Warning "Can't find any internet connections!"
+            return $false
+        }
+    
+        $cost = $networkprofile.GetConnectionCost()
+    
+    
+        if ($cost -eq $null) {
+            Write-Warning "Can't find any internet connections with a cost!"
+            return $false
+        }
+    
+        if ($cost.Roaming -or $cost.OverDataLimit) {
+            return $true
+        }
+    
+        if ($cost.NetworkCostType -eq [Windows.Networking.Connectivity.NetworkCostType]::Fixed -or
+            $cost.NetworkCostType -eq [Windows.Networking.Connectivity.NetworkCostType]::Variable) {
+            return $true
+        }
+    
+        if ($cost.NetworkCostType -eq [Windows.Networking.Connectivity.NetworkCostType]::Unrestricted) {
+            return $false
+        }
     }
-    
-    $cost = $networkprofile.GetConnectionCost()
-    
-    
-    if ($cost -eq $null) {
-        Write-Warning "Can't find any internet connections with a cost!"
-        return $false
-    }
-    
-    if ($cost.Roaming -or $cost.OverDataLimit) {
-        return $true
-    }
-    
-    if ($cost.NetworkCostType -eq [Windows.Networking.Connectivity.NetworkCostType]::Fixed -or
-        $cost.NetworkCostType -eq [Windows.Networking.Connectivity.NetworkCostType]::Variable) {
-        return $true
-    }
-    
-    if ($cost.NetworkCostType -eq [Windows.Networking.Connectivity.NetworkCostType]::Unrestricted) {
-        return $false
-    }
-    
-    throw "Network cost type is unknown!"
-    
+    catch { return $false }
 }
 
 #Install RuckZuck Provider for OneGet if missing...
@@ -63,8 +63,10 @@ if ((Get-ScheduledTask DevCDR -ea SilentlyContinue).Description -ne 'DeviceComma
     }
     catch { }
 
-    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' `
-        -Argument 'if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)){ "&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT=https://devcdrcore.azurewebsites.net/chat /qn REBOOT=REALLYSUPPRESS" }'
+    [xml]$a = gc "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+    $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+    $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)){ `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT=$($EP) /qn REBOOT=REALLYSUPPRESS`" }"
+    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
     $trigger = New-ScheduledTaskTrigger -Daily -At 11:45am -RandomDelay 00:15:00
     $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
     Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "DevCDR" -Description "DeviceCommander fix 1.0.0.0" -User "System" -TaskPath "\DevCDR" -Force
@@ -86,11 +88,11 @@ if (get-process logonui -ea SilentlyContinue) {
     #endregion
 
     #Enable WOL broadcasts
-    if((Get-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue).count -gt 1) {
+    if ((Get-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue).count -gt 1) {
         #Cleanup WOl Rules
         Remove-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue
     }
-    if((Get-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue).count -eq 0) {
+    if ((Get-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue).count -eq 0) {
         #Add WOL Rule
         New-NetFirewallRule -DisplayName "WOL" -Direction Outbound -RemotePort 9 -Protocol UDP -Action Allow
     }
@@ -112,7 +114,8 @@ if (get-process logonui -ea SilentlyContinue) {
             if ($updates.PackageFilename -contains $_) { 
                 "Updating: " + $_ ;
                 Install-Package -ProviderName RuckZuck "$($_)"
-            } else { "$($_)" }
+            }
+            else { "$($_)" }
         }
     }
 
@@ -124,8 +127,8 @@ if (get-process logonui -ea SilentlyContinue) {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhYshUXVibTKtjTS7ULuvv2Wj
-# mTWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUi1VddKNRZxHvcuqhmcuipJRF
+# LTCgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -190,12 +193,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQV
-# 0wM7L+jBB97tswZMjuKTn/WLQDANBgkqhkiG9w0BAQEFAASCAQAg+87hYYvhsDvA
-# E2QjH4GnrMe6UOsQTU9BStJ74nHwkEnsCGtDzf4OU+VpKMVHOej+al5BXvPKfcZ6
-# GCPcURu6o+EI/U70Kkp8VzxxF00F38Thq00KAhkhQoI3ua9PJIRoGAjs/iURTuMg
-# LiRV1eVJX03uEaL09piaVhmO5Q5kWDUBeyASKFIj1U4JteQc3EGbwPa8zL3ih56h
-# 6/7aT3Lw9lhvyYjfnbOjfT/j+y0FNnwmvBc1MtCJZCDe6nDAojzu25NAV4l02T7f
-# WCwKYlPTKQRz8NO5oGyLx3Xd+Xe22DnK5RcEaEgFOubKEz8xEFJC/KNNYot52cO/
-# p02nSe8Y
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRR
+# bWFrh3RBBYc/+lAZYDDh2CYR8DANBgkqhkiG9w0BAQEFAASCAQBB//piDSPZu6bY
+# ZMxcGXTfmoxJYHq8ROwA3kaHcId1ZTWrcpghKomO+W/UoMKGhjWOldcdpMT3x+Tz
+# QMohO65lDYhShfi2hNjq629Yv8DMZSZLakPW7wQ6AGdwVFaG9pgdF2Zm7QRL67lB
+# Rr8g/d7yKLA1NXqxUu5feROhjsybz0nowH5AClGE6ugtXZq1T6AR7D+hrjjhiGi/
+# sEE5VGXh3aCew5cAKV3/COvGvBAJJ2thnaDiXQbA7Q4K7aZcq/LSLFwY926upaLD
+# hvGSKUYGc1lXI0ZZO3xWJXNxLjU52Kk1MKX26+N4hTX5L7gKXJ3/7HMnT3EUfuPa
+# EFbtkm4o
 # SIG # End signature block
