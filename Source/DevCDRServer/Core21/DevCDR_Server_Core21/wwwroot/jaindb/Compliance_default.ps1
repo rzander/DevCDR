@@ -1,77 +1,131 @@
 ﻿[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-#Install RuckZuck Provider for OneGet if missing...
-if(Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) {} else {
-	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.0.2/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+# Source: https://www.powershellgallery.com/packages/NetMetered/1.0/Content/NetMetered.psm1
+# Created by:     Wil Taylor (wilfridtaylor@gmail.com) 
+function Test-NetMetered {
+    [void][Windows.Networking.Connectivity.NetworkInformation, Windows, ContentType = WindowsRuntime]
+    $networkprofile = [Windows.Networking.Connectivity.NetworkInformation]::GetInternetConnectionProfile()
+    
+    if ($networkprofile -eq $null) {
+        Write-Warning "Can't find any internet connections!"
+        return $false
+    }
+    
+    $cost = $networkprofile.GetConnectionCost()
+    
+    
+    if ($cost -eq $null) {
+        Write-Warning "Can't find any internet connections with a cost!"
+        return $false
+    }
+    
+    if ($cost.Roaming -or $cost.OverDataLimit) {
+        return $true
+    }
+    
+    if ($cost.NetworkCostType -eq [Windows.Networking.Connectivity.NetworkCostType]::Fixed -or
+        $cost.NetworkCostType -eq [Windows.Networking.Connectivity.NetworkCostType]::Variable) {
+        return $true
+    }
+    
+    if ($cost.NetworkCostType -eq [Windows.Networking.Connectivity.NetworkCostType]::Unrestricted) {
+        return $false
+    }
+    
+    throw "Network cost type is unknown!"
+    
 }
 
-if((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.7.0.2"))
-{
-	&msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.0.2/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+#Install RuckZuck Provider for OneGet if missing...
+if (Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) { } else {
+    &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.0.2/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+}
+
+if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.7.0.2")) {
+    &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.0.2/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
 #Update DevCDRAgentCore
-if([version](get-item "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.22") {
-	[xml]$a =gc "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
-	$EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
-	$EP > $env:temp\ep.log
-	&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT="$($EP)" /qn REBOOT=REALLYSUPPRESS  
+if ([version](get-item "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.23") {
+    [xml]$a = gc "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+    $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+    $EP > $env:temp\ep.log
+    &msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT="$($EP)" /qn REBOOT=REALLYSUPPRESS  
 }
+
+#Add Scheduled-Task to repair Agent 
+if ((Get-ScheduledTask DevCDR -ea SilentlyContinue).Description -ne 'DeviceCommander fix 1.0.0.0') {
+    try {
+        $scheduleObject = New-Object -ComObject schedule.service
+        $scheduleObject.connect()
+        $rootFolder = $scheduleObject.GetFolder("\")
+        $rootFolder.CreateFolder("DevCDR")
+    }
+    catch { }
+
+    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' `
+        -Argument 'if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)){ "&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT=https://devcdrcore.azurewebsites.net/chat /qn REBOOT=REALLYSUPPRESS" }'
+    $trigger = New-ScheduledTaskTrigger -Daily -At 11:45am -RandomDelay 00:15:00
+    $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+    Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "DevCDR" -Description "DeviceCommander fix 1.0.0.0" -User "System" -TaskPath "\DevCDR" -Force
+}
+
 
 #Only Update SW if LockScreen (LogonUI) is present
 if (get-process logonui -ea SilentlyContinue) {
 	
-	#Disable FastBoot
-	New-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' -Name 'HiberbootEnabled' -Value 0 -PropertyType DWord -Force -ea SilentlyContinue;
+    #Disable FastBoot
+    New-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' -Name 'HiberbootEnabled' -Value 0 -PropertyType DWord -Force -ea SilentlyContinue;
 
-	#region Select a method to restrict Peer Selection on DeliveryOptimization
-	#Create the key if missing 
-	If((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization') -eq $false ) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -force -ea SilentlyContinue } 
+    #region Select a method to restrict Peer Selection on DeliveryOptimization
+    #Create the key if missing 
+    If ((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization') -eq $false ) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -force -ea SilentlyContinue } 
 
-	#Enable Setting and Restrict to local Subnet only
-	Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -Name 'DORestrictPeerSelectionBy' -Value 1 -ea SilentlyContinue 
-	#endregion
+    #Enable Setting and Restrict to local Subnet only
+    Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -Name 'DORestrictPeerSelectionBy' -Value 1 -ea SilentlyContinue 
+    #endregion
 
-	#Enable WOL broadcasts
-	New-NetFirewallRule -DisplayName "WOL" -Direction Outbound -RemotePort 9 -Protocol UDP -Action Allow
+    #Enable WOL broadcasts
+    if((Get-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue).count -gt 1) {
+        #Cleanup WOl Rules
+        Remove-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue
+    }
+    if((Get-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue).count -eq 0) {
+        #Add WOL Rule
+        New-NetFirewallRule -DisplayName "WOL" -Direction Outbound -RemotePort 9 -Protocol UDP -Action Allow
+    }
 
-	#Fix unknown local Admins on CloudJoined Devices
-	#if (Get-LocalGroupMember -SID S-1-5-32-544 -ea SilentlyContinue) {} else {
-	#	$localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
-	#	$Group = [ADSI]"WinNT://localhost/$LocalGroup,group"
-	#	$members = $Group.psbase.Invoke("Members")
-	#	$members | ForEach-Object { $_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -like "S-1-12-1-*" } | ForEach-Object { Remove-LocalGroupMember -Name $localgroup $_ } 
-	#}
+    #Update Software if network is NOT metered
+    if (-NOT (Test-NetMetered )) {
+        #List of managed Software.
+        $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", "VSTO2010", "GIMP",
+            "AdobeReader DC", "Microsoft Power BI Desktop", "Putty", "WinSCP", "AdobeAir", "ShockwavePlayer",
+            "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
+            "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", 
+            "VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "Microsoft Azure Information Protection" )
 
-    #List of managed Software.
-    $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", "VSTO2010", "GIMP",
-        "AdobeReader DC",  "Microsoft Power BI Desktop", "Putty", "WinSCP", "AdobeAir", "ShockwavePlayer",
-        "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
-        "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", 
-		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "Microsoft Azure Information Protection" )
+        #Find Software Updates
+        $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename
 
-    #Find Software Updates
-    $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename
-
-    #Update only managed Software
-    $ManagedSW | ForEach-Object { 
-        if ($updates.PackageFilename -contains $_) { 
-            "Updating: " + $_ ;
-            Install-Package -ProviderName RuckZuck "$($_)"
+        #Update only managed Software
+        $ManagedSW | ForEach-Object { 
+            if ($updates.PackageFilename -contains $_) { 
+                "Updating: " + $_ ;
+                Install-Package -ProviderName RuckZuck "$($_)"
+            } else { "$($_)" }
         }
     }
 
-	#Cleanup Temp
-	if((Get-ChildItem "$($env:windir)\Temp\*" -Recurse).Count -gt 100) {
-		Remove-Item "$($env:windir)\Temp\*" -Force -Recurse -Exclude devcdrcore.log -ea SilentlyContinue
-	}
+    #Cleanup Temp
+    if ((Get-ChildItem "$($env:windir)\Temp\*" -Recurse).Count -gt 100) {
+        Remove-Item "$($env:windir)\Temp\*" -Force -Recurse -Exclude devcdrcore.log -ea SilentlyContinue
+    }
 }
-
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUeJMK/vtZsqEPd89PesT65oip
-# 3jmgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhYshUXVibTKtjTS7ULuvv2Wj
+# mTWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -136,12 +190,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTT
-# hW24/+baYKzcbaI8RIlfw7yg0zANBgkqhkiG9w0BAQEFAASCAQAe9gTAnqyxzMd2
-# +J/gfyjXp0i10dJh6png6+WtfjBbaR9R0anx+PMGbOHTP3oKWZqyt5ozoJpb/gpJ
-# Peb/eK7KNmZIp108NUBFRnAV8oK21MosMADehfhSBQC7KXPiVrfeHIKNVHr8GRI3
-# ovxS9BDi8lWdiRctRZm7AoJdukR6XH9EHmSiubg6JN514gmHvS3s/mlWd7+VLLyg
-# uASdReGapHNRH2wFwpl4yP/WmJwGacTwJ6ugsR9qBE5hzk9tQ7YgwgEJ5bjO9lOt
-# 9PRAkoqusAvUg8qjtJe8KGBBy/VZV8PfH0oAg0a193hsBRsmJDmNOmQWZ5n4Kmt/
-# OTmT32Vv
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQV
+# 0wM7L+jBB97tswZMjuKTn/WLQDANBgkqhkiG9w0BAQEFAASCAQAg+87hYYvhsDvA
+# E2QjH4GnrMe6UOsQTU9BStJ74nHwkEnsCGtDzf4OU+VpKMVHOej+al5BXvPKfcZ6
+# GCPcURu6o+EI/U70Kkp8VzxxF00F38Thq00KAhkhQoI3ua9PJIRoGAjs/iURTuMg
+# LiRV1eVJX03uEaL09piaVhmO5Q5kWDUBeyASKFIj1U4JteQc3EGbwPa8zL3ih56h
+# 6/7aT3Lw9lhvyYjfnbOjfT/j+y0FNnwmvBc1MtCJZCDe6nDAojzu25NAV4l02T7f
+# WCwKYlPTKQRz8NO5oGyLx3Xd+Xe22DnK5RcEaEgFOubKEz8xEFJC/KNNYot52cO/
+# p02nSe8Y
 # SIG # End signature block
