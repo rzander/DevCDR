@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace DevCDRServer
 {
@@ -42,17 +43,26 @@ namespace DevCDRServer
 
         public void HealthCheck(string name)
         {
-            string sEndPoint = Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
-            //string sEndPoint = "devcdr.azurewebsites.net";
-            //string sEndPoint = Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
-            Clients.Client(Context.ConnectionId).SendAsync("returnPSAsync", "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=compliance_default.ps1' | IEX;''", "Host");
+            string regName = Environment.GetEnvironmentVariable("ComputernameRegex") ?? "(.*?)";
+            string complianceFile = Environment.GetEnvironmentVariable("ScriptCompliance") ?? "compliance_default.ps1";
+            Match m = Regex.Match(name, regName, RegexOptions.IgnoreCase);
+            if (m.Success)
+            {
+                string sEndPoint = Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
+                Clients.Client(Context.ConnectionId).SendAsync("returnPSAsync", "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=" + complianceFile +"' | IEX;''", "Host");
+            }
         }
 
         public void Inventory(string name)
         {
-            string sEndPoint = Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
-            //string sEndPoint = "devcdr.azurewebsites.net";
-            Clients.Client(Context.ConnectionId).SendAsync("returnPSAsync", "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=inventory.ps1' | IEX;'Inventory complete..'", "Host");
+            string regName = Environment.GetEnvironmentVariable("ComputernameRegex") ?? "(.*?)";
+            string invFile = Environment.GetEnvironmentVariable("ScriptInvemtory") ?? "inventory.ps1";
+            Match m = Regex.Match(name, regName, RegexOptions.IgnoreCase);
+            if (m.Success)
+            {
+                string sEndPoint = Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
+                Clients.Client(Context.ConnectionId).SendAsync("returnPSAsync", "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=" + invFile + "' | IEX;'Inventory complete..'", "Host");
+            }
         }
 
 
