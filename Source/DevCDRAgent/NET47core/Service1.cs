@@ -84,7 +84,7 @@ namespace DevCDRAgent
                             {
                                 Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
                                 Trace.Flush();
-                                System.Threading.Thread.Sleep(3000);
+                                System.Threading.Thread.Sleep(1000);
 
                                 connection.SendAsync("HealthCheck", Hostname);
 

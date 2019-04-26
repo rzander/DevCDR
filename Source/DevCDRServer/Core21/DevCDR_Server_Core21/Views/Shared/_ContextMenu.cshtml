@@ -407,6 +407,26 @@
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
                                         RunPS('Stop-Computer -Force', 'Shutdown...');
                                     }
+                                },
+                                "actOSSuspend": {
+                                    "name": "Suspend Computer",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('Add-Type -Assembly System.Windows.Forms;[System.Windows.Forms.Application]::SetSuspendState("Suspend", $false, $true)', 'Suspend...');
+                                    }
+                                },
+                                "actOSHybernate": {
+                                    "name": "Hybernate Computer",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('shutdown /h', 'Hybernate...');
+                                    }
                                 }
                             }
                         },
@@ -430,7 +450,7 @@
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
-                                        Command('InstallRZUpdates', '7-Zip;7-Zip(MSI);AdobeReader DC MUI;AdobeReader DC;Firefox;FlashPlayerPlugin;FlashPlayerPPAPI;Google Chrome;KeePass;Notepad++;Notepad++(x64);Code;paint.net;Putty;VLC;JavaRuntime8;JavaRuntime8x64;VCRedist2017x64;VCRedist2017x86;VCRedist2015x64;VCRedist2015x86;VCRedist2013x64;VCRedist2013x86;WinSCP;Sonos Controller;Microsoft Azure PowerShell;Greenshot;Brackets;WinRAR;TeamViewer');
+                                        Command('InstallRZUpdates', '7-Zip;7-Zip(MSI);AdobeReader DC MUI;AdobeReader DC;Firefox;FlashPlayerPlugin;FlashPlayerPPAPI;Google Chrome;KeePass;Notepad++;Notepad++(x64);Code;Putty;VLC;JavaRuntime8;JavaRuntime8x64;VCRedist2017x64;VCRedist2017x86;VCRedist2015x64;VCRedist2015x86;VCRedist2013x64;VCRedist2013x86;WinSCP;Greenshot;Brackets;WinRAR');
                                     }
                                 },
                                 "actRZUpdate": {

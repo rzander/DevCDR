@@ -3,14 +3,14 @@ function GetHash([string]$txt) {
 }
 
 function GetMD5([string]$txt) {
-    $md5 = new-object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
-    $utf8 = new-object -TypeName System.Text.ASCIIEncoding
+    $md5 = New-Object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
+    $utf8 = New-Object -TypeName System.Text.ASCIIEncoding
     return Base58(@(0xd5, 0x10) + $md5.ComputeHash($utf8.GetBytes($txt))) #To store hash in Multihash format, we add a 0xD5 to make it an MD5 and an 0x10 means 10Bytes length
 }
 
 function GetSHA2_256([string]$txt) {
-    $sha = new-object -TypeName System.Security.Cryptography.SHA256CryptoServiceProvider
-    $utf8 = new-object -TypeName System.Text.ASCIIEncoding
+    $sha = New-Object -TypeName System.Security.Cryptography.SHA256CryptoServiceProvider
+    $utf8 = New-Object -TypeName System.Text.ASCIIEncoding
     return Base58(@(0x12, 0x20) + $sha.ComputeHash($utf8.GetBytes($txt))) #To store hash in Multihash format, we add a 0x12 to make it an SHA256 and an 0x20 means 32Bytes length
 }
 
@@ -60,17 +60,17 @@ function GetInv {
         $AppendProperties
     )
 
-    if($Namespace) {} else { $Namespace = "root\cimv2"}
+    if ($Namespace) { } else { $Namespace = "root\cimv2" }
     $obj = Get-CimInstance -Namespace $Namespace -ClassName $WMIClass
 
     if ($Properties -eq $null) { $Properties = $obj.Properties.Name | Sort-Object }
-    if ($Namespace -eq $null) { $Namespace = "root\cimv2"}
+    if ($Namespace -eq $null) { $Namespace = "root\cimv2" }
 
     $res = $obj | Select-Object $Properties -ea SilentlyContinue
 
     #WMI Results can be an array of objects
     if ($obj -is [array]) {
-        $Properties  | ForEach-Object { $prop = $_; $i = 0; $res | ForEach-Object {
+        $Properties | ForEach-Object { $prop = $_; $i = 0; $res | ForEach-Object {
                 $val = $obj[$i].($prop.TrimStart('#@'));
                 try {
                     if ($val.GetType() -eq [string]) {
@@ -81,7 +81,7 @@ function GetInv {
                         }
                     }
                 }
-                catch {}
+                catch { }
                 if ($val) {
                     $_ | Add-Member -MemberType NoteProperty -Name ($prop) -Value ($val) -Force;
                 }
@@ -105,9 +105,9 @@ function GetInv {
                     }
                 }
             }
-            catch {}
+            catch { }
             if ($val) {
-                $res |  Add-Member -MemberType NoteProperty -Name ($prop) -Value ($val) -Force;
+                $res | Add-Member -MemberType NoteProperty -Name ($prop) -Value ($val) -Force;
             }
             else {
                 $res.PSObject.Properties.Remove($prop);
@@ -152,11 +152,13 @@ function SetID {
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#UUID" -Value (getinv -Name "Computer" -WMIClass "win32_ComputerSystemProduct" -Properties @("#UUID"))."#UUID" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#Name" -Value (getinv -Name "Computer" -WMIClass "win32_ComputerSystem" -Properties @("Name"))."Name" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#SerialNumber" -Value (getinv -Name "Computer" -WMIClass "win32_SystemEnclosure" -Properties @("SerialNumber"))."SerialNumber" -ea SilentlyContinue
-        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "@MAC" -Value (get-wmiobject -class "Win32_NetworkAdapterConfiguration" | Where-Object {($_.IpEnabled -Match "True")}).MACAddress.Replace(':', '-')
+        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "@MAC" -Value (Get-WmiObject -class "Win32_NetworkAdapterConfiguration" | Where-Object { ($_.IpEnabled -Match "True") }).MACAddress.Replace(':', '-')
 		
-		[xml]$a =gc "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
-		$EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
-		$AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDREndpoint" -Value $EP
+        [xml]$a = Get-Content "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+        $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+        $devcdrgrp  = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Groups' }).value
+        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDREndpoint" -Value $EP
+        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRGroups" -Value $devcdrgrp
         return $null
     }   
 }
@@ -165,7 +167,7 @@ function SetID {
 $object = New-Object PSObject
 getinv -Name "Battery" -WMIClass "win32_Battery" -Properties @("@BatteryStatus", "Caption", "Chemistry", "#Name", "@Status", "PowerManagementCapabilities", "#DeviceID") -AppendObject ([ref]$object)
 $bios = getinv -Name "BIOS" -WMIClass "win32_BIOS" -Properties @("Name", "Manufacturer", "Version", "#SerialNumber") #-AppendObject ([ref]$object)
-$bios | Add-Member -MemberType NoteProperty -Name "@DeviceHardwareData" -Value ((Get-WMIObject -Namespace root/cimv2/mdm/dmmap -Class MDM_DevDetail_Ext01 -Filter "InstanceID='Ext' AND ParentID='./DevDetail'").DeviceHardwareData) -ea SilentlyContinue
+$bios | Add-Member -MemberType NoteProperty -Name "@DeviceHardwareData" -Value ((Get-WmiObject -Namespace root/cimv2/mdm/dmmap -Class MDM_DevDetail_Ext01 -Filter "InstanceID='Ext' AND ParentID='./DevDetail'").DeviceHardwareData) -ea SilentlyContinue
 $object | Add-Member -MemberType NoteProperty -Name "BIOS" -Value $bios -ea SilentlyContinue
 getinv -Name "Processor" -WMIClass "win32_Processor" -Properties @("Name", "Manufacturer", "Family", "NumberOfCores", "NumberOfEnabledCore", "NumberOfLogicalProcessors", "L2CacheSize", "L3CacheSize", "#ProcessorId") -AppendObject ([ref]$object)
 getinv -Name "Memory" -WMIClass "win32_PhysicalMemory" -Properties @("Manufacturer", "ConfiguredClockSpeed", "ConfiguredVoltage", "PartNumber", "FormFactor", "DataWidth", "Speed", "SMBIOSMemoryType", "Name" , "Capacity" , "#SerialNumber") -AppendObject ([ref]$object)
@@ -186,42 +188,58 @@ $object | Add-Member -MemberType NoteProperty -Name "LogicalDisk" -Value ($ld)
 #getinv -Name "NetworkAdapterConfiguration" -WMIClass "Win32_NetworkAdapterConfiguration" -Properties @("@DefaultIPGateway", "Description", "DHCPEnabled", "#DHCPServer", "DNSDomain", "@Index", "@InterfaceIndex", "@IPAddress", "IPEnabled", "@IPSubnet", "#MACAddress" ) -AppendObject ([ref]$object)
 
 getinv -Name "Video" -WMIClass "Win32_VideoController" -Properties @("AdapterCompatibility", "Name", "@CurrentHorizontalResolution", "@CurrentVerticalResolution", "@CurrentBitsPerPixel", "@CurrentRefreshRate", "DriverVersion", "InfSection", "PNPDeviceID", "VideoArchitecture", "VideoProcessor") -AppendObject ([ref]$object)
-$object.Video= $object.Video | where { $_.PNPDeviceID -notlike "USB*" } #Cleanup USB Video Devices
+$object.Video = $object.Video | Where-Object { $_.PNPDeviceID -notlike "USB*" } #Cleanup USB Video Devices
 getinv -Name "QFE" -WMIClass "Win32_QuickFixEngineering" -Properties @("Caption", "Description", "HotFixID", "@InstalledOn") -AppendObject ([ref]$object)
 getinv -Name "Share" -WMIClass "Win32_Share" -Properties @("Name", "Description ", "Name", "Path", "Type") -AppendObject ([ref]$object)
 getinv -Name "Audio" -WMIClass "Win32_SoundDevice" -Properties @("Caption", "Description ", "DeviceID", "Manufacturer") -AppendObject ([ref]$object)
-$object.Audio = $object.Audio | where { $_.DeviceID -notlike "USB*" } #Cleanup USB Audio Devices
+$object.Audio = $object.Audio | Where-Object { $_.DeviceID -notlike "USB*" } #Cleanup USB Audio Devices
 
 getinv -Name "CDROM" -WMIClass "Win32_CDROMDrive" -Properties @("Capabilities", "Name", "Description", "DeviceID", "@Drive" , "MediaType") -AppendObject ([ref]$object)
 
 #getinv -Name "Driver" -WMIClass "Win32_PnPSignedDriver" -Properties @("DeviceID","DeviceName", "DriverDate", "DriverProviderName", "DriverVersion", "FriendlyName", "HardWareID", "InfName" ) -AppendObject ([ref]$object)
-getinv -Name "Printer" -WMIClass "Win32_Printer" -Properties @("DeviceID","CapabilityDescriptions","DriverName", "Local" , "Network", "PrinterPaperNames") -AppendObject ([ref]$object)
+getinv -Name "Printer" -WMIClass "Win32_Printer" -Properties @("DeviceID", "CapabilityDescriptions", "DriverName", "Local" , "Network", "PrinterPaperNames") -AppendObject ([ref]$object)
 
 #getinv -Name "OptionalFeature" -WMIClass "Win32_OptionalFeature" -Properties @("Caption", "Name", "InstallState" ) -AppendObject ([ref]$object)
-$feature = Get-WindowsOptionalFeature -Online | Select-Object @{N = 'Name'; E = {$_.FeatureName}} , @{N = 'InstallState'; E = {$_.State.tostring()}} 
+$feature = Get-WindowsOptionalFeature -Online | Select-Object @{N = 'Name'; E = { $_.FeatureName } } , @{N = 'InstallState'; E = { $_.State.tostring() } } 
 $object | Add-Member -MemberType NoteProperty -Name "OptionalFeature" -Value ($feature)
 
-$user = Get-LocalUser | Select-Object Description, Enabled, UserMayChangePassword, PasswordRequired, Name, @{N = '@PasswordLastSet'; E = {[System.DateTime](($_.PasswordLastSet).ToUniversalTime())}}, @{N = 'id'; E = {$_.SID.Value.ToString()}} | Sort-Object -Property Name
+$user = Get-LocalUser | Select-Object Description, Enabled, UserMayChangePassword, PasswordRequired, Name, @{N = '@PasswordLastSet'; E = { [System.DateTime](($_.PasswordLastSet).ToUniversalTime()) } }, @{N = 'id'; E = { $_.SID.Value.ToString() } } | Sort-Object -Property Name
 $object | Add-Member -MemberType NoteProperty -Name "LocalUsers" -Value ($user)
 
-$locAdmin = Get-LocalGroupMember -SID S-1-5-32-544 | Select-Object @{N = 'Name'; E = {$_.Name.Replace($($env:Computername) + "\", "")}}, ObjectClass, @{Name = 'PrincipalSource'; Expression = {$_.PrincipalSource.ToString()}}, @{Name = 'id'; Expression = {$_.SID.Value.ToString()}} | Sort-Object -Property Name
+#Get-LocalGroupMember has a bug if device is azure AD joined
+#$locAdmin = Get-LocalGroupMember -SID S-1-5-32-544 | Select-Object @{N = 'Name'; E = {$_.Name.Replace($($env:Computername) + "\", "")}}, ObjectClass, @{Name = 'PrincipalSource'; Expression = {$_.PrincipalSource.ToString()}}, @{Name = 'id'; Expression = {$_.SID.Value.ToString()}} | Sort-Object -Property Name
+$admingroup = (Get-WmiObject -Class Win32_Group -Filter "LocalAccount='True' AND SID='S-1-5-32-544'").Name
+$locAdmin = @()     
+$groupconnection = [ADSI]("WinNT://localhost/$admingroup,group")
+$members = $groupconnection.Members()
+ForEach ($member in $members) {
+    $name = $member.GetType().InvokeMember("Name", "GetProperty", $NULL, $member, $NULL)
+    $class = $member.GetType().InvokeMember("Class", "GetProperty", $NULL, $member, $NULL)
+    $bytes = $member.GetType().InvokeMember("objectsid", "GetProperty", $NULL, $member, $NULL)
+    $sid = New-Object Security.Principal.SecurityIdentifier ($bytes, 0)
+    $result = New-Object -TypeName psobject
+    $result | Add-Member -MemberType NoteProperty -Name Name -Value $name
+    $result | Add-Member -MemberType NoteProperty -Name ObjectClass -Value $class
+    $result | Add-Member -MemberType NoteProperty -Name id -Value $sid.Value.ToString()
+    $locAdmin = $locAdmin + $result;
+}
 $object | Add-Member -MemberType NoteProperty -Name "LocalAdmins" -Value ($locAdmin)
 
-$locGroup = Get-LocalGroup | Select-Object Description, Name, PrincipalSource, ObjectClass, @{N = 'id'; E = {$_.SID.Value.ToString()}}  | Sort-Object -Property Name
+$locGroup = Get-LocalGroup | Select-Object Description, Name, PrincipalSource, ObjectClass, @{N = 'id'; E = { $_.SID.Value.ToString() } } | Sort-Object -Property Name
 $object | Add-Member -MemberType NoteProperty -Name "LocalGroups" -Value ($locGroup)
 
-$fw = Get-NetFirewallProfile | select Name, Enabled
+$fw = Get-NetFirewallProfile | Select-Object Name, Enabled
 $object | Add-Member -MemberType NoteProperty -Name "Firewall" -Value ($fw)
 
-$tpm = get-tpm
+$tpm = Get-Tpm
 $object | Add-Member -MemberType NoteProperty -Name "TPM" -Value ($tpm)
 
-$bitlocker = Get-BitLockerVolume | ? { $_.VolumeType -eq 'OperatingSystem' } | select MountPoint, @{N = 'EncryptionMethod'; E = {$_.EncryptionMethod.ToString()}} , AutoUnlockEnabled, AutoUnlockKeyStored, MetadataVersion, VolumeStatus, ProtectionStatus, LockStatus, EncryptionPercentage, WipePercentage, @{N = 'VolumeType'; E = {$_.VolumeType.ToString()}}, KeyProtector | ConvertTo-Json | ConvertFrom-Json
-$bitlocker.KeyProtector | % { $_ | Add-Member -MemberType NoteProperty -Name "#RecoveryPassword" -Value ($_.RecoveryPassword)}
-$bitlocker.KeyProtector | % { $_.PSObject.Properties.Remove('KeyProtectorId'); $_.PSObject.Properties.Remove('RecoveryPassword') }
+$bitlocker = Get-BitLockerVolume | Where-Object { $_.VolumeType -eq 'OperatingSystem' } | Select-Object MountPoint, @{N = 'EncryptionMethod'; E = { $_.EncryptionMethod.ToString() } } , AutoUnlockEnabled, AutoUnlockKeyStored, MetadataVersion, VolumeStatus, ProtectionStatus, LockStatus, EncryptionPercentage, WipePercentage, @{N = 'VolumeType'; E = { $_.VolumeType.ToString() } }, KeyProtector | ConvertTo-Json | ConvertFrom-Json
+$bitlocker.KeyProtector | ForEach-Object { $_ | Add-Member -MemberType NoteProperty -Name "#RecoveryPassword" -Value ($_.RecoveryPassword) }
+$bitlocker.KeyProtector | ForEach-Object { $_.PSObject.Properties.Remove('KeyProtectorId'); $_.PSObject.Properties.Remove('RecoveryPassword') }
 $object | Add-Member -MemberType NoteProperty -Name "BitLocker" -Value ($bitlocker)
 
-$defender = Get-MpPreference | select * -ExcludeProperty ComputerID, PSComputerName, Cim*
+$defender = Get-MpPreference | Select-Object * -ExcludeProperty ComputerID, PSComputerName, Cim*
 $object | Add-Member -MemberType NoteProperty -Name "Defender" -Value ($defender)
 
 #$FWRules = Get-NetFirewallRule | Select-Object DisplayName,Description,DisplayGroup,Group,Enabled,Profile,Platform,Direction,Action,EdgeTraversalPolicy,LooseSourceMapping,LocalOnlyMapping,Owner,PrimaryStatus,Status,EnforcementStatus,PolicyStoreSource,PolicyStoreSourceType | Sort-Object -Property DisplayName
@@ -238,27 +256,27 @@ $object | Add-Member -MemberType NoteProperty -Name "Defender" -Value ($defender
 #$object | Add-Member -MemberType NoteProperty -Name "Update" -Value ($upd)
 
 #Get Installed Software
-$SW = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* -ea SilentlyContinue | Where-Object { $_.DisplayName -ne $null -and $_.SystemComponent -ne 0x1 -and $_.ParentDisplayName -eq $null } | Select-Object DisplayName, DisplayVersion, Publisher, Language, WindowsInstaller, @{N = '@InstallDate'; E = { $_.InstallDate }}, HelpLink, UninstallString, @{N = 'Architecture'; E = {"X64"}}, @{N = 'id'; E = {GetHash($_.DisplayName + $_.DisplayVersion + $_.Publisher + "X64")}}
-$SW += Get-ItemProperty HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* -ea SilentlyContinue | Where-Object { $_.DisplayName -ne $null -and $_.SystemComponent -ne 0x1 -and $_.ParentDisplayName -eq $null } | Select-Object DisplayName, DisplayVersion, Publisher, Language, WindowsInstaller,  @{N = '@InstallDate'; E = { $_.InstallDate }}, HelpLink, UninstallString,  @{N = 'Architecture'; E = {"X86"}}, @{N = 'id'; E = {GetHash($_.DisplayName + $_.DisplayVersion + $_.Publisher + "X86")}}
-$object | Add-Member -MemberType NoteProperty -Name "Software" -Value ($SW| Sort-Object -Property DisplayName )
+$SW = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* -ea SilentlyContinue | Where-Object { $_.DisplayName -ne $null -and $_.SystemComponent -ne 0x1 -and $_.ParentDisplayName -eq $null } | Select-Object DisplayName, DisplayVersion, Publisher, Language, WindowsInstaller, @{N = '@InstallDate'; E = { $_.InstallDate } }, HelpLink, UninstallString, @{N = 'Architecture'; E = { "X64" } }, @{N = 'id'; E = { GetHash($_.DisplayName + $_.DisplayVersion + $_.Publisher + "X64") } }
+$SW += Get-ItemProperty HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* -ea SilentlyContinue | Where-Object { $_.DisplayName -ne $null -and $_.SystemComponent -ne 0x1 -and $_.ParentDisplayName -eq $null } | Select-Object DisplayName, DisplayVersion, Publisher, Language, WindowsInstaller, @{N = '@InstallDate'; E = { $_.InstallDate } }, HelpLink, UninstallString, @{N = 'Architecture'; E = { "X86" } }, @{N = 'id'; E = { GetHash($_.DisplayName + $_.DisplayVersion + $_.Publisher + "X86") } }
+$object | Add-Member -MemberType NoteProperty -Name "Software" -Value ($SW | Sort-Object -Property DisplayName )
 
 #Services ( Exlude services with repeating numbers like BluetoothUserService_62541)
-$Services = get-service | Where-Object { (($_.Name.IndexOf("_")) -eq -1) -and ($_.Name -ne 'camsvc')  } | Select-Object -Property @{N = 'id'; E = { $_.Name}}, DisplayName, @{N = 'StartType'; E = {if($_.StartType -eq 4) { 'Disabled'} else { 'Manual or Automatic' }}}, @{N = '@status'; E = {$_.status}} 
+$Services = Get-Service | Where-Object { (($_.Name.IndexOf("_")) -eq -1) -and ($_.Name -ne 'camsvc') } | Select-Object -Property @{N = 'id'; E = { $_.Name } }, DisplayName, @{N = 'StartType'; E = { if ($_.StartType -eq 4) { 'Disabled' } else { 'Manual or Automatic' } } }, @{N = '@status'; E = { $_.status } } 
 $object | Add-Member -MemberType NoteProperty -Name "Services" -Value ($Services )
 
 #Office365
-$O365 = Get-ItemProperty HKLM:SOFTWARE\Microsoft\Office\ClickToRun\Configuration -ea SilentlyContinue  | Select * -Exclude PS*,*Retail.EmailAddress,InstallID
+$O365 = Get-ItemProperty HKLM:SOFTWARE\Microsoft\Office\ClickToRun\Configuration -ea SilentlyContinue | Select-Object * -Exclude PS*, *Retail.EmailAddress, InstallID
 $object | Add-Member -MemberType NoteProperty -Name "Office365" -Value ($O365)
 
 #CloudJoin
-$Cloud = Get-Item HKLM:SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\* -ea SilentlyContinue  | Get-ItemProperty | select -Property IdpDomain,TenantId,@{N = '#UserEmail'; E = { $_.UserEmail}},AikCertStatus, AttestationLevel,TransportKeyStatus
+$Cloud = Get-Item HKLM:SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\* -ea SilentlyContinue | Get-ItemProperty | Select-Object -Property IdpDomain, TenantId, @{N = '#UserEmail'; E = { $_.UserEmail } }, AikCertStatus, AttestationLevel, TransportKeyStatus
 $object | Add-Member -MemberType NoteProperty -Name "CloudJoin" -Value ($Cloud)
 
 #OS Version details
 $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
 
 #Cleanup
-$object."LogicalDisk" | ForEach-Object { $_."@FreeSpace" = normalize($_."@FreeSpace")}
+$object."LogicalDisk" | ForEach-Object { $_."@FreeSpace" = normalize($_."@FreeSpace") }
 $object.Computer."TotalPhysicalMemory" = normalize($object.Computer."TotalPhysicalMemory")
 $object.OS.Version = $object.OS.Version + "." + $UBR
 
@@ -273,8 +291,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXR+rzvyIBAZ8nPAIoqS170zk
-# RkegggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkPcWXcjLLaBSwJWE5JwkmDtH
+# +gGgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -339,12 +357,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTg
-# cI9aUCVvKR40tsZJGpjG+vJnFjANBgkqhkiG9w0BAQEFAASCAQCz5ZadPWFDsiZp
-# 5Ym/nwVWsVJ+NdEaXzZv7lhWuOD9mURnl2oPobGPIifzmzIpWh/ckXM+OLRoz2hw
-# XH8QzGJkBEWAlYKvJbfRx/DiMkHkcZhlTMti9W4O7vihjVmu+cgaD7yEyEEIcl16
-# J6Sa5HeQv9Y4eNDez/ByiQoaTUkZbQktT2+MF+8LJ8pASoLAz+3dj/PbPwIp+U/S
-# SN3chg5ewvTocknyrZhwQqWeCyqClqqiKxcqNskm+1quAkVknQIFYV8Wy0AZf155
-# UU4Y0spdsNjrpoRg06TY9nlPpZmNq5AUyVFOIDrgfAU+cYxgst1EIEij7aRKw1iF
-# 1uTFXm12
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRJ
+# Tq+2UNVifwxZpqMFe68GCqtzsTANBgkqhkiG9w0BAQEFAASCAQA9SEjMic2NDt6y
+# d67es9ogMHXnwxVlGQi5LvlLf4IAtpLhld+r6lHA9Kn2KO4efHv03jHRq+gq19ge
+# ty1q2aulhq8ybthMPCgGExemSs6vKdARkMkg9+WxtnAj3t6uM6oDfBgiTW9rRbe+
+# uesnkytOckkDnUzIyLncQ4Be1tinZaOZuHu86wcgMyqIFXRj/T8Hwv4ZQQ3UAYcZ
+# /5lILBYJ0VQDOPrgwnHV+ZWtgpCrzCtB2tfjzvzki4uVWen3T5s3FB74scrDd/V+
+# HPt+om4mSQInJ5kALA86ZmcS17sWal03G3md/HTyxYwvZbaLi5QexwIg40QCSaY7
+# r7XWA+XN
 # SIG # End signature block
