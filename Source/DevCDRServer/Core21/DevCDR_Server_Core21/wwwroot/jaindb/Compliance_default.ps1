@@ -72,6 +72,13 @@ if ((Get-ScheduledTask DevCDR -ea SilentlyContinue).Description -ne 'DeviceComma
     Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "DevCDR" -Description "DeviceCommander fix 1.0.0.0" -User "System" -TaskPath "\DevCDR" -Force
 }
 
+#Fix local Admins on CloudJoined Devices, PowerShell Isseue if unknown cloud users/groups are member of a local group
+if (Get-LocalGroupMember -SID S-1-5-32-544 -ea SilentlyContinue) {} else {
+		$localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
+		$Group = [ADSI]"WinNT://localhost/$LocalGroup,group"
+		$members = $Group.psbase.Invoke("Members")
+		$members | ForEach-Object { $_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -like "S-1-12-1-*" } | ForEach-Object { Remove-LocalGroupMember -Name $localgroup $_ } 
+}
 
 #Only Update SW if LockScreen (LogonUI) is present
 if (get-process logonui -ea SilentlyContinue) {
@@ -127,8 +134,8 @@ if (get-process logonui -ea SilentlyContinue) {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUi1VddKNRZxHvcuqhmcuipJRF
-# LTCgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUq6kzwdgS8SGVyAxKsBV/wTru
+# OqmgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -193,12 +200,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRR
-# bWFrh3RBBYc/+lAZYDDh2CYR8DANBgkqhkiG9w0BAQEFAASCAQBB//piDSPZu6bY
-# ZMxcGXTfmoxJYHq8ROwA3kaHcId1ZTWrcpghKomO+W/UoMKGhjWOldcdpMT3x+Tz
-# QMohO65lDYhShfi2hNjq629Yv8DMZSZLakPW7wQ6AGdwVFaG9pgdF2Zm7QRL67lB
-# Rr8g/d7yKLA1NXqxUu5feROhjsybz0nowH5AClGE6ugtXZq1T6AR7D+hrjjhiGi/
-# sEE5VGXh3aCew5cAKV3/COvGvBAJJ2thnaDiXQbA7Q4K7aZcq/LSLFwY926upaLD
-# hvGSKUYGc1lXI0ZZO3xWJXNxLjU52Kk1MKX26+N4hTX5L7gKXJ3/7HMnT3EUfuPa
-# EFbtkm4o
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQH
+# +U2uPmQuFDjd9xIC4a4K77YvWTANBgkqhkiG9w0BAQEFAASCAQBKbyC2xM89s4G6
+# xofL0wNI+rdpS4hYl9CY71TGYua44iGfg2kaiw4GDJOyPFBSQBGFdCA3U1qq+h/S
+# 6Fq5HiUvFpNNz8LB3rWiiyCsMniUDnBRC+YtmWhoMyfZrrJ71fk+aI7qMX8MEFZ9
+# iSsSW9x3lZ74Ri6lv0eqit57z74gopEn4r0ycjHNwFc1DISI/0slt49gtAbOCw9V
+# ZfSIzaf6JSWp+LInY7DHmEfJjq3D2m835U8Jde8ZH8s9GDh89AoKysqZN62TUN+C
+# w8bl+hZQqmbB7GgqTCTyIp1WgkEek4JpwFXtuzPEdebgrqZWQa2IPIzfJfQx93E9
+# 084sqJO1
 # SIG # End signature block
