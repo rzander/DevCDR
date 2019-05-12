@@ -1,10 +1,14 @@
-﻿using Microsoft.AspNetCore.SignalR.Client;
+﻿using DevCDRAgent.Modules;
+using Microsoft.AspNetCore.SignalR.Client;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Management.Automation;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -220,31 +224,41 @@ namespace DevCDR_Agent_Core21
                     DateTime dStart = DateTime.Now;
                     TimeSpan dDuration = DateTime.Now - dStart;
 
-                    //using (PowerShell PowerShellInstance = PowerShell.Create())
-                    //{
-                    //    Trace.WriteLine(DateTime.Now.ToString() + "\t run PS... " + s1);
-                    //    try
-                    //    {
-                    //        PowerShellInstance.AddScript(s1);
-                    //        PSDataCollection<PSObject> outputCollection = new PSDataCollection<PSObject>();
+                    try
+                    {
+                        using (PowerShell PowerShellInstance = PowerShell.Create())
+                        {
+                            //Console.WriteLine(DateTime.Now.ToString() + "\t run PS... " + s1);
+                            Trace.WriteLine(DateTime.Now.ToString() + "\t run PS... " + s1);
+                            try
+                            {
+                                PowerShellInstance.AddScript(s1);
+                                PSDataCollection<PSObject> outputCollection = new PSDataCollection<PSObject>();
 
-                    //        outputCollection.DataAdding += ConsoleOutput;
-                    //        PowerShellInstance.Streams.Error.DataAdding += ConsoleError;
+                                outputCollection.DataAdding += OutputCollection_DataAdding; ;
+                                //PowerShellInstance.Streams.Error.DataAdding += ConsoleError;
 
-                    //        IAsyncResult async = PowerShellInstance.BeginInvoke<PSObject, PSObject>(null, outputCollection);
-                    //        while (async.IsCompleted == false || dDuration > timeout)
-                    //        {
-                    //            Thread.Sleep(200);
-                    //            dDuration = DateTime.Now - dStart;
-                    //            if (tReInit.Interval > 5000)
-                    //                tReInit.Interval = 5000;
-                    //        }
-                    //    }
-                    //    catch (Exception ex)
-                    //    {
-                    //        Console.WriteLine("There was an error: {0}", ex.Message);
-                    //    }
-                    //}
+                                IAsyncResult async = PowerShellInstance.BeginInvoke<PSObject, PSObject>(null, outputCollection);
+                                while (async.IsCompleted == false || dDuration > timeout)
+                                {
+                                    //Thread.Sleep(200);
+                                    dDuration = DateTime.Now - dStart;
+                                    if (tReInit.Interval > 5000)
+                                        tReInit.Interval = 5000;
+                                }
+
+                                Console.WriteLine(DateTime.Now.ToString() + "\t run PS... " + s1);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine("There was an error: {0}", ex.Message);
+                            }
+                        }
+                    }
+                    catch(Exception ex)
+                    {
+                        Console.WriteLine("ERROR: " + ex.Message);
+                    }
 
                     //Program.MinimizeFootprint();
                 });
@@ -328,24 +342,24 @@ namespace DevCDR_Agent_Core21
                         string sResult = "{}";
 
                         var host = Dns.GetHostEntry(Dns.GetHostName());
-                        
 
                         JObject jStatus = new JObject();
-                        jStatus.Add("Hostname", Environment.MachineName + "_");
-                        jStatus.Add("id", Environment.MachineName + "_");
+                        jStatus.Add("Hostname", Environment.MachineName);
+                        jStatus.Add("id", Environment.MachineName);
                         jStatus.Add("Internal IP", host.AddressList.FirstOrDefault(t=>t.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).ToString());
                         jStatus.Add("Last Reboot", DateTime.Now);
                         jStatus.Add("Reboot Pending", false);
                         jStatus.Add("Users Online", true);
-                        jStatus.Add("OS", System.Runtime.InteropServices.RuntimeInformation.OSDescription); // Environment.OSVersion.ToString());
+                        jStatus.Add("OS", System.Runtime.InteropServices.RuntimeInformation.OSDescription.Split('#')[0]); // Environment.OSVersion.ToString());
                         jStatus.Add("Version", Environment.OSVersion.Version.ToString());
                         jStatus.Add("Arch", System.Runtime.InteropServices.RuntimeInformation.OSArchitecture.ToString()); // Environment.Is64BitProcess ? "64-bit" : "???");
-                        jStatus.Add("Lang", 1033);
+                        jStatus.Add("Lang", Thread.CurrentThread.CurrentCulture.LCID.ToString());
                         jStatus.Add("User", Environment.UserName);
-                        jStatus.Add("ScriptResult", "");
+                        jStatus.Add("ScriptResult", sScriptResult);
                         jStatus.Add("Groups", Groups);
 
                         sResult = jStatus.ToString();
+
                         //using (PowerShell PowerShellInstance = PowerShell.Create())
                         //{
                         //    try
@@ -401,33 +415,33 @@ namespace DevCDR_Agent_Core21
 
                 connection.On<string>("wol", (s1) =>
                 {
-                    //try
-                    //{
-                    //    if (!string.IsNullOrEmpty(s1))
-                    //    {
-                    //        foreach (string sMAC in s1.Split(';'))
-                    //        {
-                    //            try
-                    //            {
-                    //                WOL.WakeUp(sMAC); //Send Broadcast
+                    try
+                    {
+                        if (!string.IsNullOrEmpty(s1))
+                        {
+                            foreach (string sMAC in s1.Split(';'))
+                            {
+                                try
+                                {
+                                    WOL.WakeUp(sMAC); //Send Broadcast
 
-                    //                //Send to local Gateway
-                    //                foreach (NetworkInterface f in NetworkInterface.GetAllNetworkInterfaces())
-                    //                    if (f.OperationalStatus == OperationalStatus.Up)
-                    //                        foreach (GatewayIPAddressInformation d in f.GetIPProperties().GatewayAddresses)
-                    //                        {
-                    //                            //Only use IPv4
-                    //                            if (d.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                    //                            {
-                    //                                WOL.WakeUp(d.Address, 9, sMAC);
-                    //                            }
-                    //                        }
-                    //            }
-                    //            catch { }
-                    //        }
-                    //    }
-                    //}
-                    //catch { }
+                                    //Send to local Gateway
+                                    foreach (NetworkInterface f in NetworkInterface.GetAllNetworkInterfaces())
+                                        if (f.OperationalStatus == OperationalStatus.Up)
+                                            foreach (GatewayIPAddressInformation d in f.GetIPProperties().GatewayAddresses)
+                                            {
+                                                //Only use IPv4
+                                                if (d.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                                                {
+                                                    WOL.WakeUp(d.Address, 9, sMAC);
+                                                }
+                                            }
+                                }
+                                catch { }
+                            }
+                        }
+                    }
+                    catch { }
                 });
 
                 connection.On<string>("setinstance", (s1) =>
@@ -698,6 +712,11 @@ namespace DevCDR_Agent_Core21
             {
                 Console.WriteLine("There was an error: {0}", ex.Message);
             }
+        }
+
+        private void OutputCollection_DataAdding(object sender, DataAddingEventArgs e)
+        {
+            sScriptResult = e.ItemAdded.ToString();
         }
 
         public static bool IsConnectedToInternet()
