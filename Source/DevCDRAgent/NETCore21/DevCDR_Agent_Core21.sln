@@ -5,8 +5,6 @@ VisualStudioVersion = 15.0.28010.2050
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DevCDR_Agent_Core21", "DevCDR_Agent_Core21.csproj", "{750DC180-6D25-41F6-8A18-9FBB3C80A7D3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "service", "..\service\service.csproj", "{F865E403-DF80-47FE-9C32-8D9EB212931A}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,10 +15,6 @@ Global
 		{750DC180-6D25-41F6-8A18-9FBB3C80A7D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{750DC180-6D25-41F6-8A18-9FBB3C80A7D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{750DC180-6D25-41F6-8A18-9FBB3C80A7D3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F865E403-DF80-47FE-9C32-8D9EB212931A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F865E403-DF80-47FE-9C32-8D9EB212931A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F865E403-DF80-47FE-9C32-8D9EB212931A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F865E403-DF80-47FE-9C32-8D9EB212931A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

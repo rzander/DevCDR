@@ -18,7 +18,12 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="2.2.0" />
+    <PackageReference Include="Microsoft.PowerShell.Commands.Diagnostics" Version="6.2.0" />
+    <PackageReference Include="Microsoft.PowerShell.Commands.Management" Version="6.2.0" />
+    <PackageReference Include="Microsoft.PowerShell.Commands.Utility" Version="6.2.0" />
     <PackageReference Include="Microsoft.PowerShell.ConsoleHost" Version="6.2.0" />
+    <PackageReference Include="Microsoft.PowerShell.Native" Version="6.2.0" />
+    <PackageReference Include="Microsoft.PowerShell.Security" Version="6.2.0" />
   </ItemGroup>
 
 </Project>

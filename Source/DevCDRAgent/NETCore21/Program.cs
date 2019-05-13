@@ -11,24 +11,17 @@ using System.Threading.Tasks;
 using System.Timers;
 
 using Newtonsoft.Json.Linq;
-using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Management.Automation;
-using System.Net;
 using System.Net.NetworkInformation;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Timers;
 using DevCDRAgent.Modules;
 
 namespace service
 {
     class Program
     {
-
-
         public static async Task Main(string[] args)
         {
             IHost host = new HostBuilder()
@@ -160,7 +153,7 @@ namespace service
             DateTime HealthCheckSuccess = new DateTime();
             DateTime LastConnection = new DateTime();
             int ConnectionErrors = 0;
-            string Groups = "unknown";
+            string Groups = "Linux";
             int StatusDelay = 5000;
 
             public string Uri { get; set; } = "https://devcdrcore.azurewebsites.net/chat";
@@ -852,12 +845,6 @@ namespace service
                 sScriptResult = e.ItemAdded.ToString();
             }
         }
-
-
-
-
-
-
 
         public static bool IsConnectedToInternet()
         {
