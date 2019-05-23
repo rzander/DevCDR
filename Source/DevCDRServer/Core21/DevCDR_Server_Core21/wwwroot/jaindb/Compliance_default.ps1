@@ -109,8 +109,8 @@ if (get-process logonui -ea SilentlyContinue) {
         #List of managed Software.
         $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", "VSTO2010", "GIMP",
             "AdobeReader DC", "Microsoft Power BI Desktop", "Putty", "WinSCP", "AdobeAir", "ShockwavePlayer",
-            "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
-            "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", 
+            "VCRedist2019x64" , "VCRedist2019x86", "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
+            "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", "Office Timeline", 
             "VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "Microsoft Azure Information Protection" )
 
         #Find Software Updates
@@ -134,8 +134,8 @@ if (get-process logonui -ea SilentlyContinue) {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUq6kzwdgS8SGVyAxKsBV/wTru
-# OqmgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUr9vaBg7KY98BRWHvdnT01ShU
+# U5egggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -200,12 +200,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQH
-# +U2uPmQuFDjd9xIC4a4K77YvWTANBgkqhkiG9w0BAQEFAASCAQBKbyC2xM89s4G6
-# xofL0wNI+rdpS4hYl9CY71TGYua44iGfg2kaiw4GDJOyPFBSQBGFdCA3U1qq+h/S
-# 6Fq5HiUvFpNNz8LB3rWiiyCsMniUDnBRC+YtmWhoMyfZrrJ71fk+aI7qMX8MEFZ9
-# iSsSW9x3lZ74Ri6lv0eqit57z74gopEn4r0ycjHNwFc1DISI/0slt49gtAbOCw9V
-# ZfSIzaf6JSWp+LInY7DHmEfJjq3D2m835U8Jde8ZH8s9GDh89AoKysqZN62TUN+C
-# w8bl+hZQqmbB7GgqTCTyIp1WgkEek4JpwFXtuzPEdebgrqZWQa2IPIzfJfQx93E9
-# 084sqJO1
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSU
+# w1BKG4z2MUZI9R8IyLp1k+MQozANBgkqhkiG9w0BAQEFAASCAQBeDM4NFXiwPcHD
+# cyxFv9inalNWSeOvNkGuFxph1sciLeQYs5C2qYV024BC9RVlFkJ5OK4wMT3s2hgo
+# +IKDN0R5JaE2HKA2B2n6D39lq+TLXqIIvvj2CL/BuR2kP99PqGrIx1r4lDAXaTZI
+# LsdZF/nUQwFLw553zse9w/lW0D0LrSJ5S9PVV08AtF8Z8BWf5MuW9f5KMkgGKmWv
+# 8MnuP9nKMCxKzQhzvI5TT/9NOQF0YvMzm8RywqqYTtcxCwLqhsNgpa/Ozr+pdItp
+# BdHqfWcqN+6IlU2uOV2myyaIDSdqkRs0t5RGOr6mEbt0E4yWwciGCT6Rj4UbZ/Vm
+# +XYtGRQj
 # SIG # End signature block
