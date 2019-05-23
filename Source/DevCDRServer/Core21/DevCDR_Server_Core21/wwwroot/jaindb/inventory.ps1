@@ -174,7 +174,7 @@ getinv -Name "Memory" -WMIClass "win32_PhysicalMemory" -Properties @("Manufactur
 getinv -Name "OS" -WMIClass "win32_OperatingSystem" -Properties @("BuildNumber", "BootDevice", "Caption", "CodeSet", "CountryCode", "@CurrentTimeZone", "EncryptionLevel", "Locale", "Manufacturer", "MUILanguages", "OperatingSystemSKU", "OSArchitecture", "OSLanguage", "SystemDrive", "Version", "#InstallDate", "@LastBootUpTime") -AppendObject ([ref]$object)
 
 $CSP = getinv -Name "Computer" -WMIClass "win32_ComputerSystemProduct" -Properties @("#UUID", "Version")
-$CS = getinv -Name "Computer" -WMIClass "win32_ComputerSystem" -Properties @("Domain", "HypervisorPresent", "InfraredSupported", "Manufacturer", "Model", "PartOfDomain", "@Roles", "SystemFamily", "SystemSKUNumber", "@UserName", "WakeUpType", "TotalPhysicalMemory", "#Name") -AppendProperties $CSP 
+$CS = getinv -Name "Computer" -WMIClass "win32_ComputerSystem" -Properties @("Domain", "HypervisorPresent", "InfraredSupported", "Manufacturer", "Model", "PartOfDomain", "@Roles", "SystemFamily", "SystemSKUNumber", "@UserName", "@WakeUpType", "TotalPhysicalMemory", "#Name") -AppendProperties $CSP 
 getinv -Name "Computer" -WMIClass "win32_SystemEnclosure" -Properties @("ChassisTypes", "Model", "#SMBIOSAssetTag", "#SerialNumber") -AppendProperties $CS -AppendObject ([ref]$object)
 
 getinv -Name "DiskDrive" -WMIClass "Win32_DiskDrive" -Properties @("@Capabilities", "Caption", "DeviceID", "@FirmwareRevision", "@Index", "InterfaceType", "MediaType", "Model", "@Partitions", "PNPDeviceID", "Size", "#SerialNumber" ) -AppendObject ([ref]$object)
@@ -291,8 +291,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkPcWXcjLLaBSwJWE5JwkmDtH
-# +gGgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUIXLRilswgo9Sjy9TnaQpnVsT
+# 8T+gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -357,12 +357,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRJ
-# Tq+2UNVifwxZpqMFe68GCqtzsTANBgkqhkiG9w0BAQEFAASCAQA9SEjMic2NDt6y
-# d67es9ogMHXnwxVlGQi5LvlLf4IAtpLhld+r6lHA9Kn2KO4efHv03jHRq+gq19ge
-# ty1q2aulhq8ybthMPCgGExemSs6vKdARkMkg9+WxtnAj3t6uM6oDfBgiTW9rRbe+
-# uesnkytOckkDnUzIyLncQ4Be1tinZaOZuHu86wcgMyqIFXRj/T8Hwv4ZQQ3UAYcZ
-# /5lILBYJ0VQDOPrgwnHV+ZWtgpCrzCtB2tfjzvzki4uVWen3T5s3FB74scrDd/V+
-# HPt+om4mSQInJ5kALA86ZmcS17sWal03G3md/HTyxYwvZbaLi5QexwIg40QCSaY7
-# r7XWA+XN
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSe
+# 9oOhgFDRqJzgJhfh1QWQRfXsCDANBgkqhkiG9w0BAQEFAASCAQCgojdnFtiio72w
+# 6om/od51L/Vlrd6GKxS3+8nVXJX/+28WdcJTS+DvRqTuMuybBxTsMJsTwBHt9wlj
+# OrpWhvABOl3+u8zIjqis5sm2SQ/cPhy4nWsWnW33QjMNLJ/cyvPkIPfALuPv3SQN
+# FNuSqqExvmHW0d+NaoKoK5RkAfMQTGYbZlctptH1UWThBupJyCc4zxL9J3gQlbqT
+# WX9bvXgq3GYUnaTFakP4wXC2x1PcuKgBnxQnVhLhIxXX/HT83qOeTYj+UTjP1X9O
+# E7t+3RQNomHhHmUKfuOx6AMNSbJPh1XoERmLHbIbklTgYK61jxfqmkSxRu7YpsTx
+# ofIPSgQL
 # SIG # End signature block

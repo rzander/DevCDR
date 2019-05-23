@@ -1,4 +1,4 @@
-FROM microsoft/dotnet:2.1-aspnetcore-runtime AS base
+FROM microsoft/dotnet:2.2-aspnetcore-runtime AS base
 WORKDIR /app
 EXPOSE 80
 EXPOSE 443
@@ -10,7 +10,7 @@ ENV AzureAD__AppIDURL https://rzander.onmicrosoft.com/abf47594-0960-461d-bb5c-5d
 ENV REPORTUSER DEMO	
 ENV REPORTPASSWORD iq3ghwegiu2
 
-FROM microsoft/dotnet:2.1-sdk AS build
+FROM microsoft/dotnet:2.2-sdk AS build
 WORKDIR /src
 COPY DevCDR_Server_Core21/DevCDR_Server_Core21.csproj DevCDR_Server_Core21/
 RUN dotnet restore DevCDR_Server_Core21/DevCDR_Server_Core21.csproj

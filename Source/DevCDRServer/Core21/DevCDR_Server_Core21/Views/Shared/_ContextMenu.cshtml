@@ -89,6 +89,16 @@
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
                                         RunPS('Get-MpThreatDetection | ConvertTo-Json', 'GetMalwHistory');
                                     }
+                                },
+                                "invDevAVEngine": {
+                                    "name": "running Antivirus-Engine",
+                                    icon: function (opt, $itemElement, itemKey, item) {
+                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        return 'context-menu-icon-updated';
+                                    },
+                                    callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                        RunPS('(Get-WmiObject -Namespace root\\SecurityCenter2 -Query "SELECT * FROM AntiVirusProduct" -ea SilentlyContinue).displayName', 'GetAVEngine');
+                                    }
                                 }
                             }
                         },
