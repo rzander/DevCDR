@@ -30,7 +30,7 @@ Get a free instance:
 ![video](https://rzander.azurewebsites.net/content/images/2018/07/devcdr.gif)
 
 ## Agent Requirements
-* .NET4.6
+* .NET4.7 (Agent for .NET Core is in preview)
 * DevCDRAgent (MSI is currently x64 only)
 
 ## Server/Host Requirements
