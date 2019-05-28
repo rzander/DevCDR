@@ -1,3 +1,3 @@
-﻿$.Software[?(@.DisplayName=='7-Zip 18.05 (x64)' || @.DisplayName=='7-Zip 18.05 (x64 edition)' )]
+﻿$.Software[?(@.DisplayName=='7-Zip 19.00 (x64)' || @.DisplayName=='7-Zip 19.00 (x64 edition)' )]
 $.Software[?(@.DisplayName=='DevCDRAgent')]
 $.Software[?(@.DisplayName=='Microsoft Office 365 ProPlus - de-de' || @.DisplayName=='Microsoft Office 365 ProPlus - en-us' || @.DisplayName=='Microsoft Office 365 ProPlus - fr-fr' )]

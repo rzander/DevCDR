@@ -224,6 +224,9 @@ $object | Add-Member -MemberType NoteProperty -Name "BitLocker" -Value ($bitlock
 $defender = Get-MpPreference | select * -ExcludeProperty ComputerID, PSComputerName, Cim*
 $object | Add-Member -MemberType NoteProperty -Name "Defender" -Value ($defender)
 
+$defenderSignature = Get-MpComputerStatus | select * -ExcludeProperty ComputerID, PSComputerName, Cim*, *Time, *Updated
+$object | Add-Member -MemberType NoteProperty -Name "DefenderSignature" -Value ($defenderSignature)
+
 #$FWRules = Get-NetFirewallRule | Select-Object DisplayName,Description,DisplayGroup,Group,Enabled,Profile,Platform,Direction,Action,EdgeTraversalPolicy,LooseSourceMapping,LocalOnlyMapping,Owner,PrimaryStatus,Status,EnforcementStatus,PolicyStoreSource,PolicyStoreSourceType | Sort-Object -Property DisplayName
 #$object | Add-Member -MemberType NoteProperty -Name "FirewallRules" -Value ($FWRules)
 
@@ -273,8 +276,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUfvUBo1f9epiShLllzM2E7zQN
-# ihKgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZKCDdOlySgAPBE7Zcqa28rHO
+# GIKgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -339,12 +342,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQi
-# 7rdsVBqsHc5xeSnI2ximnv8r5DANBgkqhkiG9w0BAQEFAASCAQBmGsLHZVavtwmo
-# xPi1aKNaMrUoIzAOFcKCiGBNVTZbk9gdasolOYpfPpretfrBz1bFby6h2px6B7oa
-# pYUgV7CVVRp2MorH7H2k9wXDOo8Hym4E6d+evHUXM89hxqcjx/yTGYZVKUu42JPj
-# srZOgRthK9kwsA+yWTw/ToJLqmym3EKp9QMLWHJNp5vxFhNE9Wq7xQf4IHM2XMXW
-# LzYZmma1qJ3WaEAluxSBOgbvZYaGjEpr3vrl7jX43+yiSyYnHPygP0qUMZF7aptI
-# a/aXVrCy0chjV/zpWfoQNQaNPMtWtn9lzW02ZEY1Yk7gJi3Lc62yFLa6MzwEYokb
-# udClKQ65
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR5
+# bAfCVOjTQLSCYN7Kx84q/OAFjTANBgkqhkiG9w0BAQEFAASCAQCB/HqZzbzWh0yJ
+# KaJ7PffYozm+K4hBxnARurLPJhkW6IUFk1qbID+7xKGnfgbJwKqXXxUJZ8X0o0jR
+# kIEA7aAfkd8N5WVRiFzoN0KsKnXZhsS//mnM4IfHiPOZhjabp6fSy219291KN9ZM
+# JWYIVCrXJHRWAJ6L/D+2TrjH0vndS+YpFAdCLxrarteOR+5GQ3YS1ZcLVRHAvL+5
+# Z1/TS7EDmOVNS3ZprBHtWjG5z1AyUXuG265XD2d3qwjoyvrrqzEOYNbIIT4wWA39
+# aMFBO0AWMa+mmk5+TOoOX3KdlDd65stdl6vp2eHi1/V+DVd4Y3SzI1wsAWvrNNHb
+# Zd2smrAl
 # SIG # End signature block

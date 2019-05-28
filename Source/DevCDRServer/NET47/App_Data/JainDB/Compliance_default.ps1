@@ -26,8 +26,8 @@ if (get-process logonui -ea SilentlyContinue) {
 
     #List of managed Software.
     $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "KeePass", "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", 
-        "AdobeReader DC", "Microsoft Azure PowerShell", 
-        "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
+        "AdobeReader DC", "Microsoft Azure PowerShell", "AdobeAIR",
+        "VCRedist2019x64" , "VCRedist2019x86", "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
         "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", 
 		"VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "Microsoft Azure Information Protection" )
 
@@ -51,8 +51,8 @@ if (get-process logonui -ea SilentlyContinue) {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUx7j0D0yAf5p+TGw86o05SCD5
-# BtagggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUG9DGoWmXZjV26daPQ94G+nYQ
+# g6SgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -117,12 +117,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSM
-# 7VaLUcpYwi/gtoISAdpiP+pubjANBgkqhkiG9w0BAQEFAASCAQCHOZP+UHIX3yOi
-# e7DeObJlvzcg75R4jYoXVhn1LzyFmZRhsWI2ulCNxEJOdHRdM4mGPcCc54KGwxXA
-# eJOxx54a8QUd7z4YqInRlnf6CwqFHlAGV+H/ip+KCw0NURApvm1XUAGln3otRl0L
-# oo3hq2pTDJbgyqJwCHdVBH44+nUh5ViF15vqvTNF7F/3Yn1eCwsEfJA9hsRgKqtD
-# cThi1GZAVuYiMdvp3TrwVanQGtKX5ccjAgMgZT1uyEIGzmA1Tckj62JZRarGaZ+a
-# QCa+qgUo1+ltHY+V2cnomwKcdiP/N/lgLYCGPl4y6SgLdbgSPcjF5/6J6M05W+Wq
-# ZjZYpkO0
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRS
+# sPHqWHJrCSIdVKAPvURB7AcZ9zANBgkqhkiG9w0BAQEFAASCAQCg+QDqODXj+0Cs
+# C97UM9yKwxwOMjnpjiSR6Pr8kUL/5sVxZv5Pd9tGLkyWaJqIQoQDpopXharxLELO
+# mw27bYlV07Iwbm08f+6utQCNPFVLneQSU/2Njmp2zvWh0R6oqRJ7x/V2J8B4ZdhS
+# oZMX3a19r+ngws/tk8cr9FF0WTbsvLRwmEfikRicB9zyek+RG3gdNftVNZvteGeQ
+# Gt6qY8ufeJEXQzFQOY/qzVo7kKRvfLnBTV29dnZSkTzAiNO15Stou0qjGfa1ISfu
+# IZauEotIPN3XWxVh0wSqo8zeHd50v0A5aAPAP1lJVqfwzre1TQM8+5BhE6ivcceG
+# COk27W6q
 # SIG # End signature block
