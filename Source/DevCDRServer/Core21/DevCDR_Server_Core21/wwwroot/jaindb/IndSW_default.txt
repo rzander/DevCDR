@@ -1,5 +1,5 @@
-﻿7-Zip 18.06 (x64)
-7-Zip 19.00 (x64)
+﻿7-Zip 19.00 (x64)
+7-Zip 19.00 (x64 edition)
 Active Directory Authentication Library for SQL Server
 Adobe Acrobat Reader DC
 Adobe Acrobat Reader DC - Deutsch
