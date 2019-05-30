@@ -39,9 +39,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="jaindb.base" Version="1.0.5" />
-    <PackageReference Include="jaindb.storage.FileStore" Version="1.0.3" />
-    <PackageReference Include="jaindb.storage.Memory" Version="1.0.3" />
+    <PackageReference Include="jaindb.base" Version="1.0.6" />
+    <PackageReference Include="jaindb.storage.FileStore" Version="1.0.6" />
+    <PackageReference Include="jaindb.storage.Memory" Version="1.0.6" />
     <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
