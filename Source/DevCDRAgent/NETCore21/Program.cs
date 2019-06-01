@@ -35,7 +35,7 @@ namespace service
                  {
                      configApp.SetBasePath(Directory.GetCurrentDirectory());
                      configApp.AddEnvironmentVariables(prefix: "ASPNETCORE_");
-                     configApp.AddJsonFile($"appsettings.json", true);
+                     configApp.AddJsonFile($"appsettings.json", false);
                      configApp.AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", true);
                      configApp.AddCommandLine(args);
                  })
@@ -155,18 +155,29 @@ namespace service
             int ConnectionErrors = 0;
             string Groups = "Linux";
             int StatusDelay = 5000;
+            
 
             public string Uri { get; set; } = "https://devcdrcore.azurewebsites.net/chat";
 
             public devcdrService(IConfiguration configuration, ILogger<devcdrService> logger) : base(configuration, logger)
             {
                 logger.LogInformation("Class instatiated");
+
+                if (!string.IsNullOrEmpty(configuration["settings:DevCDRURL"]))
+                {
+                    Uri = configuration["settings:DevCDRURL"];
+                }
+
+                if (!string.IsNullOrEmpty(configuration["settings:Groups"]))
+                {
+                    Groups = configuration["settings:Groups"];
+                }
             }
 
             public override void OnStart()
             {
                 this.Logger.LogInformation("devcdrService OnStart");
-
+                
                 isstopping = false;
                 sScriptResult = DateTime.Now.ToString();
                 tReCheck.Elapsed -= TReCheck_Elapsed;
