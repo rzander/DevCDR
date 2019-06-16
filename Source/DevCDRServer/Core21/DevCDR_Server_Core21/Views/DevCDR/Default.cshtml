@@ -47,10 +47,18 @@
     <input class="btn btn-default" type="button" value="WakeUp All" title="WakeUp all Devices" onclick="Command('WOL')" />
 </div>
 
-
 @Html.Partial("_CustomPS")
 @Html.Partial("_ModalMessages")
 @Html.Partial("_Table")
+
+@*@await Component.InvokeAsync("ContextMenuLibrary.Simple", new { });*@
+@if (ViewData["ExtMenu"] != null)
+{@Html.Raw(ViewData["Menu"]);
+}
+else
+{
 @Html.Partial("_ContextMenu")
+}
+
 @Html.Partial("_RunCommands")
 

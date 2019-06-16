@@ -242,6 +242,13 @@ $object | Add-Member -MemberType NoteProperty -Name "BitLocker" -Value ($bitlock
 $defender = Get-MpPreference | Select-Object * -ExcludeProperty ComputerID, PSComputerName, Cim*
 $object | Add-Member -MemberType NoteProperty -Name "Defender" -Value ($defender)
 
+$defenderSignature = Get-MpComputerStatus | select * -ExcludeProperty ComputerID, PSComputerName, Cim*, *Time, *Updated, *Version, *Age
+$defenderSignature | Add-Member -MemberType NoteProperty -Name "@QuickScanAge" -Value (Get-MpComputerStatus).QuickScanAge
+$defenderSignature | Add-Member -MemberType NoteProperty -Name "@FullScanAge" -Value (Get-MpComputerStatus).FullScanAge
+$defenderSignature | Add-Member -MemberType NoteProperty -Name "@AntivirusSignatureAge" -Value (Get-MpComputerStatus).AntivirusSignatureAge
+$defenderSignature | Add-Member -MemberType NoteProperty -Name "@AntispywareSignatureAge" -Value (Get-MpComputerStatus).AntispywareSignatureAge
+$object | Add-Member -MemberType NoteProperty -Name "DefenderSignature" -Value ($defenderSignature)
+
 #$FWRules = Get-NetFirewallRule | Select-Object DisplayName,Description,DisplayGroup,Group,Enabled,Profile,Platform,Direction,Action,EdgeTraversalPolicy,LooseSourceMapping,LocalOnlyMapping,Owner,PrimaryStatus,Status,EnforcementStatus,PolicyStoreSource,PolicyStoreSourceType | Sort-Object -Property DisplayName
 #$object | Add-Member -MemberType NoteProperty -Name "FirewallRules" -Value ($FWRules)
 
@@ -291,8 +298,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUIXLRilswgo9Sjy9TnaQpnVsT
-# 8T+gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUGqY9oHEeL/oororvJsgSo/03
+# kjWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -357,12 +364,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSe
-# 9oOhgFDRqJzgJhfh1QWQRfXsCDANBgkqhkiG9w0BAQEFAASCAQCgojdnFtiio72w
-# 6om/od51L/Vlrd6GKxS3+8nVXJX/+28WdcJTS+DvRqTuMuybBxTsMJsTwBHt9wlj
-# OrpWhvABOl3+u8zIjqis5sm2SQ/cPhy4nWsWnW33QjMNLJ/cyvPkIPfALuPv3SQN
-# FNuSqqExvmHW0d+NaoKoK5RkAfMQTGYbZlctptH1UWThBupJyCc4zxL9J3gQlbqT
-# WX9bvXgq3GYUnaTFakP4wXC2x1PcuKgBnxQnVhLhIxXX/HT83qOeTYj+UTjP1X9O
-# E7t+3RQNomHhHmUKfuOx6AMNSbJPh1XoERmLHbIbklTgYK61jxfqmkSxRu7YpsTx
-# ofIPSgQL
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQr
+# LUis5nnleltE4UIqus97waEdjTANBgkqhkiG9w0BAQEFAASCAQCl2kDKL4i42fdh
+# 6y6rVy1Lr+thHHHBEK0lqzdahn7CieXHlqqA4APLPAw1OBtlsKIi5oDL1ehY11vo
+# qGa7iEipiSugj+3xvvYuW/TNQFFvfeW2zCgmC6jOfbaRLEgVj06vPkcyvp5vDbDm
+# Sv7/aOnJFMK5WRkltYNwwUOuq+mNSV8S4P0adD9aY0pdIUtA+ng/Wu3KnGFEHw+s
+# dL9eAialey6CII0wn4xXsLuD0I8Oiazv/SqK3CFXzndLNuupQ5LoO7Lo7A0sSFpn
+# T+UiYOgggWVmGpNWdlZvVRTraTXCfJs5DXHuV2+vbg+DBw0UCm1KU5CBColOHFml
+# Oba7m/JA
 # SIG # End signature block

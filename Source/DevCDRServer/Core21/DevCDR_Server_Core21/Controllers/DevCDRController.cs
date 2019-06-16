@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.FileProviders;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -75,6 +76,13 @@ namespace DevCDRServer.Controllers
             else
                 ViewBag.MSI = "https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi";
             ViewBag.Route = "/chat";
+
+            var sRoot = Directory.GetCurrentDirectory();
+            if (System.IO.File.Exists(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml")))
+            {
+                ViewBag.Menu = System.IO.File.ReadAllText(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml"));
+                ViewBag.ExtMenu = true;
+            }
             return View();
         }
 
