@@ -36,12 +36,19 @@ function Test-NetMetered {
     catch { return $false }
 }
 
+#check if Azure Analytics Log Provider is installed
+#Install: Install-Module -Name WriteAnalyticsLog -Force
+#Configure: Set-LogAnalytics -WorkspaceID <string> -SharedKey <string> -LogType <string>
+if(Get-Module -ListAvailable -Name WriteAnalyticsLog) { $bLogging = $true } else { $bLogging = $false }
+
 #Install RuckZuck Provider for OneGet if missing...
 if (Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) { } else {
+	if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Installing OneGet v1.7.0.2"  }) -LogType "DevCDRCore" }
     &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.0.2/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
 if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.7.0.2")) {
+	if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Updating to OneGet v1.7.0.2"  }) -LogType "DevCDRCore" }
     &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.0.2/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
@@ -50,11 +57,13 @@ if ([version](get-item "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe").V
     [xml]$a = gc "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
     $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
     $EP > $env:temp\ep.log
+	if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v1.0.0.23"  }) -LogType "DevCDRCore" }
     &msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT="$($EP)" /qn REBOOT=REALLYSUPPRESS  
 }
 
 #Add Scheduled-Task to repair Agent 
 if ((Get-ScheduledTask DevCDR -ea SilentlyContinue).Description -ne 'DeviceCommander fix 1.0.0.0') {
+	if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1004; Description = "Registering Scheduled-Task for DevCDR fix 1.0.0.0"  }) -LogType "DevCDRCore" }
     try {
         $scheduleObject = New-Object -ComObject schedule.service
         $scheduleObject.connect()
@@ -82,7 +91,8 @@ if (Get-LocalGroupMember -SID S-1-5-32-544 -ea SilentlyContinue) {} else {
 
 #Only Update SW if LockScreen (LogonUI) is present
 if (get-process logonui -ea SilentlyContinue) {
-	
+	if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1002; Description = "Device is locked"  }) -LogType "DevCDRCore" }
+
     #Disable FastBoot
     New-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' -Name 'HiberbootEnabled' -Value 0 -PropertyType DWord -Force -ea SilentlyContinue;
 
@@ -119,6 +129,7 @@ if (get-process logonui -ea SilentlyContinue) {
         #Update only managed Software
         $ManagedSW | ForEach-Object { 
             if ($updates.PackageFilename -contains $_) { 
+				if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 2000; Description = "RuckZuck updating: $($_)"  }) -LogType "DevCDR" }
                 "Updating: " + $_ ;
                 Install-Package -ProviderName RuckZuck "$($_)"
             }
@@ -131,11 +142,14 @@ if (get-process logonui -ea SilentlyContinue) {
         Remove-Item "$($env:windir)\Temp\*" -Force -Recurse -Exclude devcdrcore.log -ea SilentlyContinue
     }
 }
+else {
+	if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1003; Description = "Device is NOT locked"  }) -LogType "DevCDRCore" }
+}
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUr9vaBg7KY98BRWHvdnT01ShU
-# U5egggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUG1KFdrT2Bx4dgOoGHFC/7DW7
+# S8ugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -200,12 +214,12 @@ if (get-process logonui -ea SilentlyContinue) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSU
-# w1BKG4z2MUZI9R8IyLp1k+MQozANBgkqhkiG9w0BAQEFAASCAQBeDM4NFXiwPcHD
-# cyxFv9inalNWSeOvNkGuFxph1sciLeQYs5C2qYV024BC9RVlFkJ5OK4wMT3s2hgo
-# +IKDN0R5JaE2HKA2B2n6D39lq+TLXqIIvvj2CL/BuR2kP99PqGrIx1r4lDAXaTZI
-# LsdZF/nUQwFLw553zse9w/lW0D0LrSJ5S9PVV08AtF8Z8BWf5MuW9f5KMkgGKmWv
-# 8MnuP9nKMCxKzQhzvI5TT/9NOQF0YvMzm8RywqqYTtcxCwLqhsNgpa/Ozr+pdItp
-# BdHqfWcqN+6IlU2uOV2myyaIDSdqkRs0t5RGOr6mEbt0E4yWwciGCT6Rj4UbZ/Vm
-# +XYtGRQj
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTp
+# EroNfWh6gPcEVhSWDv6r+8rIkjANBgkqhkiG9w0BAQEFAASCAQCcrk16nuShO6vP
+# wPf4UBj7LeCmvnjmi1ngczxfE9ZSaUdKsbhhIMi0tNviLLdHMe90cBLEcnniimtb
+# zjtLIpCKkyel3VeGYAPzTVqEJuLQPIwY3fQ1AcxcfHvq4b8JBaMup8sjVBNdOgs2
+# Yb4HIDpwOx6pec1G94RgemJ/WruLE9FovyAKSEcd1dlfkWWHwRR4o8bwh83JEiOS
+# Ll/eygzRK6UW3+g6L5zWnwt9tpgPiChodquyfAIkEJlaA4R/H8qMoLbv4wTDi8Dp
+# VBlchheGIhzbbS6ARTvaJ+Uw0vQmAoe0eLuoIBLWmYmiqkAMTP+SA39g6oRbzmde
+# 9GPo8Hpw
 # SIG # End signature block
