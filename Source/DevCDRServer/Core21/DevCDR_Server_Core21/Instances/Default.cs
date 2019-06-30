@@ -16,6 +16,7 @@ namespace DevCDRServer
         public static List<string> lClients = new List<string>();
         public static List<string> lGroups = new List<string>();
         public static JArray jData = new JArray();
+        public DevCDR.Extensions.AzureLogAnalytics AzureLog = new DevCDR.Extensions.AzureLogAnalytics("", "", "");
 
 
         public static int ClientCount { get { return lClients.Distinct().Count(); } }
@@ -78,6 +79,14 @@ namespace DevCDRServer
 
         public async void Status(string name, string Status)
         {
+            if (string.IsNullOrEmpty(AzureLog.WorkspaceId))
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Log-WorkspaceID")) && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Log-SharedKey")))
+                {
+                    AzureLog = new DevCDR.Extensions.AzureLogAnalytics(Environment.GetEnvironmentVariable("Log-WorkspaceID"), Environment.GetEnvironmentVariable("Log-SharedKey"), "DevCDR_" + (Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default"));
+                }
+            }
+
             var J1 = JObject.Parse(Status);
             bool bChange = false;
             try
@@ -89,6 +98,7 @@ namespace DevCDRServer
                         jData.Add(J1);
                     }
                     bChange = true;
+                    AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
                 }
                 else
                 {
@@ -99,6 +109,7 @@ namespace DevCDRServer
                         {
                             jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").First().Replace(J1);
                             bChange = true;
+                            AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
                         }
                     }
                 }

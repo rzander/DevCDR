@@ -24,12 +24,22 @@ namespace DevCDRServer.Controllers
         private readonly IHubContext<Default> _hubContext;
         private readonly IHostingEnvironment _env;
         private IMemoryCache _cache;
+        public DevCDR.Extensions.AzureLogAnalytics AzureLog = new DevCDR.Extensions.AzureLogAnalytics("","","");
 
         public DevCDRController(IHubContext<Default> hubContext, IHostingEnvironment env, IMemoryCache memoryCache)
         {
             _hubContext = hubContext;
             _env = env;
             _cache = memoryCache;
+
+            if (string.IsNullOrEmpty(AzureLog.WorkspaceId))
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Log-WorkspaceID")) && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Log-SharedKey")))
+                {
+                    AzureLog = new DevCDR.Extensions.AzureLogAnalytics(Environment.GetEnvironmentVariable("Log-WorkspaceID"), Environment.GetEnvironmentVariable("Log-SharedKey"), "DevCDR_" + (Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default"));
+                    //AzureLog.PostAsync(new { Computer = Environment.MachineName, EventID = 0001, Description = "DevCDRController started" });
+                }
+            }
         }
 
         [AllowAnonymous]
@@ -213,6 +223,8 @@ namespace DevCDRServer.Controllers
                 jData.SelectToken("[?(@.Hostname == '" + Hostname + "')].ScriptResult").Replace(tok);
 
                 ((FieldInfo)memberInfos[0]).SetValue(new JArray(), jData);
+
+                //AzureLog.PostAsync(new { Computer = Hostname, EventID = 3000, Description = $"Result: {Result}" });
             }
             catch { }
 
@@ -243,6 +255,8 @@ namespace DevCDRServer.Controllers
             string sID = "";
             try
             {
+                AzureLog.PostAsync(new { Computer = Environment.MachineName, EventID = 1001, Description = $"Reloading {Instance}" });
+
                 _hubContext.Clients.All.SendAsync("init", "init");
                 _hubContext.Clients.Group("web").SendAsync("newData", "Hub", ""); //Enforce PageUpdate
 
@@ -385,6 +399,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2001, Description = $"PSCommand: {sCommand}" });
                     _hubContext.Clients.Client(sID).SendAsync("returnPS", sCommand, "Host");
                 }
             }
@@ -431,6 +446,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2009, Description = $"Set Agent Groups: {Args}" });
                     _hubContext.Clients.Client(sID).SendAsync("setgroups", Args);
                 }
             }
@@ -440,7 +456,7 @@ namespace DevCDRServer.Controllers
         {
             foreach (string sHost in Hostnames)
             {
-                SetResult(sInstance, sHost, "triggered:" + "get AgentVersion"); //Update Status
+                SetResult(sInstance, sHost, "triggered:" + "Get AgentVersion"); //Update Status
             }
             _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "AgentVersion"); //Enforce PageUpdate
 
@@ -454,6 +470,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2008, Description = $"get Agent version" });
                     _hubContext.Clients.Client(sID).SendAsync("version", "HUB");
                 }
             }
@@ -506,6 +523,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2007, Description = $"set new Endpoint: {Args}" });
                     _hubContext.Clients.Client(sID).SendAsync("setendpoint", Args);
                 }
             }
@@ -529,6 +547,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2006, Description = $"restart Agent" });
                     _hubContext.Clients.Client(sID).SendAsync("restartservice", "HUB");
                 }
             }
@@ -555,6 +574,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2005, Description = $"install RuckZuck software: {Args}" });
                     _hubContext.Clients.Client(sID).SendAsync("rzinstall", Args);
                 }
             }
@@ -578,6 +598,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2003, Description = $"trigger RuckZuck scan" });
                     _hubContext.Clients.Client(sID).SendAsync("rzscan", "HUB");
                 }
             }
@@ -601,6 +622,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2004, Description = $"trigger RuckZuck update" });
                     _hubContext.Clients.Client(sID).SendAsync("rzupdate", Args);
                 }
             }
@@ -624,6 +646,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2010, Description = $"Run USer Processs: {cmd} {args}" });
                     _hubContext.Clients.Client(sID).SendAsync("userprocess", cmd, args);
                 }
             }
@@ -647,6 +670,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2002, Description = $"WakeUp all devices" });
                     _hubContext.Clients.Client(sID).SendAsync("wol", string.Join(';', MAC));
                 }
             }
@@ -701,7 +725,7 @@ namespace DevCDRServer.Controllers
 
                     if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                     {
-
+                        AzureLog.PostAsync(new { Computer = sHost, EventID = 2050, Description = $"Run PS: {sCommand}" });
                         _hubContext.Clients.Client(sID).SendAsync("returnPS", sCommand, "Host");
                     }
                 }
@@ -819,7 +843,7 @@ namespace DevCDRServer.Controllers
 
                     if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                     {
-
+                        AzureLog.PostAsync(new { Computer = sHost, EventID = 2051, Description = $"Run PSAsync: {sCommand}" });
                         _hubContext.Clients.Client(sID).SendAsync("returnPSAsync", sCommand, "Host");
                     }
                 }
@@ -887,6 +911,7 @@ namespace DevCDRServer.Controllers
 
                         if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                         {
+                            AzureLog.PostAsync(new { Computer = sHost, EventID = 2052, Description = $"Run PSFile: {sFile}" });
                             _hubContext.Clients.Client(sID).SendAsync("returnPSAsync", sCommand, "Host");
                         }
                     }
