@@ -22,6 +22,7 @@ namespace service
 {
     class Program
     {
+        public static DateTime dLastStartup = DateTime.Now;
         public static async Task Main(string[] args)
         {
             IHost host = new HostBuilder()
@@ -484,7 +485,7 @@ namespace service
                             jStatus.Add("Hostname", Environment.MachineName);
                             jStatus.Add("id", Environment.MachineName);
                             jStatus.Add("Internal IP", host.AddressList.FirstOrDefault(t => t.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).ToString());
-                            jStatus.Add("Last Reboot", DateTime.Now);
+                            jStatus.Add("Last Reboot", dLastStartup);
                             jStatus.Add("Reboot Pending", false);
                             jStatus.Add("Users Online", true);
                             jStatus.Add("OS", System.Runtime.InteropServices.RuntimeInformation.OSDescription.Split('#')[0]); // Environment.OSVersion.ToString());
