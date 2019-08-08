@@ -62,14 +62,8 @@ Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.40664
 Microsoft Visual C++ 2013 Redistributable (x86) - 12.0.30501
 Microsoft Visual C++ 2013 Redistributable (x86) - 12.0.40660
 Microsoft Visual C++ 2013 Redistributable (x86) - 12.0.40664
-Microsoft Visual C++ 2015 Redistributable (x64) - 14.0.24516
-Microsoft Visual C++ 2015 Redistributable (x86) - 14.0.24516
-Microsoft Visual C++ 2017 Redistributable (x64) - 14.16.27024
-Microsoft Visual C++ 2017 Redistributable (x64) - 14.16.27027
-Microsoft Visual C++ 2017 Redistributable (x86) - 14.16.27024
-Microsoft Visual C++ 2017 Redistributable (x86) - 14.16.27027
-Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.21.27702
-Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.21.27702
+Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.22.27821
+Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.22.27821
 Microsoft Visual Studio 2010 Tools for Office Runtime (x64)
 Microsoft Visual Studio 2015 Shell (Isolated)
 Microsoft Visual Studio Code
@@ -84,8 +78,7 @@ NVIDIA Graphics Driver 391.40
 NVIDIA Update 31.1.10.0
 paint.net
 Printix Client
-PuTTY release 0.70 (64-bit)
-PuTTY release 0.71 (64-bit)
+PuTTY release 0.72 (64-bit)
 Remote Desktop Connection Manager
 RuckZuck provider for OneGet
 Samsung Printer Live Update
