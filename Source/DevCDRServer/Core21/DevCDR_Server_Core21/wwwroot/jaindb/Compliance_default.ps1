@@ -56,11 +56,11 @@ if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.7.0.3")) {
 }
 
 #Update DevCDRAgentCore
-if ([version](get-item "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.23") {
+if ([version](get-item "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.25") {
     [xml]$a = gc "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
     $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
     $EP > $env:temp\ep.log
-	if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v1.0.0.23"  }) -LogType "DevCDRCore" }
+	if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v1.0.0.25"  }) -LogType "DevCDRCore" }
     &msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT="$($EP)" /qn REBOOT=REALLYSUPPRESS  
 }
 
@@ -160,9 +160,9 @@ if (get-process logonui -ea SilentlyContinue) {
     if (-NOT (Test-NetMetered )) {
         #List of managed Software.
         $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", "VSTO2010", "GIMP",
-            "AdobeReader DC", "Microsoft Power BI Desktop", "Putty", "WinSCP", "AdobeAir", "ShockwavePlayer",
-            "VCRedist2019x64" , "VCRedist2019x86", "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
-            "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", "Office Timeline", 
+            "AdobeReader DC", "Microsoft Power BI Desktop", "Putty", "WinSCP", "AdobeAir", "ShockwavePlayer", "TeamViewer",
+            "VCRedist2019x64" , "VCRedist2019x86", "VCRedist2013x64", "VCRedist2013x86",  "Slack", "Microsoft OneDrive",
+            "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", "Office Timeline", "WinRAR", "Paint.Net", "Viber", "Teams Machine-Wide Installer",
             "VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "Microsoft Azure Information Protection" )
 
         #Find Software Updates
@@ -190,8 +190,8 @@ else {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUCVzEXrtV3Txv+dlPvpkHlHGA
-# 67ygggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUzKXCh8tgetclJzhk06uAOGNI
+# bPOgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -256,12 +256,12 @@ else {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ4
-# pBTKNv3kDfQdBWgVzdD5ahBoPDANBgkqhkiG9w0BAQEFAASCAQCHKGZxTJLyQb29
-# nm4rKfI4XBkrOgifFrwc9RySlTd9gZ5hrCC5GOfE34365G4mzioN/mvv7Nar/YRn
-# 8ucMPm2/z2aQ31GnCr5D6uOnySDeZwtvqCc7+xMuSgMDDc6qlklzw/L5MhkKoe5m
-# bKSaVrqtjA1lOtFS0T2KGHogt5Rxe83vrT/AJIsTW5SB03HthOUbCwjulg3UQ73A
-# 5LFLToY4iNIZGktXxmkXVaEupH68D9I3DekltyzimvYEb06iEII3savrnxuEftaS
-# if9aOv41WLOQ63LJSwxj6rpzcUhhreVYla8ie4sjdoO0nnQLzc5qpXGd1aakqeVX
-# f78vuo7w
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRV
+# FDtbduVU2J5MXtZ/Wsj28rR8vTANBgkqhkiG9w0BAQEFAASCAQCy+79LT7iye12C
+# EVlxfpI8R7Hpo9onSPmtcdXGUKycPmpjYLejkqPJ+9xoAUGF4EYJch3lEKTv5GFl
+# l88KPhaiKpDHngubQCMNlCJ9PDD1HQt4qa2ZfqLM7viQP80LIZC9w+sh8pvFisj1
+# rRT6LQJzexxhOAde+QLFo8qh9bHBNO/YmvYGCPHqKHqlad6HMijRh4uCqwIX7ufJ
+# Zj2Td4eJLV6CjmMaLvD7s1GNG8Ohlk05LoRPXrNfl/8F3ZxR0qUtjDym1kJgriSR
+# Yp3cevE5vHJ0AbTnI7ZR3t++uOj+9VUXRWbRnhv2e3CwM+rob+ilzXrikjDoOcJg
+# z42dLY/8
 # SIG # End signature block
