@@ -64,9 +64,13 @@ namespace DevCDRAgent
                             //Run Inventory every x Hours
                             if (tLastCheck.TotalHours >= Properties.Settings.Default.InventoryCheckHours)
                             {
-                                Trace.WriteLine(DateTime.Now.ToString() + " starting Inventory...");
-                                Trace.Flush();
-                                System.Threading.Thread.Sleep(1000);
+                                try
+                                {
+                                    Trace.WriteLine(DateTime.Now.ToString() + " starting Inventory...");
+                                    Trace.Flush();
+                                    System.Threading.Thread.Sleep(1000);
+                                }
+                                catch { }
 
                                 connection.SendAsync("Inventory", Hostname);
 
@@ -75,16 +79,20 @@ namespace DevCDRAgent
                             }
                         }
 
-                        if (Properties.Settings.Default.HealtchCheckHours > 0) //Healthcheck is enabled
+                        if (Properties.Settings.Default.HealtchCheckMinutes > 0) //Healthcheck is enabled
                         {
                             var tLastCheck = DateTime.Now - Properties.Settings.Default.HealthCheckSuccess;
 
                             //Run HealthChekc every x Hours
-                            if (tLastCheck.TotalHours >= Properties.Settings.Default.HealtchCheckHours)
+                            if (tLastCheck.TotalMinutes >= Properties.Settings.Default.HealtchCheckMinutes)
                             {
-                                Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
-                                Trace.Flush();
-                                System.Threading.Thread.Sleep(1000);
+                                try
+                                {
+                                    Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
+                                    Trace.Flush();
+                                    System.Threading.Thread.Sleep(1000);
+                                }
+                                catch { }
 
                                 connection.SendAsync("HealthCheck", Hostname);
 
@@ -565,6 +573,7 @@ namespace DevCDRAgent
                             Random rnd = new Random();
                             tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
 
+                            RZRestAPIv2.sURL = ""; //Enforce reloading RZ URL
                             RZUpdater oUpdate = new RZUpdater();
                             RZScan oScan = new RZScan(false, false);
 
@@ -608,6 +617,7 @@ namespace DevCDRAgent
                             Random rnd = new Random();
                             tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
 
+                            RZRestAPIv2.sURL = ""; //Enforce reloading RZ URL
                             RZUpdater oUpdate = new RZUpdater();
                             RZScan oScan = new RZScan(false, false);
 
@@ -721,6 +731,7 @@ namespace DevCDRAgent
             try
             {
                 Random rnd = new Random();
+                RZRestAPIv2.sURL = ""; //Enforce reloading RZ URL
                 RZUpdater oRZSW = new RZUpdater();
                 oRZSW.SoftwareUpdate = new SWUpdate(s1);
                 if (string.IsNullOrEmpty(oRZSW.SoftwareUpdate.SW.ProductName))

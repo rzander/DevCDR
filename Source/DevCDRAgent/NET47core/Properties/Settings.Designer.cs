@@ -174,10 +174,10 @@ namespace DevCDRAgent.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1")]
-        public int HealtchCheckHours {
+        [global::System.Configuration.DefaultSettingValueAttribute("30")]
+        public int HealtchCheckMinutes {
             get {
-                return ((int)(this["HealtchCheckHours"]));
+                return ((int)(this["HealtchCheckMinutes"]));
             }
         }
         
