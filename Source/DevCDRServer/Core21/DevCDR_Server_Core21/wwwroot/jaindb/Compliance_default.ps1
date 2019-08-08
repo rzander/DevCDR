@@ -36,6 +36,9 @@ function Test-NetMetered {
     catch { return $false }
 }
 
+#Check if nuget provider is installed...
+if(-NOT (Get-PackageProvider nuget -ListAvailable -ea SilentlyContinue)) { Install-PackageProvider -Name "Nuget" -Force }
+
 #check if Azure Analytics Log Provider is installed
 #Install: Install-Module -Name WriteAnalyticsLog -Force
 #Configure: Set-LogAnalytics -WorkspaceID <string> -SharedKey <string> -LogType <string>
@@ -43,21 +46,21 @@ if(Get-Module -ListAvailable -Name WriteAnalyticsLog) { $bLogging = $true } else
 
 #Install RuckZuck Provider for OneGet if missing...
 if (Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) { } else {
-	if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Installing OneGet v1.7.0.2"  }) -LogType "DevCDRCore" }
-    &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.0.2/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+	if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Installing OneGet v1.7.0.3"  }) -LogType "DevCDRCore" }
+    &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.0.3/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
-if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.7.0.2")) {
-	if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Updating to OneGet v1.7.0.2"  }) -LogType "DevCDRCore" }
-    &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.0.2/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.7.0.3")) {
+	if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Updating to OneGet v1.7.0.3"  }) -LogType "DevCDRCore" }
+    &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.0.3/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
 #Update DevCDRAgentCore
-if ([version](get-item "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.23") {
+if ([version](get-item "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.25") {
     [xml]$a = gc "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
     $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
     $EP > $env:temp\ep.log
-	if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v1.0.0.23"  }) -LogType "DevCDRCore" }
+	if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v1.0.0.25"  }) -LogType "DevCDRCore" }
     &msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT="$($EP)" /qn REBOOT=REALLYSUPPRESS  
 }
 
@@ -72,7 +75,7 @@ if ((Get-ScheduledTask DevCDR -ea SilentlyContinue).Description -ne 'DeviceComma
     }
     catch { }
 
-    [xml]$a = gc "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+    [xml]$a = Get-Content "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
     $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
     $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)){ `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT=$($EP) /qn REBOOT=REALLYSUPPRESS`" }"
     $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
@@ -87,6 +90,45 @@ if (Get-LocalGroupMember -SID S-1-5-32-544 -ea SilentlyContinue) {} else {
 		$Group = [ADSI]"WinNT://localhost/$LocalGroup,group"
 		$members = $Group.psbase.Invoke("Members")
 		$members | ForEach-Object { $_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -like "S-1-12-1-*" } | ForEach-Object { Remove-LocalGroupMember -Name $localgroup $_ } 
+}
+
+#disable local Admin account if PW is older than 4 hours
+if ((Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Enabled) {
+    #check if local Admin PW is older than 4 Hours
+    if (((get-date) - (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).PasswordLastSet).TotalHours -gt 4) {
+        #Disable local Admin
+        (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Disable-LocalUser
+
+        #generate new random PW
+        $pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | ForEach-Object -begin { $aa = $null } -process { $aa += [char]$_ } -end { $aa }; (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
+		$pw = "";
+
+		if($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1005; Description = "local Admin account disabled and new random passwort generated"  }) -LogType "DevCDRCore" }
+    }
+}
+
+#Enable WOL on NetworkAdapters
+$niclist = Get-NetAdapter | Where-Object { ($_.MediaConnectionState -eq "Connected") -and (($_.name -match "Ethernet") -or ($_.name -match "local area connection")) }
+$niclist | ForEach-Object { 
+	$nic = $_
+	$nicPowerWake = Get-WmiObject MSPower_DeviceWakeEnable -Namespace root\wmi | Where-Object { $_.instancename -match [regex]::escape($nic.PNPDeviceID) }
+	If ($nicPowerWake.Enable -eq $true) { }
+	Else {
+		try {
+		    $nicPowerWake.Enable = $True
+		    $nicPowerWake.psbase.Put() 
+		}
+		catch { }
+	}
+	$nicMagicPacket = Get-WmiObject MSNdis_DeviceWakeOnMagicPacketOnly -Namespace root\wmi | Where-Object { $_.instancename -match [regex]::escape($nic.PNPDeviceID) }
+	If ($nicMagicPacket.EnableWakeOnMagicPacketOnly -eq $true) {}
+	Else {
+		try {
+		    $nicMagicPacket.EnableWakeOnMagicPacketOnly = $True
+		    $nicMagicPacket.psbase.Put()
+		}
+		catch { }
+	}
 }
 
 #Only Update SW if LockScreen (LogonUI) is present
@@ -118,9 +160,9 @@ if (get-process logonui -ea SilentlyContinue) {
     if (-NOT (Test-NetMetered )) {
         #List of managed Software.
         $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", "VSTO2010", "GIMP",
-            "AdobeReader DC", "Microsoft Power BI Desktop", "Putty", "WinSCP", "AdobeAir", "ShockwavePlayer",
-            "VCRedist2019x64" , "VCRedist2019x86", "VCRedist2017x64" , "VCRedist2017x86", "VCRedist2015x64", "VCRedist2015x86", "VCRedist2013x64", "VCRedist2013x86", 
-            "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", "Office Timeline", 
+            "AdobeReader DC", "Microsoft Power BI Desktop", "Putty", "WinSCP", "AdobeAir", "ShockwavePlayer", "TeamViewer",
+            "VCRedist2019x64" , "VCRedist2019x86", "VCRedist2013x64", "VCRedist2013x86",  "Slack", "Microsoft OneDrive",
+            "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", "Office Timeline", "WinRAR", "Paint.Net", "Viber", "Teams Machine-Wide Installer",
             "VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "Microsoft Azure Information Protection" )
 
         #Find Software Updates
@@ -148,8 +190,8 @@ else {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUG1KFdrT2Bx4dgOoGHFC/7DW7
-# S8ugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUzKXCh8tgetclJzhk06uAOGNI
+# bPOgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -214,12 +256,12 @@ else {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTp
-# EroNfWh6gPcEVhSWDv6r+8rIkjANBgkqhkiG9w0BAQEFAASCAQCcrk16nuShO6vP
-# wPf4UBj7LeCmvnjmi1ngczxfE9ZSaUdKsbhhIMi0tNviLLdHMe90cBLEcnniimtb
-# zjtLIpCKkyel3VeGYAPzTVqEJuLQPIwY3fQ1AcxcfHvq4b8JBaMup8sjVBNdOgs2
-# Yb4HIDpwOx6pec1G94RgemJ/WruLE9FovyAKSEcd1dlfkWWHwRR4o8bwh83JEiOS
-# Ll/eygzRK6UW3+g6L5zWnwt9tpgPiChodquyfAIkEJlaA4R/H8qMoLbv4wTDi8Dp
-# VBlchheGIhzbbS6ARTvaJ+Uw0vQmAoe0eLuoIBLWmYmiqkAMTP+SA39g6oRbzmde
-# 9GPo8Hpw
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRV
+# FDtbduVU2J5MXtZ/Wsj28rR8vTANBgkqhkiG9w0BAQEFAASCAQCy+79LT7iye12C
+# EVlxfpI8R7Hpo9onSPmtcdXGUKycPmpjYLejkqPJ+9xoAUGF4EYJch3lEKTv5GFl
+# l88KPhaiKpDHngubQCMNlCJ9PDD1HQt4qa2ZfqLM7viQP80LIZC9w+sh8pvFisj1
+# rRT6LQJzexxhOAde+QLFo8qh9bHBNO/YmvYGCPHqKHqlad6HMijRh4uCqwIX7ufJ
+# Zj2Td4eJLV6CjmMaLvD7s1GNG8Ohlk05LoRPXrNfl/8F3ZxR0qUtjDym1kJgriSR
+# Yp3cevE5vHJ0AbTnI7ZR3t++uOj+9VUXRWbRnhv2e3CwM+rob+ilzXrikjDoOcJg
+# z42dLY/8
 # SIG # End signature block

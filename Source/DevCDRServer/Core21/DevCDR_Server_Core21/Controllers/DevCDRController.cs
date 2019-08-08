@@ -357,6 +357,11 @@ namespace DevCDRServer.Controllers
                 case "WOL":
                     sendWOL(lHostnames, sInstance, GetAllMACAddresses());
                     break;
+                case "Compliance":
+                    string sEndPoint2 = Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
+                    string complianceFile = Environment.GetEnvironmentVariable("ScriptCompliance") ?? "compliance_default.ps1";
+                    RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint2 + "/jaindb/getps?filename=" + complianceFile + "' | IEX;'Inventory complete..'", sInstance, sCommand);
+                    break;
             }
 
             return new ContentResult();
