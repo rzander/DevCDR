@@ -49,7 +49,7 @@ namespace DevCDRAgent
             try
             {
                 Random rnd = new Random();
-                tReInit.Interval = 120100 + rnd.Next(1, 30000); //randomize ReInit intervall
+                tReInit.Interval = 150100 + rnd.Next(1, 30000); //randomize ReInit intervall
 
                 if (connection != null && isconnected)
                 {
@@ -64,17 +64,17 @@ namespace DevCDRAgent
                             //Run Inventory every x Hours
                             if (tLastCheck.TotalHours >= Properties.Settings.Default.InventoryCheckHours)
                             {
+                                Properties.Settings.Default.InventorySuccess = DateTime.Now;
+
                                 try
                                 {
                                     Trace.WriteLine(DateTime.Now.ToString() + " starting Inventory...");
                                     Trace.Flush();
-                                    System.Threading.Thread.Sleep(1000);
                                 }
                                 catch { }
 
                                 connection.SendAsync("Inventory", Hostname);
 
-                                Properties.Settings.Default.InventorySuccess = DateTime.Now;
                                 Properties.Settings.Default.Save();
                             }
                         }
@@ -83,20 +83,20 @@ namespace DevCDRAgent
                         {
                             var tLastCheck = DateTime.Now - Properties.Settings.Default.HealthCheckSuccess;
 
-                            //Run HealthChekc every x Hours
+                            //Run HealthChekc every x Minutes
                             if (tLastCheck.TotalMinutes >= Properties.Settings.Default.HealtchCheckMinutes)
                             {
+                                Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
+
                                 try
                                 {
                                     Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
                                     Trace.Flush();
-                                    System.Threading.Thread.Sleep(1000);
                                 }
                                 catch { }
 
                                 connection.SendAsync("HealthCheck", Hostname);
 
-                                Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
                                 Properties.Settings.Default.Save();
                             }
                         }
@@ -356,6 +356,7 @@ namespace DevCDRAgent
                             {
                                 Trace.Write(DateTime.Now.ToString() + "\t restarting service as Agent is looping...");
                                 Trace.Flush();
+                                Trace.Close();
                                 RestartService();
                             }
                         }
@@ -715,9 +716,6 @@ namespace DevCDRAgent
                     }
                     catch { }
                 });
-
-
-
 
             }
             catch (Exception ex)
