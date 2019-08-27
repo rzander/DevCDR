@@ -165,13 +165,13 @@ if (get-process logonui -ea SilentlyContinue) {
     if (-NOT (Test-NetMetered )) {
         #List of managed Software.
         $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", "VSTO2010", "GIMP",
-            "AdobeReader DC", "Microsoft Power BI Desktop", "Putty", "WinSCP", "AdobeAir", "ShockwavePlayer", 
+            "AdobeReader DC", "Microsoft Power BI Desktop", "Putty", "WinSCP", "AdobeAir", "ShockwavePlayer", "VCRedist2015x64" , "VCRedist2015x86", "VCRedist2017x64" , "VCRedist2017x86",
             "VCRedist2019x64" , "VCRedist2019x86", "VCRedist2013x64", "VCRedist2013x86", "Slack", "Microsoft OneDrive",
             "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", "Office Timeline", "WinRAR", "Viber", "Teams Machine-Wide Installer",
             "VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "Microsoft Azure Information Protection" )
 
         #Find Software Updates
-        $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename
+        $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename | Sort-Object {Get-Random}
 
         #Update only managed Software
         $ManagedSW | ForEach-Object { 
@@ -197,8 +197,8 @@ else {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUz4XK5TNofzDAH839dD4UtFz2
-# sAWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUCyoiTEjRqddb5QBWhabMYaYI
+# s6qgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -263,12 +263,12 @@ else {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBT2
-# 2bnFwKfHszRMm3kjqf8Ip0D3bDANBgkqhkiG9w0BAQEFAASCAQBt3OCJcCMt4BHQ
-# 38ew7JAv92jKeTmyRhsyaKqqjYQ4KmWiVzKqIaUCsu0MgHXKydMn0erWPDHuJYhL
-# JWsEj41lL3vw7E8mKd1mStZvZvHxS5wBioq2CrAGWCR4oTKiqpn2rjrHIjUXhVf8
-# /3fqzUg44Trxrpbqx2tFPMKjqkU2FDeyGZyWhyZzWfv97q2act4ylIvape8lTyLz
-# rBJCFaTD9ehgSIDMJmh7eQU1CZ7aNhqt2qOB5vAPQFlFP7AlIVe5XOpETHq8GAae
-# pMSsbYoxLBIrzuwpSs6IeCTMUoKdTtEJXX91BaiDlckq9zzKGss/dz6KMvVmJp5T
-# uTAlo/sT
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ1
+# PZNhJ3ivKa898b4OHdIUglo2STANBgkqhkiG9w0BAQEFAASCAQAM+Z2xdksPjD5c
+# Ajkpw4Z65xWYJrWOqKd9XdaZV2vYBAydMUTewDNh6Iaj36McyMXs/JvS+yHLuJpt
+# xlpFzpdN4drRC2wxKgJZc0n2xz47pwg9WAOGZNbkw31lO8cTaIhFYPZvl465nFle
+# LRjcNAZKnum/P/5dcFFUoWjHUoHsMp8RFxbwEwv4PpQXVv6ogXf8n3FN1a5yYQEo
+# Gejn2HyLeoNxD6vmW8BW9NgVJOOYlziekzo7BVBUZIeien5jhdXySNTaVUwswJm4
+# z2chXS4Mt3LdpPOXMSpX5rMXScPkdu9QKK5ByUN1F3lEOo9skUK/cXbFGADak4x0
+# rmIGTuw1
 # SIG # End signature block

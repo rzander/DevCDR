@@ -6,7 +6,6 @@ Adobe Acrobat Reader DC - Deutsch
 Adobe Acrobat Reader DC MUI
 Adobe Creative Cloud
 Citrix Receiver 4.12
-DevCDRAgent
 Google Chrome
 Greenshot 1.2.10.6
 Intel(R) Management Engine Components
@@ -21,6 +20,7 @@ Microsoft .NET Framework 4.5.2 Multi-Targeting Pack (ENU)
 Microsoft ASP.NET MVC 2
 Microsoft Azure Information Protection
 Microsoft Azure Storage Explorer version 1.6.2
+Microsoft Edge Beta
 Microsoft Edge Dev
 Microsoft Edge Update
 Microsoft Intune Management Extension
