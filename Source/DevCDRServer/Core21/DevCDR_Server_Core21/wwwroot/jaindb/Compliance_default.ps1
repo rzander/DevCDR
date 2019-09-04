@@ -58,11 +58,11 @@ if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.7.0.5")) {
 }
 
 #Update DevCDRAgentCore
-if ([version](get-item "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.27") {
+if ([version](get-item "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.28") {
     [xml]$a = gc "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
     $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
     $EP > $env:temp\ep.log
-    if ($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v1.0.0.27" }) -LogType "DevCDRCore" 
+    if ($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v1.0.0.28" }) -LogType "DevCDRCore" 
     }
     &msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT="$($EP)" /qn REBOOT=REALLYSUPPRESS  
 }
@@ -136,7 +136,7 @@ $niclist | ForEach-Object {
     }
 }
 #Disable FastBoot
-New-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' -Name 'HiberbootEnabled' -Value 0 -PropertyType DWord -Force -ea SilentlyContinue;
+New-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' -Name 'HiberbootEnabled' -Value 0 -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
 
 #region Select a method to restrict Peer Selection on DeliveryOptimization
 #Create the key if missing 
@@ -197,8 +197,8 @@ else {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUCyoiTEjRqddb5QBWhabMYaYI
-# s6qgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgNzsHtyMjlzDgHoA3bWVsTOX
+# zLOgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -263,12 +263,12 @@ else {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ1
-# PZNhJ3ivKa898b4OHdIUglo2STANBgkqhkiG9w0BAQEFAASCAQAM+Z2xdksPjD5c
-# Ajkpw4Z65xWYJrWOqKd9XdaZV2vYBAydMUTewDNh6Iaj36McyMXs/JvS+yHLuJpt
-# xlpFzpdN4drRC2wxKgJZc0n2xz47pwg9WAOGZNbkw31lO8cTaIhFYPZvl465nFle
-# LRjcNAZKnum/P/5dcFFUoWjHUoHsMp8RFxbwEwv4PpQXVv6ogXf8n3FN1a5yYQEo
-# Gejn2HyLeoNxD6vmW8BW9NgVJOOYlziekzo7BVBUZIeien5jhdXySNTaVUwswJm4
-# z2chXS4Mt3LdpPOXMSpX5rMXScPkdu9QKK5ByUN1F3lEOo9skUK/cXbFGADak4x0
-# rmIGTuw1
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ9
+# UGiR0xlVjeICyerKVBc87qewbDANBgkqhkiG9w0BAQEFAASCAQCj+oGyhhFboF1X
+# IM2Hx2aYDn/5G1Rk5LYXDSJPOvt9y0Xb5d5/mQkv+6YeKZtUp2177A11zkqpZO1o
+# 3P9T3pOR2NjOG17zEFeW2788+4yS0him2jllW2+ayd5DE518JzAKKiw5+p3aQAWH
+# ry4oOUARF8OHwMZD+H6+4+9dG3vuLa5mlZcwecYmlGs9FT+I0t5GjwoxXC80kM9Z
+# w6IFOoDBvPP7eDE4M0Vdbt9X/puXbs0pfHcDHMQf6YF92n2/mDTZ1TP4S+5sh1lJ
+# IqFnHzIJrUwCRbF5yvJGDkcimFGxEwRiqGkmTivl7SQCcUB66OieyI1xWe15sDzV
+# JAcM76aE
 # SIG # End signature block
