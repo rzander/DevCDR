@@ -120,7 +120,10 @@ namespace DevCDRServer.Controllers
             return View();
         }
 
+#if DEBUG
         [AllowAnonymous]
+#endif
+        [Authorize]
         public ActionResult GetData(string Instance)
         {
             JArray jData = new JArray();
@@ -168,7 +171,10 @@ namespace DevCDRServer.Controllers
             return iCount;
         }
 
+#if DEBUG
         [AllowAnonymous]
+#endif
+        [Authorize]
         public ActionResult Groups(string Instance)
         {
             List<string> lGroups = new List<string>();
@@ -193,7 +199,10 @@ namespace DevCDRServer.Controllers
             };
         }
 
+#if DEBUG
         [AllowAnonymous]
+#endif
+        [Authorize]
         public ActionResult GetRZCatalog(string Instance)
         {
             List<string> lRZCat = new List<string>();
