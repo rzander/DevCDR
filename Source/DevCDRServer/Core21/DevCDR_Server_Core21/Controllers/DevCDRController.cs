@@ -106,6 +106,12 @@ namespace DevCDRServer.Controllers
         }
 
         [AllowAnonymous]
+        public ActionResult GetVersion()
+        {
+            return Content(typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version);
+        }
+
+        [AllowAnonymous]
         public ActionResult Contact()
         {
             ViewBag.Message = "Device Commander Contact....";
@@ -114,7 +120,10 @@ namespace DevCDRServer.Controllers
             return View();
         }
 
+#if DEBUG
         [AllowAnonymous]
+#endif
+        [Authorize]
         public ActionResult GetData(string Instance)
         {
             JArray jData = new JArray();
@@ -162,7 +171,10 @@ namespace DevCDRServer.Controllers
             return iCount;
         }
 
+#if DEBUG
         [AllowAnonymous]
+#endif
+        [Authorize]
         public ActionResult Groups(string Instance)
         {
             List<string> lGroups = new List<string>();
@@ -187,7 +199,10 @@ namespace DevCDRServer.Controllers
             };
         }
 
+#if DEBUG
         [AllowAnonymous]
+#endif
+        [Authorize]
         public ActionResult GetRZCatalog(string Instance)
         {
             List<string> lRZCat = new List<string>();
@@ -360,7 +375,7 @@ namespace DevCDRServer.Controllers
                 case "Compliance":
                     string sEndPoint2 = Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
                     string complianceFile = Environment.GetEnvironmentVariable("ScriptCompliance") ?? "compliance_default.ps1";
-                    RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint2 + "/jaindb/getps?filename=" + complianceFile + "' | IEX;'Inventory complete..'", sInstance, sCommand);
+                    RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint2 + "/jaindb/getps?filename=" + complianceFile + "' | IEX;'Compliance check complete..'", sInstance, sCommand);
                     break;
             }
 

@@ -6,12 +6,11 @@ Adobe Acrobat Reader DC - Deutsch
 Adobe Acrobat Reader DC MUI
 Adobe Creative Cloud
 Citrix Receiver 4.12
-DevCDRAgent
 Google Chrome
 Greenshot 1.2.10.6
 Intel(R) Management Engine Components
 Intel(R) Processor Graphics
-Java 8 Update 211
+Java 8 Update 221
 KeePass 2.42.1
 LastPass (uninstall only)
 Logitech Options
@@ -21,9 +20,9 @@ Microsoft .NET Framework 4.5.2 Multi-Targeting Pack (ENU)
 Microsoft ASP.NET MVC 2
 Microsoft Azure Information Protection
 Microsoft Azure Storage Explorer version 1.6.2
+Microsoft Edge Beta
 Microsoft Edge Dev
 Microsoft Edge Update
-Microsoft Help Viewer 2.2
 Microsoft Intune Management Extension
 Microsoft ODBC Driver 13 for SQL Server
 Microsoft Office 365 ProPlus - de-de
