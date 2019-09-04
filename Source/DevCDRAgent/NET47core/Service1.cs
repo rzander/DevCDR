@@ -27,6 +27,7 @@ namespace DevCDRAgent
         private System.Timers.Timer tReCheck = new System.Timers.Timer(61000); //1min
         private System.Timers.Timer tReInit = new System.Timers.Timer(120100); //2min
         private DateTime tLastStatus = new DateTime();
+        private DateTime tLastPSAsync = new DateTime();
         private long lConnectCount = 0;
 
         private static string Hostname = Environment.MachineName;
@@ -35,6 +36,8 @@ namespace DevCDRAgent
         private bool isconnected = false;
         private bool isstopping = false;
         public string Uri { get; set; } = Properties.Settings.Default.Endpoint;
+
+        static readonly object _locker = new object();
 
         public Service1(string Host)
         {
@@ -64,18 +67,21 @@ namespace DevCDRAgent
                             //Run Inventory every x Hours
                             if (tLastCheck.TotalHours >= Properties.Settings.Default.InventoryCheckHours)
                             {
-                                Properties.Settings.Default.InventorySuccess = DateTime.Now;
-
-                                try
+                                lock (_locker)
                                 {
-                                    Trace.WriteLine(DateTime.Now.ToString() + " starting Inventory...");
-                                    Trace.Flush();
+                                    Properties.Settings.Default.InventorySuccess = DateTime.Now;
+
+                                    try
+                                    {
+                                        Trace.WriteLine(DateTime.Now.ToString() + " starting Inventory...");
+                                        Trace.Flush();
+                                    }
+                                    catch { }
+
+                                    connection.SendAsync("Inventory", Hostname);
+
+                                    Properties.Settings.Default.Save();
                                 }
-                                catch { }
-
-                                connection.SendAsync("Inventory", Hostname);
-
-                                Properties.Settings.Default.Save();
                             }
                         }
 
@@ -86,18 +92,21 @@ namespace DevCDRAgent
                             //Run HealthChekc every x Minutes
                             if (tLastCheck.TotalMinutes >= Properties.Settings.Default.HealtchCheckMinutes)
                             {
-                                Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
-
-                                try
+                                lock (_locker)
                                 {
-                                    Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
-                                    Trace.Flush();
+                                    Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
+
+                                    try
+                                    {
+                                        Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
+                                        Trace.Flush();
+                                    }
+                                    catch { }
+
+                                    connection.SendAsync("HealthCheck", Hostname);
+
+                                    Properties.Settings.Default.Save();
                                 }
-                                catch { }
-
-                                connection.SendAsync("HealthCheck", Hostname);
-
-                                Properties.Settings.Default.Save();
                             }
                         }
                     }
@@ -233,64 +242,30 @@ namespace DevCDRAgent
             {
                 connection.On<string, string>("returnPS", (s1, s2) =>
                 {
-                    TimeSpan timeout = new TimeSpan(0, 5, 0); //default timeout = 5min
-                            DateTime dStart = DateTime.Now;
-                    TimeSpan dDuration = DateTime.Now - dStart;
-
-                    using (PowerShell PowerShellInstance = PowerShell.Create())
+                    lock (_locker)
                     {
-                        Trace.WriteLine(DateTime.Now.ToString() + "\t run PS... " + s1);
-                        try
-                        {
-                            PowerShellInstance.AddScript(s1);
-                            PSDataCollection<PSObject> outputCollection = new PSDataCollection<PSObject>();
+                        TimeSpan timeout = new TimeSpan(0, 5, 0); //default timeout = 5min
+                        DateTime dStart = DateTime.Now;
+                        TimeSpan dDuration = DateTime.Now - dStart;
 
-                            outputCollection.DataAdding += ConsoleOutput;
-                            PowerShellInstance.Streams.Error.DataAdding += ConsoleError;
-
-                            IAsyncResult async = PowerShellInstance.BeginInvoke<PSObject, PSObject>(null, outputCollection);
-                            while (async.IsCompleted == false || dDuration > timeout)
-                            {
-                                Thread.Sleep(200);
-                                dDuration = DateTime.Now - dStart;
-                                if (tReInit.Interval > 5000)
-                                    tReInit.Interval = 5000;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine("There was an error: {0}", ex.Message);
-                        }
-                    }
-
-                    Program.MinimizeFootprint();
-                });
-
-                //New 0.9.0.6
-                connection.On<string, string>("returnPSAsync", (s1, s2) =>
-                {
-                    Trace.WriteLine(DateTime.Now.ToString() + "\t run PS async... " + s1);
-                    var tSWScan = Task.Run(() =>
-                    {
                         using (PowerShell PowerShellInstance = PowerShell.Create())
                         {
+                            Trace.WriteLine(DateTime.Now.ToString() + "\t run PS... " + s1);
                             try
                             {
                                 PowerShellInstance.AddScript(s1);
-                                var PSResult = PowerShellInstance.Invoke();
-                                if (PSResult.Count() > 0)
-                                {
-                                    string sResult = PSResult.Last().BaseObject.ToString();
+                                PSDataCollection<PSObject> outputCollection = new PSDataCollection<PSObject>();
 
-                                    if (!string.IsNullOrEmpty(sResult)) //Do not return empty results
-                                            {
-                                        if (sResult != sScriptResult)
-                                        {
-                                            sScriptResult = sResult;
-                                            Random rnd = new Random();
-                                            tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
-                                                }
-                                    }
+                                outputCollection.DataAdding += ConsoleOutput;
+                                PowerShellInstance.Streams.Error.DataAdding += ConsoleError;
+
+                                IAsyncResult async = PowerShellInstance.BeginInvoke<PSObject, PSObject>(null, outputCollection);
+                                while (async.IsCompleted == false || dDuration > timeout)
+                                {
+                                    Thread.Sleep(200);
+                                    dDuration = DateTime.Now - dStart;
+                                    if (tReInit.Interval > 5000)
+                                        tReInit.Interval = 5000;
                                 }
                             }
                             catch (Exception ex)
@@ -300,7 +275,51 @@ namespace DevCDRAgent
                         }
 
                         Program.MinimizeFootprint();
-                    });
+                    }
+                });
+
+                //New 0.9.0.6
+                connection.On<string, string>("returnPSAsync", (s1, s2) =>
+                {
+                    if ((DateTime.Now - tLastPSAsync).TotalSeconds >= 2)
+                    {
+                        lock (_locker)
+                        {
+                            Trace.WriteLine(DateTime.Now.ToString() + "\t run PS async... " + s1);
+                            tLastPSAsync = DateTime.Now;
+                            var tSWScan = Task.Run(() =>
+                            {
+                                using (PowerShell PowerShellInstance = PowerShell.Create())
+                                {
+                                    try
+                                    {
+                                        PowerShellInstance.AddScript(s1);
+                                        var PSResult = PowerShellInstance.Invoke();
+                                        if (PSResult.Count() > 0)
+                                        {
+                                            string sResult = PSResult.Last().BaseObject.ToString();
+
+                                            if (!string.IsNullOrEmpty(sResult)) //Do not return empty results
+                                        {
+                                                if (sResult != sScriptResult)
+                                                {
+                                                    sScriptResult = sResult;
+                                                    Random rnd = new Random();
+                                                    tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                                            }
+                                            }
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine("There was an error: {0}", ex.Message);
+                                    }
+                                }
+
+                                Program.MinimizeFootprint();
+                            });
+                        }
+                    }
                 });
 
                 connection.On<string>("init", (s1) =>
@@ -345,57 +364,60 @@ namespace DevCDRAgent
                 {
                     try
                     {
-                        if (lConnectCount == 0)
-                            tLastStatus = DateTime.Now;
-
-                        lConnectCount++;
-
-                        if((DateTime.Now - tLastStatus).TotalSeconds <= 60)
+                        lock (_locker) //prevent parallel status
                         {
-                            if(lConnectCount >= 20) //max 20 status per minute
+                            if (lConnectCount == 0)
+                                tLastStatus = DateTime.Now;
+
+                            lConnectCount++;
+
+                            if ((DateTime.Now - tLastStatus).TotalSeconds <= 60)
                             {
-                                Trace.Write(DateTime.Now.ToString() + "\t restarting service as Agent is looping...");
-                                Trace.Flush();
-                                Trace.Close();
-                                RestartService();
-                            }
-                        }
-                        else
-                        {
-                            tLastStatus = DateTime.Now;
-                            lConnectCount = 0;
-                        }
-
-                        Trace.Write(DateTime.Now.ToString() + "\t send status...");
-                        string sResult = "{}";
-                        using (PowerShell PowerShellInstance = PowerShell.Create())
-                        {
-                            try
-                            {
-                                PowerShellInstance.AddScript(Properties.Settings.Default.PSStatus);
-                                var PSResult = PowerShellInstance.Invoke();
-                                if (PSResult.Count() > 0)
+                                if (lConnectCount >= 20) //max 20 status per minute
                                 {
-                                    sResult = PSResult.Last().BaseObject.ToString();
-                                    sResult = sResult.Replace(Environment.MachineName, Hostname);
-                                    JObject jRes = JObject.Parse(sResult);
-                                    jRes.Add("ScriptResult", sScriptResult);
-                                    jRes.Add("Groups", Properties.Settings.Default.Groups);
-                                    sResult = jRes.ToString();
+                                    Trace.Write(DateTime.Now.ToString() + "\t restarting service as Agent is looping...");
+                                    Trace.Flush();
+                                    Trace.Close();
+                                    RestartService();
                                 }
                             }
-                            catch (Exception ex)
+                            else
                             {
-                                Console.WriteLine(" There was an error: {0}", ex.Message);
+                                tLastStatus = DateTime.Now;
+                                lConnectCount = 0;
                             }
-                        }
 
-                        //connection.InvokeAsync("Status", new object[] { Hostname, sResult }).ContinueWith(task1 =>
-                        //{
-                        //});
-                        connection.InvokeAsync("Status", Hostname, sResult).Wait(1000);
-                        Trace.WriteLine(" done.");
-                        Program.MinimizeFootprint();
+                            Trace.Write(DateTime.Now.ToString() + "\t send status...");
+                            string sResult = "{}";
+                            using (PowerShell PowerShellInstance = PowerShell.Create())
+                            {
+                                try
+                                {
+                                    PowerShellInstance.AddScript(Properties.Settings.Default.PSStatus);
+                                    var PSResult = PowerShellInstance.Invoke();
+                                    if (PSResult.Count() > 0)
+                                    {
+                                        sResult = PSResult.Last().BaseObject.ToString();
+                                        sResult = sResult.Replace(Environment.MachineName, Hostname);
+                                        JObject jRes = JObject.Parse(sResult);
+                                        jRes.Add("ScriptResult", sScriptResult);
+                                        jRes.Add("Groups", Properties.Settings.Default.Groups);
+                                        sResult = jRes.ToString();
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine(" There was an error: {0}", ex.Message);
+                                }
+                            }
+
+                            //connection.InvokeAsync("Status", new object[] { Hostname, sResult }).ContinueWith(task1 =>
+                            //{
+                            //});
+                            connection.InvokeAsync("Status", Hostname, sResult).Wait(1000);
+                            Trace.WriteLine(" done.");
+                            Program.MinimizeFootprint();
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -407,14 +429,17 @@ namespace DevCDRAgent
                 {
                     try
                     {
-                        Trace.Write(DateTime.Now.ToString() + "\t Get Version... ");
-                                //Get File-Version
-                                sScriptResult = (FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location)).FileVersion.ToString();
-                        Trace.WriteLine(sScriptResult);
+                        lock (_locker)
+                        {
+                            Trace.Write(DateTime.Now.ToString() + "\t Get Version... ");
+                            //Get File-Version
+                            sScriptResult = (FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location)).FileVersion.ToString();
+                            Trace.WriteLine(sScriptResult);
 
-                        Random rnd = new Random();
-                        tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
-                            }
+                            Random rnd = new Random();
+                            tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                        }
+                    }
                     catch (Exception ex)
                     {
                         Trace.Write(DateTime.Now.ToString() + " ERROR: " + ex.Message);
@@ -457,21 +482,24 @@ namespace DevCDRAgent
                     Trace.WriteLine(DateTime.Now.ToString() + "\t Set instance: " + s1);
                     try
                     {
-                        if (!string.IsNullOrEmpty(s1))
+                        lock (_locker)
                         {
-                            string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
-                            XmlDocument doc = new XmlDocument();
-                            doc.Load(sConfig);
-                            doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Instance']/value").InnerText = s1;
-                            doc.Save(sConfig);
-                            RestartService();
-
-                                    //Update Advanced Installer Persistent Properties
-                                    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
-                            if (myKey != null)
+                            if (!string.IsNullOrEmpty(s1))
                             {
-                                myKey.SetValue("INSTANCE", s1.Trim(), RegistryValueKind.String);
-                                myKey.Close();
+                                string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
+                                XmlDocument doc = new XmlDocument();
+                                doc.Load(sConfig);
+                                doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Instance']/value").InnerText = s1;
+                                doc.Save(sConfig);
+                                RestartService();
+
+                                //Update Advanced Installer Persistent Properties
+                                RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
+                                if (myKey != null)
+                                {
+                                    myKey.SetValue("INSTANCE", s1.Trim(), RegistryValueKind.String);
+                                    myKey.Close();
+                                }
                             }
                         }
                     }
@@ -483,23 +511,26 @@ namespace DevCDRAgent
                     Trace.WriteLine(DateTime.Now.ToString() + "\t Set Endpoint: " + s1);
                     try
                     {
-                        if (!string.IsNullOrEmpty(s1))
+                        lock (_locker)
                         {
-                            if (s1.StartsWith("https://"))
+                            if (!string.IsNullOrEmpty(s1))
                             {
-                                string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
-                                XmlDocument doc = new XmlDocument();
-                                doc.Load(sConfig);
-                                doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Endpoint']/value").InnerText = s1;
-                                doc.Save(sConfig);
-                                RestartService();
-
-                                        //Update Advanced Installer Persistent Properties
-                                        RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
-                                if (myKey != null)
+                                if (s1.StartsWith("https://"))
                                 {
-                                    myKey.SetValue("ENDPOINT", s1.Trim(), RegistryValueKind.String);
-                                    myKey.Close();
+                                    string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
+                                    XmlDocument doc = new XmlDocument();
+                                    doc.Load(sConfig);
+                                    doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Endpoint']/value").InnerText = s1;
+                                    doc.Save(sConfig);
+                                    RestartService();
+
+                                    //Update Advanced Installer Persistent Properties
+                                    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
+                                    if (myKey != null)
+                                    {
+                                        myKey.SetValue("ENDPOINT", s1.Trim(), RegistryValueKind.String);
+                                        myKey.Close();
+                                    }
                                 }
                             }
                         }
@@ -512,22 +543,25 @@ namespace DevCDRAgent
                     Trace.WriteLine(DateTime.Now.ToString() + "\t Set Groups: " + s1);
                     try
                     {
-                        if (!string.IsNullOrEmpty(s1))
+                        lock (_locker)
                         {
-                            string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
-                            XmlDocument doc = new XmlDocument();
-                            doc.Load(sConfig);
-                            doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Groups']/value").InnerText = s1;
-                            doc.Save(sConfig);
-
-                            RestartService();
-
-                                    //Update Advanced Installer Persistent Properties
-                                    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
-                            if (myKey != null)
+                            if (!string.IsNullOrEmpty(s1))
                             {
-                                myKey.SetValue("GROUPS", s1.Trim(), RegistryValueKind.String);
-                                myKey.Close();
+                                string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
+                                XmlDocument doc = new XmlDocument();
+                                doc.Load(sConfig);
+                                doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Groups']/value").InnerText = s1;
+                                doc.Save(sConfig);
+
+                                RestartService();
+
+                                //Update Advanced Installer Persistent Properties
+                                RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
+                                if (myKey != null)
+                                {
+                                    myKey.SetValue("GROUPS", s1.Trim(), RegistryValueKind.String);
+                                    myKey.Close();
+                                }
                             }
                         }
                     }
@@ -538,13 +572,16 @@ namespace DevCDRAgent
                 {
                     try
                     {
-                        if (!string.IsNullOrEmpty(s1))
+                        lock (_locker)
                         {
-                            sScriptResult = Properties.Settings.Default.Groups;
+                            if (!string.IsNullOrEmpty(s1))
+                            {
+                                sScriptResult = Properties.Settings.Default.Groups;
 
-                            Random rnd = new Random();
-                            tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
-                                }
+                                Random rnd = new Random();
+                                tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                            }
+                        }
                     }
                     catch { }
                 });
