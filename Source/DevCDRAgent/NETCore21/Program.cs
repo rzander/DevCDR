@@ -23,6 +23,9 @@ namespace service
     class Program
     {
         public static DateTime dLastStartup = DateTime.Now;
+        static readonly object _locker = new object();
+        static DateTime tLastPSAsync = new DateTime();
+
         public static async Task Main(string[] args)
         {
             IHost host = new HostBuilder()
@@ -297,13 +300,16 @@ namespace service
                                 //Run Inventory every x Hours
                                 if (tLastCheck.TotalHours >= InventoryCheckHours)
                                 {
-                                    //Trace.WriteLine(DateTime.Now.ToString() + " starting Inventory...");
-                                    //Trace.Flush();
-                                    System.Threading.Thread.Sleep(1000);
+                                    lock (_locker)
+                                    {
+                                        //Trace.WriteLine(DateTime.Now.ToString() + " starting Inventory...");
+                                        //Trace.Flush();
+                                        System.Threading.Thread.Sleep(1000);
 
-                                    connection.SendAsync("Inventory", Hostname);
+                                        connection.SendAsync("Inventory", Hostname);
 
-                                    InventorySuccess = DateTime.Now;
+                                        InventorySuccess = DateTime.Now;
+                                    }
                                 }
                             }
 
@@ -314,13 +320,16 @@ namespace service
                                 //Run HealthChekc every x Hours
                                 if (tLastCheck.TotalHours >= HealtchCheckHours)
                                 {
-                                    //Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
-                                    //Trace.Flush();
-                                    System.Threading.Thread.Sleep(3000);
+                                    lock (_locker)
+                                    {
+                                        //Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
+                                        //Trace.Flush();
+                                        System.Threading.Thread.Sleep(1000);
 
-                                    connection.SendAsync("HealthCheck", Hostname);
+                                        connection.SendAsync("HealthCheck", Hostname);
 
-                                    HealthCheckSuccess = DateTime.Now;
+                                        HealthCheckSuccess = DateTime.Now;
+                                    }
                                 }
                             }
                         }
@@ -358,84 +367,93 @@ namespace service
                 {
                     connection.On<string, string>("returnPS", (s1, s2) =>
                     {
-                        TimeSpan timeout = new TimeSpan(0, 5, 0); //default timeout = 5min
-                        DateTime dStart = DateTime.Now;
-                        TimeSpan dDuration = DateTime.Now - dStart;
-
-                        try
+                        lock (_locker)
                         {
-                            using (PowerShell PowerShellInstance = PowerShell.Create())
+                            TimeSpan timeout = new TimeSpan(0, 5, 0); //default timeout = 5min
+                            DateTime dStart = DateTime.Now;
+                            TimeSpan dDuration = DateTime.Now - dStart;
+
+                            try
                             {
-                                //Console.WriteLine(DateTime.Now.ToString() + "\t run PS... " + s1);
-                                Trace.WriteLine(DateTime.Now.ToString() + "\t run PS... " + s1);
-                                try
+                                using (PowerShell PowerShellInstance = PowerShell.Create())
                                 {
-                                    PowerShellInstance.AddScript(s1);
-                                    PSDataCollection<PSObject> outputCollection = new PSDataCollection<PSObject>();
-
-                                    outputCollection.DataAdding += OutputCollection_DataAdding; ;
-                                    //PowerShellInstance.Streams.Error.DataAdding += ConsoleError;
-
-                                    IAsyncResult async = PowerShellInstance.BeginInvoke<PSObject, PSObject>(null, outputCollection);
-                                    while (async.IsCompleted == false || dDuration > timeout)
+                                    //Console.WriteLine(DateTime.Now.ToString() + "\t run PS... " + s1);
+                                    Trace.WriteLine(DateTime.Now.ToString() + "\t run PS... " + s1);
+                                    try
                                     {
-                                        //Thread.Sleep(200);
-                                        dDuration = DateTime.Now - dStart;
-                                        if (tReInit.Interval > 5000)
-                                            tReInit.Interval = 5000;
-                                    }
+                                        PowerShellInstance.AddScript(s1);
+                                        PSDataCollection<PSObject> outputCollection = new PSDataCollection<PSObject>();
 
-                                    Console.WriteLine(DateTime.Now.ToString() + "\t run PS... " + s1);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine("There was an error: {0}", ex.Message);
+                                        outputCollection.DataAdding += OutputCollection_DataAdding; ;
+                                        //PowerShellInstance.Streams.Error.DataAdding += ConsoleError;
+
+                                        IAsyncResult async = PowerShellInstance.BeginInvoke<PSObject, PSObject>(null, outputCollection);
+                                        while (async.IsCompleted == false || dDuration > timeout)
+                                        {
+                                            //Thread.Sleep(200);
+                                            dDuration = DateTime.Now - dStart;
+                                            if (tReInit.Interval > 5000)
+                                                tReInit.Interval = 5000;
+                                        }
+
+                                        Console.WriteLine(DateTime.Now.ToString() + "\t run PS... " + s1);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine("There was an error: {0}", ex.Message);
+                                    }
                                 }
                             }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine("ERROR: " + ex.Message);
+                            }
                         }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine("ERROR: " + ex.Message);
-                        }
-
                         //Program.MinimizeFootprint();
                     });
 
                     //New 0.9.0.6
                     connection.On<string, string>("returnPSAsync", (s1, s2) =>
                     {
-                        //Trace.WriteLine(DateTime.Now.ToString() + "\t run PS async... " + s1);
-                        var tSWScan = Task.Run(() =>
+                        if ((DateTime.Now - tLastPSAsync).TotalSeconds >= 2)
                         {
-                            //using (PowerShell PowerShellInstance = PowerShell.Create())
-                            //{
-                            //    try
-                            //    {
-                            //        PowerShellInstance.AddScript(s1);
-                            //        var PSResult = PowerShellInstance.Invoke();
-                            //        if (PSResult.Count() > 0)
-                            //        {
-                            //            string sResult = PSResult.Last().BaseObject.ToString();
+                            lock (_locker)
+                            {
+                                //Trace.WriteLine(DateTime.Now.ToString() + "\t run PS async... " + s1);
+                                tLastPSAsync = DateTime.Now;
+                                var tSWScan = Task.Run(() =>
+                                {
+                                //using (PowerShell PowerShellInstance = PowerShell.Create())
+                                //{
+                                //    try
+                                //    {
+                                //        PowerShellInstance.AddScript(s1);
+                                //        var PSResult = PowerShellInstance.Invoke();
+                                //        if (PSResult.Count() > 0)
+                                //        {
+                                //            string sResult = PSResult.Last().BaseObject.ToString();
 
-                            //            if (!string.IsNullOrEmpty(sResult)) //Do not return empty results
-                            //            {
-                            //                if (sResult != sScriptResult)
-                            //                {
-                            //                    sScriptResult = sResult;
-                            //                    Random rnd = new Random();
-                            //                    tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
-                            //                }
-                            //            }
-                            //        }
-                            //    }
-                            //    catch (Exception ex)
-                            //    {
-                            //        Console.WriteLine("There was an error: {0}", ex.Message);
-                            //    }
-                            //}
+                                //            if (!string.IsNullOrEmpty(sResult)) //Do not return empty results
+                                //            {
+                                //                if (sResult != sScriptResult)
+                                //                {
+                                //                    sScriptResult = sResult;
+                                //                    Random rnd = new Random();
+                                //                    tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                                //                }
+                                //            }
+                                //        }
+                                //    }
+                                //    catch (Exception ex)
+                                //    {
+                                //        Console.WriteLine("There was an error: {0}", ex.Message);
+                                //    }
+                                //}
 
-                            //Program.MinimizeFootprint();
-                        });
+                                //Program.MinimizeFootprint();
+                                });
+                            }
+                        }
                     });
 
                     connection.On<string>("init", (s1) =>
@@ -476,56 +494,59 @@ namespace service
                     {
                         try
                         {
-                            //Trace.Write(DateTime.Now.ToString() + "\t send status...");
-                            string sResult = "{}";
+                            lock (_locker) //prevent parallel status
+                            {
+                                //Trace.Write(DateTime.Now.ToString() + "\t send status...");
+                                string sResult = "{}";
 
-                            var host = Dns.GetHostEntry(Dns.GetHostName());
+                                var host = Dns.GetHostEntry(Dns.GetHostName());
 
-                            JObject jStatus = new JObject();
-                            jStatus.Add("Hostname", Environment.MachineName);
-                            jStatus.Add("id", Environment.MachineName);
-                            jStatus.Add("Internal IP", host.AddressList.FirstOrDefault(t => t.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).ToString());
-                            jStatus.Add("Last Reboot", dLastStartup);
-                            jStatus.Add("Reboot Pending", false);
-                            jStatus.Add("Users Online", true);
-                            jStatus.Add("OS", System.Runtime.InteropServices.RuntimeInformation.OSDescription.Split('#')[0]); // Environment.OSVersion.ToString());
-                            jStatus.Add("Version", Environment.OSVersion.Version.ToString());
-                            jStatus.Add("Arch", System.Runtime.InteropServices.RuntimeInformation.OSArchitecture.ToString()); // Environment.Is64BitProcess ? "64-bit" : "???");
-                            jStatus.Add("Lang", Thread.CurrentThread.CurrentCulture.LCID.ToString());
-                            jStatus.Add("User", Environment.UserName);
-                            jStatus.Add("ScriptResult", sScriptResult);
-                            jStatus.Add("Groups", Groups);
+                                JObject jStatus = new JObject();
+                                jStatus.Add("Hostname", Environment.MachineName);
+                                jStatus.Add("id", Environment.MachineName);
+                                jStatus.Add("Internal IP", host.AddressList.FirstOrDefault(t => t.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).ToString());
+                                jStatus.Add("Last Reboot", dLastStartup);
+                                jStatus.Add("Reboot Pending", false);
+                                jStatus.Add("Users Online", true);
+                                jStatus.Add("OS", System.Runtime.InteropServices.RuntimeInformation.OSDescription.Split('#')[0]); // Environment.OSVersion.ToString());
+                                jStatus.Add("Version", Environment.OSVersion.Version.ToString());
+                                jStatus.Add("Arch", System.Runtime.InteropServices.RuntimeInformation.OSArchitecture.ToString()); // Environment.Is64BitProcess ? "64-bit" : "???");
+                                jStatus.Add("Lang", Thread.CurrentThread.CurrentCulture.LCID.ToString());
+                                jStatus.Add("User", Environment.UserName);
+                                jStatus.Add("ScriptResult", sScriptResult);
+                                jStatus.Add("Groups", Groups);
 
-                            sResult = jStatus.ToString();
+                                sResult = jStatus.ToString();
 
-                            //using (PowerShell PowerShellInstance = PowerShell.Create())
-                            //{
-                            //    try
-                            //    {
-                            //        PowerShellInstance.AddScript(Properties.Settings.Default.PSStatus);
-                            //        var PSResult = PowerShellInstance.Invoke();
-                            //        if (PSResult.Count() > 0)
-                            //        {
-                            //            sResult = PSResult.Last().BaseObject.ToString();
-                            //            sResult = sResult.Replace(Environment.MachineName, Hostname);
-                            //            JObject jRes = JObject.Parse(sResult);
-                            //            jRes.Add("ScriptResult", sScriptResult);
-                            //            jRes.Add("Groups", Properties.Settings.Default.Groups);
-                            //            sResult = jRes.ToString();
-                            //        }
-                            //    }
-                            //    catch (Exception ex)
-                            //    {
-                            //        Console.WriteLine(" There was an error: {0}", ex.Message);
-                            //    }
-                            //}
+                                //using (PowerShell PowerShellInstance = PowerShell.Create())
+                                //{
+                                //    try
+                                //    {
+                                //        PowerShellInstance.AddScript(Properties.Settings.Default.PSStatus);
+                                //        var PSResult = PowerShellInstance.Invoke();
+                                //        if (PSResult.Count() > 0)
+                                //        {
+                                //            sResult = PSResult.Last().BaseObject.ToString();
+                                //            sResult = sResult.Replace(Environment.MachineName, Hostname);
+                                //            JObject jRes = JObject.Parse(sResult);
+                                //            jRes.Add("ScriptResult", sScriptResult);
+                                //            jRes.Add("Groups", Properties.Settings.Default.Groups);
+                                //            sResult = jRes.ToString();
+                                //        }
+                                //    }
+                                //    catch (Exception ex)
+                                //    {
+                                //        Console.WriteLine(" There was an error: {0}", ex.Message);
+                                //    }
+                                //}
 
-                            //connection.InvokeAsync("Status", new object[] { Hostname, sResult }).ContinueWith(task1 =>
-                            //{
-                            //});
-                            connection.InvokeAsync("Status", Hostname, sResult).Wait(1000);
-                            Trace.WriteLine(" done.");
-                            //Program.MinimizeFootprint();
+                                //connection.InvokeAsync("Status", new object[] { Hostname, sResult }).ContinueWith(task1 =>
+                                //{
+                                //});
+                                connection.InvokeAsync("Status", Hostname, sResult).Wait(1000);
+                                Trace.WriteLine(" done.");
+                                //Program.MinimizeFootprint();
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -537,13 +558,16 @@ namespace service
                     {
                         try
                         {
-                            Trace.Write(DateTime.Now.ToString() + "\t Get Version... ");
-                            //Get File-Version
-                            sScriptResult = (FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location)).FileVersion.ToString();
-                            Trace.WriteLine(sScriptResult);
+                            lock (_locker)
+                            {
+                                Trace.Write(DateTime.Now.ToString() + "\t Get Version... ");
+                                //Get File-Version
+                                sScriptResult = (FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location)).FileVersion.ToString();
+                                Trace.WriteLine(sScriptResult);
 
-                            Random rnd = new Random();
-                            tReInit.Interval = rnd.Next(200, StatusDelay); //wait max 5s to ReInit
+                                Random rnd = new Random();
+                                tReInit.Interval = rnd.Next(200, StatusDelay); //wait max 5s to ReInit
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -587,6 +611,10 @@ namespace service
                         Trace.WriteLine(DateTime.Now.ToString() + "\t Set instance: " + s1);
                         try
                         {
+                            lock (_locker)
+                            {
+
+                            }
                             //if (!string.IsNullOrEmpty(s1))
                             //{
                             //    string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
@@ -596,14 +624,14 @@ namespace service
                             //    doc.Save(sConfig);
                             //    RestartService();
 
-                            //    //Update Advanced Installer Persistent Properties
-                            //    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
-                            //    if (myKey != null)
-                            //    {
-                            //        myKey.SetValue("INSTANCE", s1.Trim(), RegistryValueKind.String);
-                            //        myKey.Close();
-                            //    }
-                            //}
+                                //    //Update Advanced Installer Persistent Properties
+                                //    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
+                                //    if (myKey != null)
+                                //    {
+                                //        myKey.SetValue("INSTANCE", s1.Trim(), RegistryValueKind.String);
+                                //        myKey.Close();
+                                //    }
+                                //}
                         }
                         catch { }
                     });
@@ -613,6 +641,10 @@ namespace service
                         Trace.WriteLine(DateTime.Now.ToString() + "\t Set Endpoint: " + s1);
                         try
                         {
+                            lock (_locker)
+                            {
+
+                            }
                             //if (!string.IsNullOrEmpty(s1))
                             //{
                             //    if (s1.StartsWith("https://"))
@@ -624,15 +656,15 @@ namespace service
                             //        doc.Save(sConfig);
                             //        RestartService();
 
-                            //        //Update Advanced Installer Persistent Properties
-                            //        RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
-                            //        if (myKey != null)
-                            //        {
-                            //            myKey.SetValue("ENDPOINT", s1.Trim(), RegistryValueKind.String);
-                            //            myKey.Close();
-                            //        }
-                            //    }
-                            //}
+                                //        //Update Advanced Installer Persistent Properties
+                                //        RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
+                                //        if (myKey != null)
+                                //        {
+                                //            myKey.SetValue("ENDPOINT", s1.Trim(), RegistryValueKind.String);
+                                //            myKey.Close();
+                                //        }
+                                //    }
+                                //}
                         }
                         catch { }
                     });
@@ -642,6 +674,10 @@ namespace service
                         Trace.WriteLine(DateTime.Now.ToString() + "\t Set Groups: " + s1);
                         try
                         {
+                            lock (_locker)
+                            {
+
+                            }
                             //if (!string.IsNullOrEmpty(s1))
                             //{
                             //    string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
@@ -650,16 +686,16 @@ namespace service
                             //    doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Groups']/value").InnerText = s1;
                             //    doc.Save(sConfig);
 
-                            //    RestartService();
+                                //    RestartService();
 
-                            //    //Update Advanced Installer Persistent Properties
-                            //    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
-                            //    if (myKey != null)
-                            //    {
-                            //        myKey.SetValue("GROUPS", s1.Trim(), RegistryValueKind.String);
-                            //        myKey.Close();
-                            //    }
-                            //}
+                                //    //Update Advanced Installer Persistent Properties
+                                //    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
+                                //    if (myKey != null)
+                                //    {
+                                //        myKey.SetValue("GROUPS", s1.Trim(), RegistryValueKind.String);
+                                //        myKey.Close();
+                                //    }
+                                //}
                         }
                         catch { }
                     });
