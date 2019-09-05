@@ -22,7 +22,6 @@ Get a free instance:
   * Inventory-History with visual Differential and Timeline of changes
   * Custom Reporting with Excel or PowerBI
 * Scheduled PowerShell script for Health- and Compliance-checks
-* multi tenancy support (only for Server running .NET 4.7)
 * device grouping
 * Only outgoing HTTPS (443) communication (agent) with Proxy support
 * Azure AD Authentication (Management-Interface)
