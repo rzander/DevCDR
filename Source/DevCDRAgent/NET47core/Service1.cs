@@ -13,7 +13,6 @@ using System.Management.Automation;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
@@ -113,7 +112,7 @@ namespace DevCDRAgent
 
                 }
 
-                if(!isconnected)
+                if (!isconnected)
                 {
                     OnStart(new string[0]);
                 }
@@ -201,7 +200,7 @@ namespace DevCDRAgent
                 Properties.Settings.Default.Save();
                 Connect();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 isconnected = false;
                 Console.WriteLine(ex.Message);
@@ -300,13 +299,13 @@ namespace DevCDRAgent
                                             string sResult = PSResult.Last().BaseObject.ToString();
 
                                             if (!string.IsNullOrEmpty(sResult)) //Do not return empty results
-                                        {
+                                            {
                                                 if (sResult != sScriptResult)
                                                 {
                                                     sScriptResult = sResult;
                                                     Random rnd = new Random();
                                                     tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
-                                            }
+                                                }
                                             }
                                         }
                                     }
@@ -356,7 +355,7 @@ namespace DevCDRAgent
 
                         Random rnd = new Random();
                         tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
-                            }
+                    }
                     catch { }
                 });
 
@@ -458,13 +457,13 @@ namespace DevCDRAgent
                                 {
                                     WOL.WakeUp(sMAC); //Send Broadcast
 
-                                            //Send to local Gateway
-                                            foreach (NetworkInterface f in NetworkInterface.GetAllNetworkInterfaces())
+                                    //Send to local Gateway
+                                    foreach (NetworkInterface f in NetworkInterface.GetAllNetworkInterfaces())
                                         if (f.OperationalStatus == OperationalStatus.Up)
                                             foreach (GatewayIPAddressInformation d in f.GetIPProperties().GatewayAddresses)
                                             {
-                                                        //Only use IPv4
-                                                        if (d.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                                                //Only use IPv4
+                                                if (d.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
                                                 {
                                                     WOL.WakeUp(d.Address, 9, sMAC);
                                                 }
@@ -522,7 +521,6 @@ namespace DevCDRAgent
                                     doc.Load(sConfig);
                                     doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Endpoint']/value").InnerText = s1;
                                     doc.Save(sConfig);
-                                    RestartService();
 
                                     //Update Advanced Installer Persistent Properties
                                     RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
@@ -531,6 +529,8 @@ namespace DevCDRAgent
                                         myKey.SetValue("ENDPOINT", s1.Trim(), RegistryValueKind.String);
                                         myKey.Close();
                                     }
+
+                                    RestartService();
                                 }
                             }
                         }
@@ -615,9 +615,13 @@ namespace DevCDRAgent
                             RZUpdater oUpdate = new RZUpdater();
                             RZScan oScan = new RZScan(false, false);
 
-                            oScan.GetSWRepository().Wait(60000);
-                            oScan.SWScan().Wait(60000);
-                            oScan.CheckUpdates(null).Wait(60000);
+                            lock (_locker)
+                            {
+                                oScan.GetSWRepository().Wait(60000);
+                                oScan.SWScan().Wait(60000);
+                                oScan.CheckUpdates(null).Wait(60000);
+                            }
+
 
                             if (string.IsNullOrEmpty(s1))
                             {
@@ -647,34 +651,43 @@ namespace DevCDRAgent
 
                 connection.On<string>("rzscan", (s1) =>
                 {
+
                     var tSWScan = Task.Run(() =>
                     {
+
                         try
                         {
-                            sScriptResult = "Detecting updates...";
-                            Random rnd = new Random();
-                            tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
-
-                            RZRestAPIv2.sURL = ""; //Enforce reloading RZ URL
-                            RZUpdater oUpdate = new RZUpdater();
-                            RZScan oScan = new RZScan(false, false);
-
-                            oScan.GetSWRepository().Wait(30000);
-                            oScan.SWScan().Wait(30000);
-                            oScan.CheckUpdates(null).Wait(30000);
-
-                            List<string> lSW = new List<string>();
-                            foreach (var SW in oScan.NewSoftwareVersions)
+                            lock (_locker)
                             {
-                                lSW.Add(SW.ShortName + " " + SW.ProductVersion + " (old:" + SW.MSIProductID + ")");
-                            }
+                                sScriptResult = "Detecting updates...";
+                                Random rnd = new Random();
+                                tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
 
-                            sScriptResult = JsonConvert.SerializeObject(lSW);
-                            rnd = new Random();
-                            tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                                RZRestAPIv2.sURL = ""; //Enforce reloading RZ URL
+                                RZUpdater oUpdate = new RZUpdater();
+                                RZScan oScan = new RZScan(false, false);
+
+
+                                oScan.GetSWRepository().Wait(30000);
+                                oScan.SWScan().Wait(30000);
+                                oScan.CheckUpdates(null).Wait(30000);
+
+
+                                List<string> lSW = new List<string>();
+                                foreach (var SW in oScan.NewSoftwareVersions)
+                                {
+                                    lSW.Add(SW.ShortName + " " + SW.ProductVersion + " (old:" + SW.MSIProductID + ")");
+                                }
+
+                                sScriptResult = JsonConvert.SerializeObject(lSW);
+                                rnd = new Random();
+                                tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                            }
                         }
                         catch { }
+
                     });
+
                 });
 
                 connection.On<string>("inject", (s1) =>
