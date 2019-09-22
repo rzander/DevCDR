@@ -35,6 +35,8 @@ Get a free instance:
 ## Server/Host Requirements
 * Azure Active Directory (Basic)
 * Azure Web App (Free F1 or better)
+   * for scaleability you can use managed Azure SignalR Service (https://github.com/rzander/DevCDR/wiki/DevCDR-with-Azure-SignalR-Service)
+   * Note: F1 (free) is limited on compute time and the site will stop if the limit is reached.
 * SSL
 
 ## Server Core
