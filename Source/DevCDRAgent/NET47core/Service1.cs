@@ -55,7 +55,10 @@ namespace DevCDRAgent
 
                 if (connection != null && isconnected)
                 {
-                    connection.SendAsync("Init", Hostname);
+                    lock (_locker)
+                    {
+                        connection.SendAsync("Init", Hostname);
+                    }
 
                     if (Hostname == Environment.MachineName) //No Inventory or Healthcheck if agent is running as user or with custom Name
                     {
@@ -259,12 +262,12 @@ namespace DevCDRAgent
                                 PowerShellInstance.Streams.Error.DataAdding += ConsoleError;
 
                                 IAsyncResult async = PowerShellInstance.BeginInvoke<PSObject, PSObject>(null, outputCollection);
-                                while (async.IsCompleted == false || dDuration > timeout)
+                                while (async.IsCompleted == false && dDuration < timeout)
                                 {
                                     Thread.Sleep(200);
                                     dDuration = DateTime.Now - dStart;
                                     if (tReInit.Interval > 5000)
-                                        tReInit.Interval = 5000;
+                                        tReInit.Interval = 2000;
                                 }
                             }
                             catch (Exception ex)
@@ -375,9 +378,8 @@ namespace DevCDRAgent
                                 if (lConnectCount >= 20) //max 20 status per minute
                                 {
                                     Trace.Write(DateTime.Now.ToString() + "\t restarting service as Agent is looping...");
-                                    Trace.Flush();
-                                    Trace.Close();
                                     RestartService();
+                                    return;
                                 }
                             }
                             else
@@ -880,9 +882,12 @@ namespace DevCDRAgent
 
         public void RestartService()
         {
-            Trace.WriteLine(DateTime.Now.ToString() + "\t restarting Service..");
             try
             {
+                Trace.WriteLine(DateTime.Now.ToString() + "\t restarting Service..");
+                Trace.Flush();
+                Trace.Close();
+
                 using (PowerShell PowerShellInstance = PowerShell.Create())
                 {
                     try
