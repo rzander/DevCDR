@@ -58,11 +58,11 @@ if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.7.0.5")) {
 }
 
 #Update DevCDRAgentCore
-if ([version](get-item "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.28") {
-    [xml]$a = gc "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+if ([version](get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.30") {
+    [xml]$a = gc "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
     $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
     $EP > $env:temp\ep.log
-    if ($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v1.0.0.28" }) -LogType "DevCDRCore" 
+    if ($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v1.0.0.30" }) -LogType "DevCDRCore" 
     }
     &msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT="$($EP)" /qn REBOOT=REALLYSUPPRESS  
 }
@@ -197,8 +197,8 @@ else {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAobfPXeedifH5KL6/1inKb4u
-# EtSgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUG5lubZOMxYm7wUwkdUxEI9PT
+# Z+6gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -263,12 +263,12 @@ else {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSW
-# GPgtIjodVu2+HeOTFSKBxGrq7DANBgkqhkiG9w0BAQEFAASCAQBX/8RLLap8p76R
-# TjTgz02M0nmjAuWYT0PIkp2QoeWXQ0rSYN+tQ/GSc5t8bJ6WP7bbmYQ1ybHfsVDb
-# 3O9dSQrcyBM+9FC8kVGepMtrSDFhw4wyrUHCzrbOUrXwsi6A/3/OD4880FYsOTk/
-# ciJk7skOT3pgnqXh5eS5gbODUfmmYBQZd7L+oe7X9IA34dgCjaUqoJ4pgY9Kbhe6
-# 5F1dxa7O5O95Gj6o+0Kp6Z1LydJSc9lq5JSM2jmwyMXVPVbytYSDsy6a6WE0nFiP
-# msiOAZZTsmdxdnElzy4FF4PbRD5peyYj53M8mKVMxuyI4z6BSuHK0v9uQ6ahN6tc
-# WT3r4vab
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQk
+# skx8pDvZpO75uaSXtwtfphAqtzANBgkqhkiG9w0BAQEFAASCAQCT0TEekTXKMSD5
+# lpT/T3ZR/7BAsGup9WQj1tg4vQ/kEf9+BXSPo9YQhyKd91pGUh8H9exK/5yeLol9
+# /8dQzLjW9sClcVCUggWmD+1pzCLXtJkF54qekn1XHolVtnfwZCnrgI7nwUmncs7j
+# 1gvDHq23/bsM6gO8gR3rnrsO2oEMSwYUgA+K2MAepIsbwjL6OjhvXWFGpuq/0cl/
+# XjX2fZYmCavMWV4CDCctM7Hc3ysw21FB7nCZHjDnjEs+jVo9LlBTEFTTr9WESMd4
+# jXlbQhuSXqJ5KUlKyCAwW1qGkg1ga3LfR1YP4PLvH9IGqJqCM+SfPqRwnf4iDInT
+# U6CU3U05
 # SIG # End signature block
