@@ -38,8 +38,8 @@
     <link href="~/css/ContextMenu/jquery.contextMenu.css" rel="stylesheet" />
     <link href="~/css/jqueryui/themes/base/jquery-ui.css" rel="stylesheet" />
 
-    <script src="~/lib/jquery/dist/jquery.js"></script>
-    <script src="~/lib/signalr.js/signalr.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/signalr.js/signalr.min.js"></script>
 
 </head>
 <body>
@@ -74,35 +74,15 @@
         </footer>
     </div>
 
-    @*<environment include="Development">
-        <script src="~/lib/jquery/dist/jquery.js"></script>
-        <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
-        <script src="~/js/site.js" asp-append-version="true"></script>
-    </environment>
-    <environment exclude="Development">
-        <script src="https://ajax.aspnetcdn.com/ajax/jquery/jquery-3.3.1.min.js"
-                asp-fallback-src="~/lib/jquery/dist/jquery.min.js"
-                asp-fallback-test="window.jQuery"
-                crossorigin="anonymous"
-                integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT">
-        </script>
-        <script src="https://ajax.aspnetcdn.com/ajax/bootstrap/3.3.7/bootstrap.min.js"
-                asp-fallback-src="~/lib/bootstrap/dist/js/bootstrap.min.js"
-                asp-fallback-test="window.jQuery && window.jQuery.fn && window.jQuery.fn.modal"
-                crossorigin="anonymous"
-                integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa">
-        </script>
-        <script src="~/js/site.min.js" asp-append-version="true"></script>
-    </environment>*@
-    <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
-    <script src="~/lib/modernizr/modernizr.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="~/lib/modernizr/modernizr.min.js"></script>
     <script src="~/lib/jquery-ui.min.js"></script>
     <script src="~/lib/datatables/jquery.dataTables.min.js"></script>
     <script src="~/lib/datatables/dataTables.select.min.js"></script>
     <script src="~/lib/datatables/dataTables.buttons.min.js"></script>
     <script src="~/lib/datatables/buttons.html5.min.js"></script>
-    <script src="~/lib/ContextMenu/jquery.contextMenu.js"></script>
-    <script src="~/lib/ContextMenu/jquery.ui.position.min.js"></script>
+    <script src="~/lib/jquery-contextmenu/jquery.contextMenu.min.js"></script>
+    <script src="~/lib/jquery-contextmenu/jquery.ui.position.min.js"></script>
 
 
     @RenderSection("Scripts", required: false)

@@ -52,6 +52,16 @@ div.dt-button-info > div {
   padding: 1em;
 }
 
+div.dt-button-collection-title {
+  text-align: center;
+  padding: 0.3em 0 0.5em;
+  font-size: 0.9em;
+}
+
+div.dt-button-collection-title:empty {
+  display: none;
+}
+
 ul.dt-button-collection.dropdown-menu {
   display: block;
   z-index: 2002;
@@ -107,6 +117,9 @@ ul.dt-button-collection.dropdown-menu.four-column {
   -ms-column-count: 4;
   -o-column-count: 4;
   column-count: 4;
+}
+ul.dt-button-collection.dropdown-menu .dt-button {
+  border-radius: 0;
 }
 
 div.dt-button-background {

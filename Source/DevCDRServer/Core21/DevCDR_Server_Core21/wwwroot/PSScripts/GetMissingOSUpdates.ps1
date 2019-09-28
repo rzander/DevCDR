@@ -1,22 +1,24 @@
 ﻿#Check if PSWindowsUpdate Module is installed
 try {
-if(Get-InstalledModule -Name PSWindowsUpdate -MinimumVersion "2.1.1.2" -ea SilentlyContinue) {} else 
-{
- Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.208 -Force
- Set-PSRepository -Name PSGallery -InstallationPolicy Trusted 
- Install-Module PSWindowsUpdate -Force
- (Add-WUServiceManager -ServiceID 7971f918-a847-4430-9279-4a52d1efe18d -confirm:$false).Name
+    set-executionpolicy bypass -Force
+    if (Get-InstalledModule -Name PSWindowsUpdate -MinimumVersion "2.1.1.2" -ea SilentlyContinue) { } else {
+        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.208 -Force
+        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted 
+        Install-Module PSWindowsUpdate -Force
+        #(Add-WUServiceManager -ServiceID 7971f918-a847-4430-9279-4a52d1efe18d -confirm:$false).Name
+    }
 }
-}catch { "Error, unable to detect updates" }
+catch { "Error, unable to detect updates" }
 $upd = Get-WUList -MicrosoftUpdate
-if($upd.count -gt 0) {
- $upd | select Title | ConvertTo-Json
-} else { "No missing updates detected."}
+if ($upd.count -gt 0) {
+    $upd | select Title | ConvertTo-Json
+}
+else { "No missing updates detected." }
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUlDm59XFV7YP6j8zuh9ZysdeC
-# w5WgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUfbkl37edxIjXJF/z/gtiLc4r
+# s+agggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -81,12 +83,12 @@ if($upd.count -gt 0) {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR4
-# URtBP7J3TRFIP8zSlxyrSnMmNzANBgkqhkiG9w0BAQEFAASCAQAYZP0NXDuFze5v
-# wET2bisahG1C2DWq2eALSOPm55SsCtLTzhTRxN3sGwby3TJrfsH4DDUH3bnqdZFo
-# 8HqFm4D8ZYo/S8WTfrnYSp9a1p5G8eBZxXcsC5y5YzXasPvjdtdsNjn5rCg2kIBE
-# kxhwswAjaUWxJ2P6+z9b2Z0ZauopBGY6KhqLFwrQ1NXLP/DjMgt9PmivdThWz5tP
-# RUTCdTt/D6QtEJYMVSRAo5zWuIl/CkP80WKAvDG8miccLvb3uDOaJS9oOK+nyMou
-# qFeed72rrdhJSv/6/OHVpF4U+UlTQnrEWJjwsXuZaZOadS8HJYs5OtgQv81bcHzS
-# TyjNYKZH
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRL
+# 6avuqR8d0zcD3S1U7ZQQw0jk9zANBgkqhkiG9w0BAQEFAASCAQC51VXUG7t8LXlJ
+# azwGZbY1Bo2QSf0kF04+YPFboNm5/if2V2K79T5TuCqxMgukdXQaTFjqUl+UWT5d
+# 1hZKHXw+O88/TZCp0YF4IbZdPu2ERfDku2Lq8Vbczad5tjbCTLiUQ2NgDJyjcIot
+# 67nJ2Bdepg632J7V0s0Es0Jd/Sp+2g19yG+PjDaCwjSUJL/Ox7wYeus3g36F8Nru
+# /oQPKfdSY5WEb78+V0DGrqy0iwsVDG0YkbHxkMm+zFLVrlVBNWgQl48jQLjQsX4f
+# fE84t/oXjc9z7Z/P4fqsuZh9NLWVJ9E7ZWjcPT70XKu0qDDIIRzofqjKhrPd3wS2
+# 3jGlxLIY
 # SIG # End signature block
