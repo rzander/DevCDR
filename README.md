@@ -56,6 +56,6 @@ https://devcdr.azurewebsites.net/
 
 The default view is in Read-Only mode, so you will not be able to trigger something on my machines :-)
 ## Test Instance
-https://devcdr.azurewebsites.net/DevCDR/Test
+https://devcdr.azurewebsites.net/DevCDR/Default
 You have to install an Agent in this Test-Instance (click the "Agent" button on the Web-Site to get the installation command).
 
