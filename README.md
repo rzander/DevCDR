@@ -16,7 +16,7 @@ Get a free instance:
 * interactive Web frontend 
 * run PowerShell activities and custom commands in realtime
 * Install Software directly from https://RuckZuck.tools
- * Automatically update:  
+  * Automatically update:  
 7-Zip,AdobeAir,AdobeReader DC,AdobeReader DC MUI,Code,FileZilla,Firefox,FlashPlayerPlugin,FlashPlayerPPAPI,GIMP,Google Chrome,	JavaRuntime8,Microsoft Azure Information Protection,Microsoft OneDrive,Microsoft Power BI Desktop,Notepad++,Office Timeline,Putty,	ShockwavePlayer,Slack,Teams Machine-Wide Installer,VCRedist2010,VCRedist2012,VCRedist2013,VCRedist2015,VCRedist2017,VCRedist2019,	Viber,VLC,VSTO2010,WinRAR,WinSCP
  
 * Inventory
