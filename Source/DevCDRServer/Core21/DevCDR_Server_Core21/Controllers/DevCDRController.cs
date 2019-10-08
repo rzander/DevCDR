@@ -322,7 +322,8 @@ namespace DevCDRServer.Controllers
                     break;
                 case "Inv":
                     string sEndPoint = Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
-                    RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps' | IEX;'Inventory complete..'", sInstance, sCommand);
+                    string inventoryFile = Environment.GetEnvironmentVariable("ScriptInventory") ?? "inventory.ps1";
+                    RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=" + inventoryFile +"' | IEX;'Inventory complete..'", sInstance, sCommand);
                     break;
                 case "Restart":
                     RunCommand(lHostnames, "restart-computer -force", sInstance, sCommand);

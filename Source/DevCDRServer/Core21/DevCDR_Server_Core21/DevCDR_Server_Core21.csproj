@@ -15,7 +15,7 @@
     <StartupObject>DevCDR.Program</StartupObject>
     <AssemblyVersion>2.0.0.27</AssemblyVersion>
     <WebProject_DirectoryAccessLevelKey>0</WebProject_DirectoryAccessLevelKey>
-    <FileVersion>2.0.0.26</FileVersion>
+    <FileVersion>2.0.0.27</FileVersion>
     <Version>2.0.0</Version>
     <DockerTargetOS>Linux</DockerTargetOS>
     <UserSecretsId>93ce79d7-2e37-460b-bc67-a091d9b812b5</UserSecretsId>
@@ -40,7 +40,7 @@
 
   <ItemGroup>
     <PackageReference Include="jaindb.base" Version="1.0.6" />
-    <PackageReference Include="jaindb.storage.FileStore" Version="1.0.6" />
+    <PackageReference Include="jaindb.storage.FileStore" Version="1.0.7" />
     <PackageReference Include="jaindb.storage.Memory" Version="1.0.6" />
     <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
