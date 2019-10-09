@@ -93,6 +93,18 @@ namespace DevCDRServer
             }
 
             var J1 = JObject.Parse(Status);
+
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
+            {
+                string ClientIP = Context.GetHttpContext().Connection.RemoteIpAddress.ToString();
+                J1["Internal IP"] = ClientIP;
+                try
+                {
+                    J1["Internal IP"] = JObject.Parse(GetLocAsync(ClientIP).Result)["Location"].ToString();
+                }
+                catch { }
+            }
+
             bool bChange = false;
             try
             {
@@ -100,16 +112,6 @@ namespace DevCDRServer
                 {
                     lock (jData)
                     {
-                        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
-                        {
-                            string ClientIP = Context.GetHttpContext().Connection.RemoteIpAddress.ToString();
-                            J1["Internal IP"] = ClientIP;
-                            try
-                            {
-                                J1["Internal IP"] = JObject.Parse(GetLocAsync(ClientIP).Result)["Location"].ToString();
-                            }
-                            catch { }
-                        }
                         jData.Add(J1);
                     }
                     bChange = true;
