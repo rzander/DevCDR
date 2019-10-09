@@ -100,8 +100,16 @@ namespace DevCDRServer
                 {
                     lock (jData)
                     {
-                        string ClientIP = Context.GetHttpContext().Connection.RemoteIpAddress.ToString();
-                        J1["Internal IP"] = JObject.Parse(GetLocAsync(ClientIP).Result)["Location"].ToString();
+                        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
+                        {
+                            string ClientIP = Context.GetHttpContext().Connection.RemoteIpAddress.ToString();
+                            J1["Internal IP"] = ClientIP;
+                            try
+                            {
+                                J1["Internal IP"] = JObject.Parse(GetLocAsync(ClientIP).Result)["Location"].ToString();
+                            }
+                            catch { }
+                        }
                         jData.Add(J1);
                     }
                     bChange = true;
@@ -259,13 +267,17 @@ namespace DevCDRServer
 
         private static async Task<string> GetLocAsync(string IP)
         {
-            if (!string.IsNullOrEmpty(IP2LocationURL))
+            try
             {
-                var stringTask = client.GetStringAsync($"{IP2LocationURL}?ip={IP}");
-                var loc = await stringTask;
+                if (!string.IsNullOrEmpty(IP2LocationURL))
+                {
+                    var stringTask = client.GetStringAsync($"{IP2LocationURL}?ip={IP}");
+                    var loc = await stringTask;
 
-                return loc;
+                    return loc;
+                }
             }
+            catch { }
 
             return "";
         }
