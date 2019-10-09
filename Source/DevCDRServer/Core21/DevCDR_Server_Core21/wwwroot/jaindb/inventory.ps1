@@ -154,7 +154,7 @@ function SetID {
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#SerialNumber" -Value (getinv -Name "Computer" -WMIClass "win32_SystemEnclosure" -Properties @("SerialNumber"))."SerialNumber" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "@MAC" -Value (Get-WmiObject -class "Win32_NetworkAdapterConfiguration" | Where-Object { ($_.IpEnabled -Match "True") }).MACAddress.Replace(':', '-')
 		
-        [xml]$a = Get-Content "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+        [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
         $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
         $devcdrgrp = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Groups' }).value
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDREndpoint" -Value $EP
@@ -300,8 +300,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5kGkuxxuFiOCBgiRbHL/dhUM
-# jZ2gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUe4kFZ79ssF5XomAS9qdjCpMc
+# YYCgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -366,12 +366,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTq
-# n0yD5hOPW7uHbYec3idIpxyKgDANBgkqhkiG9w0BAQEFAASCAQAOKYzrhyzmiWUr
-# zE+0B5x8hQk6k0Yhpcq6pN/TJZRRxoQKXWJVX76aruCLEOWW93Z7baoMQaPzViSv
-# UpAMkb7/o7esC2yVeiZEDzPpZ6KMeu1bc09dmovXWxCn7yX3QRnNmV8ofl642Ouc
-# L6Ezd0uvnXq+oIzca0/YlyIv1Y+7TvnvQA+Y6MbryvBa5dlBOMwOp1GLfntMWNpK
-# vxE/ddHNNPpyKgTvo5wUHAFvWDj6+a31QHkinP7d/lMagH5KTdB0crauFBw441S3
-# awTHpdoo99OZNVC/pdxsDo4Pr7nsJTWw+wDxty6oap45XQkwXHZbFHArjtpeYNqK
-# /OpNkGYJ
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQO
+# 4aWiyy/Nls9qbBEg/kK+7llbhDANBgkqhkiG9w0BAQEFAASCAQARwnWn794tpsY5
+# 4ziYKdxmD/ohdGvV6JqqZu0Hf4YkdpNMGSeIFm9pbjqYFXwG/gpEME7h1zUXWY/6
+# owiSdZCBoaenfCsMwuxirQBxNKrOlDABfUrkWwdRlicrZSC5VBtPwt8XqQdTsRhr
+# jCzxUcTDXbDqaVDY2aG00MkWqHDrpzNs4xwIF7tX7vS/xXeEoItVupLZTsbz4joL
+# +VZvUZJ5rqp82bBF2/J73J6Ov0eNKkEMnAJp3DSRN2Ruh1SdRuw4thZ6AoO6/tmp
+# t6ZiKWLttFILX3ayl+wbmvhO1NrE8Mx2pXVrT/I7PKkagx3z7CA2Y76vINVf2olm
+# IaFreh3A
 # SIG # End signature block
