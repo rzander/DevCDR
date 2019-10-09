@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
+using System.Net.Http;
 
 namespace DevCDRServer
 {
@@ -17,6 +18,8 @@ namespace DevCDRServer
         public static List<string> lGroups = new List<string>();
         public static JArray jData = new JArray();
         public DevCDR.Extensions.AzureLogAnalytics AzureLog = new DevCDR.Extensions.AzureLogAnalytics("", "", "");
+        private static string IP2LocationURL = "";
+        private static readonly HttpClient client = new HttpClient();
 
 
         public static int ClientCount { get { return lClients.Distinct().Count(); } }
@@ -28,6 +31,8 @@ namespace DevCDRServer
             name = name.ToUpper();
             _connections.Remove(name, ""); //Remove existing Name
             _connections.Add(name, Context.ConnectionId); //Add Name
+
+            IP2LocationURL = Environment.GetEnvironmentVariable("IP2LocationURL") ?? "";
 
             lClients.Remove(name);
             lClients.Add(name);
@@ -95,6 +100,8 @@ namespace DevCDRServer
                 {
                     lock (jData)
                     {
+                        string ClientIP = Context.GetHttpContext().Connection.RemoteIpAddress.ToString();
+                        J1["Internal IP"] = JObject.Parse(GetLocAsync(ClientIP).Result)["Location"].ToString();
                         jData.Add(J1);
                     }
                     bChange = true;
@@ -248,6 +255,19 @@ namespace DevCDRServer
 
             //await Groups.RemoveFromGroupAsync(Context.ConnectionId, "SignalR Users");
             await base.OnDisconnectedAsync(exception);
+        }
+
+        private static async Task<string> GetLocAsync(string IP)
+        {
+            if (!string.IsNullOrEmpty(IP2LocationURL))
+            {
+                var stringTask = client.GetStringAsync($"{IP2LocationURL}?ip={IP}");
+                var loc = await stringTask;
+
+                return loc;
+            }
+
+            return "";
         }
 
     }

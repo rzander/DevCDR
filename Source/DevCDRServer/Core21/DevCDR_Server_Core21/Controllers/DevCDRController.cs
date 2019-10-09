@@ -93,6 +93,15 @@ namespace DevCDRServer.Controllers
                 ViewBag.Menu = System.IO.File.ReadAllText(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml"));
                 ViewBag.ExtMenu = true;
             }
+
+            if(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
+            {
+                ViewBag.Location = "Internal IP";
+            }
+            else
+            {
+                ViewBag.Location = "Location";
+            }
             return View();
         }
 
