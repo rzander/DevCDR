@@ -16,6 +16,9 @@ Get a free instance:
 * interactive Web frontend 
 * run PowerShell activities and custom commands in realtime
 * Install Software directly from https://RuckZuck.tools
+  * Automatically update:  
+7-Zip,AdobeAir,AdobeReader DC,AdobeReader DC MUI,Code,FileZilla,Firefox,FlashPlayerPlugin,FlashPlayerPPAPI,GIMP,Google Chrome,	JavaRuntime8,Microsoft Azure Information Protection,Microsoft OneDrive,Microsoft Power BI Desktop,Notepad++,Office Timeline,Putty,	ShockwavePlayer,Slack,Teams Machine-Wide Installer,VCRedist2010,VCRedist2012,VCRedist2013,VCRedist2015,VCRedist2017,VCRedist2019,	Viber,VLC,VSTO2010,WinRAR,WinSCP
+ 
 * Inventory
   * Custom Inventory (PowerShell)
   * Blockchain based archive ([JainDB](https://github.com/rzander/jaindb))
@@ -53,6 +56,6 @@ https://devcdr.azurewebsites.net/
 
 The default view is in Read-Only mode, so you will not be able to trigger something on my machines :-)
 ## Test Instance
-https://devcdr.azurewebsites.net/DevCDR/Test
+https://devcdr.azurewebsites.net/DevCDR/Default
 You have to install an Agent in this Test-Instance (click the "Agent" button on the Web-Site to get the installation command).
 
