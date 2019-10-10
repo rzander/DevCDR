@@ -63,8 +63,8 @@ function GetInv {
     if ($Namespace) { } else { $Namespace = "root\cimv2" }
     $obj = Get-CimInstance -Namespace $Namespace -ClassName $WMIClass
 
-    if ($Properties -eq $null) { $Properties = $obj.Properties.Name | Sort-Object }
-    if ($Namespace -eq $null) { $Namespace = "root\cimv2" }
+    if ($null -eq $Properties) { $Properties = $obj.Properties.Name | Sort-Object }
+    if ($null -eq $Namespace) { $Namespace = "root\cimv2" }
 
     $res = $obj | Select-Object $Properties -ea SilentlyContinue
 
@@ -119,7 +119,7 @@ function GetInv {
     
     $res.psobject.TypeNames.Insert(0, $Name) 
 
-    if ($AppendProperties -ne $null) {
+    if ($null -ne $AppendProperties) {
         $AppendProperties.PSObject.Properties | ForEach-Object {
             if ($_.Value) {
                 $res | Add-Member -MemberType NoteProperty -Name $_.Name -Value ($_.Value)
@@ -127,7 +127,7 @@ function GetInv {
         } 
     }
 
-    if ($AppendObject.Value -ne $null) {
+    if ($null -ne $AppendObject.Value) {
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name $Name -Value ($res)
         return $null
     }
@@ -147,16 +147,16 @@ function SetID {
         [ref]
         $AppendObject )
 
-    if ($AppendObject.Value -ne $null) {
+    if ($null -ne $AppendObject.Value) {
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#id" -Value (GetMyID) -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#UUID" -Value (getinv -Name "Computer" -WMIClass "win32_ComputerSystemProduct" -Properties @("#UUID"))."#UUID" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#Name" -Value (getinv -Name "Computer" -WMIClass "win32_ComputerSystem" -Properties @("Name"))."Name" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#SerialNumber" -Value (getinv -Name "Computer" -WMIClass "win32_SystemEnclosure" -Properties @("SerialNumber"))."SerialNumber" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "@MAC" -Value (Get-WmiObject -class "Win32_NetworkAdapterConfiguration" | Where-Object { ($_.IpEnabled -Match "True") }).MACAddress.Replace(':', '-')
 		
-        [xml]$a = Get-Content "C:\Program Files\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+        [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
         $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
-        $devcdrgrp  = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Groups' }).value
+        $devcdrgrp = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Groups' }).value
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDREndpoint" -Value $EP
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRGroups" -Value $devcdrgrp
         return $null
@@ -239,15 +239,17 @@ $bitlocker.KeyProtector | ForEach-Object { $_ | Add-Member -MemberType NotePrope
 $bitlocker.KeyProtector | ForEach-Object { $_.PSObject.Properties.Remove('KeyProtectorId'); $_.PSObject.Properties.Remove('RecoveryPassword') }
 $object | Add-Member -MemberType NoteProperty -Name "BitLocker" -Value ($bitlocker)
 
-$defender = Get-MpPreference | Select-Object * -ExcludeProperty ComputerID, PSComputerName, Cim*
-$object | Add-Member -MemberType NoteProperty -Name "Defender" -Value ($defender)
+if (Get-Process -Name MsMpEng -ea SilentlyContinue) {
+    $defender = Get-MpPreference | Select-Object * -ExcludeProperty ComputerID, PSComputerName, Cim*
+    $object | Add-Member -MemberType NoteProperty -Name "Defender" -Value ($defender)
 
-$defenderSignature = Get-MpComputerStatus | select * -ExcludeProperty ComputerID, PSComputerName, Cim*, *Time, *Updated, *Version, *Age
-$defenderSignature | Add-Member -MemberType NoteProperty -Name "@QuickScanAge" -Value (Get-MpComputerStatus).QuickScanAge
-$defenderSignature | Add-Member -MemberType NoteProperty -Name "@FullScanAge" -Value (Get-MpComputerStatus).FullScanAge
-$defenderSignature | Add-Member -MemberType NoteProperty -Name "@AntivirusSignatureAge" -Value (Get-MpComputerStatus).AntivirusSignatureAge
-$defenderSignature | Add-Member -MemberType NoteProperty -Name "@AntispywareSignatureAge" -Value (Get-MpComputerStatus).AntispywareSignatureAge
-$object | Add-Member -MemberType NoteProperty -Name "DefenderSignature" -Value ($defenderSignature)
+    $defenderSignature = Get-MpComputerStatus | Select-Object * -ExcludeProperty ComputerID, PSComputerName, Cim*, *Time, *Updated, *Version, *Age
+    $defenderSignature | Add-Member -MemberType NoteProperty -Name "@QuickScanAge" -Value (Get-MpComputerStatus).QuickScanAge
+    $defenderSignature | Add-Member -MemberType NoteProperty -Name "@FullScanAge" -Value (Get-MpComputerStatus).FullScanAge
+    $defenderSignature | Add-Member -MemberType NoteProperty -Name "@AntivirusSignatureAge" -Value (Get-MpComputerStatus).AntivirusSignatureAge
+    $defenderSignature | Add-Member -MemberType NoteProperty -Name "@AntispywareSignatureAge" -Value (Get-MpComputerStatus).AntispywareSignatureAge
+    $object | Add-Member -MemberType NoteProperty -Name "DefenderSignature" -Value ($defenderSignature)
+}
 
 #$FWRules = Get-NetFirewallRule | Select-Object DisplayName,Description,DisplayGroup,Group,Enabled,Profile,Platform,Direction,Action,EdgeTraversalPolicy,LooseSourceMapping,LocalOnlyMapping,Owner,PrimaryStatus,Status,EnforcementStatus,PolicyStoreSource,PolicyStoreSourceType | Sort-Object -Property DisplayName
 #$object | Add-Member -MemberType NoteProperty -Name "FirewallRules" -Value ($FWRules)
@@ -298,8 +300,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUGqY9oHEeL/oororvJsgSo/03
-# kjWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUe4kFZ79ssF5XomAS9qdjCpMc
+# YYCgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -364,12 +366,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQr
-# LUis5nnleltE4UIqus97waEdjTANBgkqhkiG9w0BAQEFAASCAQCl2kDKL4i42fdh
-# 6y6rVy1Lr+thHHHBEK0lqzdahn7CieXHlqqA4APLPAw1OBtlsKIi5oDL1ehY11vo
-# qGa7iEipiSugj+3xvvYuW/TNQFFvfeW2zCgmC6jOfbaRLEgVj06vPkcyvp5vDbDm
-# Sv7/aOnJFMK5WRkltYNwwUOuq+mNSV8S4P0adD9aY0pdIUtA+ng/Wu3KnGFEHw+s
-# dL9eAialey6CII0wn4xXsLuD0I8Oiazv/SqK3CFXzndLNuupQ5LoO7Lo7A0sSFpn
-# T+UiYOgggWVmGpNWdlZvVRTraTXCfJs5DXHuV2+vbg+DBw0UCm1KU5CBColOHFml
-# Oba7m/JA
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQO
+# 4aWiyy/Nls9qbBEg/kK+7llbhDANBgkqhkiG9w0BAQEFAASCAQARwnWn794tpsY5
+# 4ziYKdxmD/ohdGvV6JqqZu0Hf4YkdpNMGSeIFm9pbjqYFXwG/gpEME7h1zUXWY/6
+# owiSdZCBoaenfCsMwuxirQBxNKrOlDABfUrkWwdRlicrZSC5VBtPwt8XqQdTsRhr
+# jCzxUcTDXbDqaVDY2aG00MkWqHDrpzNs4xwIF7tX7vS/xXeEoItVupLZTsbz4joL
+# +VZvUZJ5rqp82bBF2/J73J6Ov0eNKkEMnAJp3DSRN2Ruh1SdRuw4thZ6AoO6/tmp
+# t6ZiKWLttFILX3ayl+wbmvhO1NrE8Mx2pXVrT/I7PKkagx3z7CA2Y76vINVf2olm
+# IaFreh3A
 # SIG # End signature block

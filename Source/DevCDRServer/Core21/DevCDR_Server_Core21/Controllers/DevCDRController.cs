@@ -93,6 +93,15 @@ namespace DevCDRServer.Controllers
                 ViewBag.Menu = System.IO.File.ReadAllText(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml"));
                 ViewBag.ExtMenu = true;
             }
+
+            if(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
+            {
+                ViewBag.Location = "Internal IP";
+            }
+            else
+            {
+                ViewBag.Location = "Location";
+            }
             return View();
         }
 
@@ -322,7 +331,8 @@ namespace DevCDRServer.Controllers
                     break;
                 case "Inv":
                     string sEndPoint = Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
-                    RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps' | IEX;'Inventory complete..'", sInstance, sCommand);
+                    string inventoryFile = Environment.GetEnvironmentVariable("ScriptInventory") ?? "inventory.ps1";
+                    RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=" + inventoryFile +"' | IEX;'Inventory complete..'", sInstance, sCommand);
                     break;
                 case "Restart":
                     RunCommand(lHostnames, "restart-computer -force", sInstance, sCommand);

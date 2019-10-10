@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
+using System.Net.Http;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DevCDRServer
 {
@@ -17,6 +19,9 @@ namespace DevCDRServer
         public static List<string> lGroups = new List<string>();
         public static JArray jData = new JArray();
         public DevCDR.Extensions.AzureLogAnalytics AzureLog = new DevCDR.Extensions.AzureLogAnalytics("", "", "");
+        private static string IP2LocationURL = "";
+        private static readonly HttpClient client = new HttpClient();
+        private static IMemoryCache _cache;
 
 
         public static int ClientCount { get { return lClients.Distinct().Count(); } }
@@ -28,6 +33,8 @@ namespace DevCDRServer
             name = name.ToUpper();
             _connections.Remove(name, ""); //Remove existing Name
             _connections.Add(name, Context.ConnectionId); //Add Name
+
+            IP2LocationURL = Environment.GetEnvironmentVariable("IP2LocationURL") ?? "";
 
             lClients.Remove(name);
             lClients.Add(name);
@@ -50,7 +57,7 @@ namespace DevCDRServer
             if (m.Success)
             {
                 string sEndPoint = Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
-                Clients.Client(Context.ConnectionId).SendAsync("returnPSAsync", "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=" + complianceFile +"' | IEX;''", "Host");
+                Clients.Client(Context.ConnectionId).SendAsync("returnPSAsync", "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=" + complianceFile + "' | IEX;''", "Host");
             }
         }
 
@@ -88,6 +95,18 @@ namespace DevCDRServer
             }
 
             var J1 = JObject.Parse(Status);
+
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
+            {
+                string ClientIP = Context.GetHttpContext().Connection.RemoteIpAddress.ToString();
+                J1["Internal IP"] = ClientIP;
+                try
+                {
+                    J1["Internal IP"] = GetLocAsync(ClientIP).Result;
+                }
+                catch { }
+            }
+
             bool bChange = false;
             try
             {
@@ -248,6 +267,46 @@ namespace DevCDRServer
 
             //await Groups.RemoveFromGroupAsync(Context.ConnectionId, "SignalR Users");
             await base.OnDisconnectedAsync(exception);
+        }
+
+        private static async Task<string> GetLocAsync(string IP)
+        {
+            if (_cache == null)
+                _cache = new MemoryCache(new MemoryCacheOptions());
+
+            bool bCached = false;
+            _cache.TryGetValue(IP, out string Loc);
+            if (string.IsNullOrEmpty(Loc))
+            {
+                try
+                {
+                    if (!string.IsNullOrEmpty(IP2LocationURL))
+                    {
+                        var stringTask = client.GetStringAsync($"{IP2LocationURL}?ip={IP}");
+                        Loc = await stringTask;
+
+                    }
+                }
+                catch { return IP; }
+            }
+            else
+            {
+                bCached = true;
+            }
+
+            if (!string.IsNullOrEmpty(Loc))
+            {
+                if (!bCached)
+                {
+                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(300)); //cache hash for x Seconds
+                    _cache.Set(IP, Loc, cacheEntryOptions);
+                }
+
+                var jLoc = JObject.Parse(Loc);
+                return jLoc["Location"].ToString();
+            }
+
+            return IP;
         }
 
     }
