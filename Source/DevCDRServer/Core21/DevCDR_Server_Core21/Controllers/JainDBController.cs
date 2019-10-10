@@ -395,10 +395,11 @@ namespace DevCDRServer.Controllers
                                 ViewBag.Memory = 64;
                                 break;
                         }
-                        if (!int.TryParse((oInv["Computer"].SelectTokens("..ChassisTypes").FirstOrDefault() ?? "")[0].ToString() ?? "2", out int chassis))
-                            chassis = 0;
                     }
                     catch { }
+
+                    if (!int.TryParse((oInv["Computer"].SelectTokens("..ChassisTypes").FirstOrDefault() ?? "")[0].ToString() ?? "2", out int chassis))
+                        chassis = 0;
 
                     var oSW = oInv["Software"];
                     var oIndSW = oInv.DeepClone()["Software"];
