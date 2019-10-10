@@ -332,7 +332,7 @@ namespace DevCDRServer.Controllers
                 }
             }
 
-            if (oInv != new JObject())
+            if (oInv.ToString() != (new JObject()).ToString())
             {
                 ViewBag.Id = id;
 
@@ -357,43 +357,48 @@ namespace DevCDRServer.Controllers
                         ViewBag.LastInv = oInv["_date"];
                     }
 
-                    ViewBag.Id = id;
-                    ViewBag.Index = oInv["_index"];
-                    ViewBag.idx = index;
-                    ViewBag.Type = oInv["_type"] ?? "INV";
-                    ViewBag.OS = oInv["OS"]["Caption"];
-                    ViewBag.Name = oInv["Computer"]["#Name"];
-                    ViewBag.Title = oInv["Computer"]["#Name"];
-                    ViewBag.UserName = oInv["Computer"]["@UserName"] ?? "";
-                    ViewBag.Vendor = oInv["Computer"]["Manufacturer"] ?? oInv["BIOS"]["Manufacturer"];
-                    ViewBag.Serial = oInv["Computer"]["#SerialNumber"] ?? oInv["BIOS"]["#SerialNumber"] ?? "unknown";
-                    ViewBag.Version = oInv["OS"]["Version"];
-                    ViewBag.InstDate = oInv["OS"]["#InstallDate"];
-                    ViewBag.LastBoot = oInv["OS"]["@LastBootUpTime"];
-                    ViewBag.Model = oInv["Computer"]["Model"] ?? "unknown";
-                    ViewBag.Language = oInv["OS"]["OSLanguage"].ToString();
-                    ViewBag.Arch = oInv["OS"]["OSArchitecture"];
-                    ViewBag.CPU = oInv["Processor"]["Name"] ?? oInv["Processor"][0]["Name"];
-                    ViewBag.Memory = Convert.ToInt32((long)oInv["Computer"]["TotalPhysicalMemory"] / 1000 / 1000 / 1000);
-                    switch (ViewBag.Memory)
+                    try
                     {
-                        case 17:
-                            ViewBag.Memory = 16;
-                            break;
-                        case 34:
-                            ViewBag.Memory = 32;
-                            break;
-                        case 35:
-                            ViewBag.Memory = 32;
-                            break;
-                        case 68:
-                            ViewBag.Memory = 64;
-                            break;
-                        case 69:
-                            ViewBag.Memory = 64;
-                            break;
+                        ViewBag.Id = id;
+                        ViewBag.Index = oInv["_index"];
+                        ViewBag.idx = index;
+                        ViewBag.Type = oInv["_type"] ?? "INV";
+                        ViewBag.OS = oInv["OS"]["Caption"];
+                        ViewBag.Name = oInv["Computer"].SelectTokens("..#Name").FirstOrDefault().ToString();
+                        ViewBag.Title = oInv["Computer"].SelectTokens("..#Name").FirstOrDefault().ToString();
+                        ViewBag.UserName = (oInv["Computer"].SelectTokens("..@UserName").FirstOrDefault() ?? "").ToString();
+                        ViewBag.Vendor = (oInv["Computer"].SelectTokens("..Manufacturer").FirstOrDefault() ?? oInv["BIOS"].SelectTokens("..Manufacturer").FirstOrDefault() ?? "unknown").ToString();
+                        ViewBag.Serial = (oInv["Computer"].SelectTokens("..#SerialNumber").FirstOrDefault() ?? oInv["BIOS"].SelectTokens("..#SerialNumber").FirstOrDefault() ?? "unknown").ToString();
+                        ViewBag.Version = oInv["OS"]["Version"];
+                        ViewBag.InstDate = oInv["OS"]["#InstallDate"];
+                        ViewBag.LastBoot = oInv["OS"]["@LastBootUpTime"];
+                        ViewBag.Model = (oInv["Computer"].SelectTokens("..Model").FirstOrDefault() ?? "unknown").ToString();
+                        ViewBag.Language = oInv["OS"]["OSLanguage"].ToString();
+                        ViewBag.Arch = oInv["OS"]["OSArchitecture"];
+                        ViewBag.CPU = oInv["Processor"]["Name"] ?? oInv["Processor"][0]["Name"];
+                        ViewBag.Memory = Convert.ToInt32((long)(oInv["Computer"].SelectTokens("..TotalPhysicalMemory").FirstOrDefault() ?? 0) / 1000 / 1000 / 1000);
+                        switch (ViewBag.Memory)
+                        {
+                            case 17:
+                                ViewBag.Memory = 16;
+                                break;
+                            case 34:
+                                ViewBag.Memory = 32;
+                                break;
+                            case 35:
+                                ViewBag.Memory = 32;
+                                break;
+                            case 68:
+                                ViewBag.Memory = 64;
+                                break;
+                            case 69:
+                                ViewBag.Memory = 64;
+                                break;
+                        }
+                        if (!int.TryParse((oInv["Computer"].SelectTokens("..ChassisTypes").FirstOrDefault() ?? "")[0].ToString() ?? "2", out int chassis))
+                            chassis = 0;
                     }
-                    int chassis = int.Parse(oInv["Computer"]["ChassisTypes"][0].ToString() ?? "2");
+                    catch { }
 
                     var oSW = oInv["Software"];
                     var oIndSW = oInv.DeepClone()["Software"];
