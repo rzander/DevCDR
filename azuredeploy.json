@@ -101,6 +101,26 @@
                         {
                             "name": "INSTANCETITLE", 
                             "value": "Default Environment" 
+                        },
+                        {
+                            "name": "ComputernameRegex", 
+                            "value": "(.*?)" 
+                        },
+                        {
+                            "name": "IP2LocationURL", 
+                            "value": "" 
+                        },
+                        {
+                            "name": "Azure:SignalR:ConnectionString", 
+                            "value": "" 
+                        },
+                        {
+                            "name": "Log-SharedKey", 
+                            "value": "" 
+                        },
+                        {
+                            "name": "Log-WorkspaceID", 
+                            "value": "" 
                         }
                     ]
                 }
