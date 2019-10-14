@@ -330,7 +330,7 @@ namespace DevCDRServer.Controllers
                     AgentVersion(lHostnames, sInstance);
                     break;
                 case "Inv":
-                    string sEndPoint = Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
+                    string sEndPoint = Environment.GetEnvironmentVariable("DevCDRUrl") ?? Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
                     string inventoryFile = Environment.GetEnvironmentVariable("ScriptInventory") ?? "inventory.ps1";
                     RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=" + inventoryFile +"' | IEX;'Inventory complete..'", sInstance, sCommand);
                     break;
@@ -383,7 +383,7 @@ namespace DevCDRServer.Controllers
                     sendWOL(lHostnames, sInstance, GetAllMACAddresses());
                     break;
                 case "Compliance":
-                    string sEndPoint2 = Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
+                    string sEndPoint2 = Environment.GetEnvironmentVariable("DevCDRUrl") ?? Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
                     string complianceFile = Environment.GetEnvironmentVariable("ScriptCompliance") ?? "compliance_default.ps1";
                     RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint2 + "/jaindb/getps?filename=" + complianceFile + "' | IEX;'Compliance check complete..'", sInstance, sCommand);
                     break;

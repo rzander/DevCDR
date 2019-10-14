@@ -56,7 +56,7 @@ namespace DevCDRServer
             Match m = Regex.Match(name, regName, RegexOptions.IgnoreCase);
             if (m.Success)
             {
-                string sEndPoint = Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
+                string sEndPoint = Environment.GetEnvironmentVariable("DevCDRUrl") ?? Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
                 Clients.Client(Context.ConnectionId).SendAsync("returnPSAsync", "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=" + complianceFile + "' | IEX;''", "Host");
             }
         }
@@ -68,7 +68,7 @@ namespace DevCDRServer
             Match m = Regex.Match(name, regName, RegexOptions.IgnoreCase);
             if (m.Success)
             {
-                string sEndPoint = Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
+                string sEndPoint = Environment.GetEnvironmentVariable("DevCDRUrl") ?? Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
                 Clients.Client(Context.ConnectionId).SendAsync("returnPSAsync", "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=" + invFile + "' | IEX;'Inventory complete..'", "Host");
             }
         }
