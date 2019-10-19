@@ -23,7 +23,7 @@ Get a free instance:
   * Custom Inventory (PowerShell)
   * Blockchain based archive ([JainDB](https://github.com/rzander/jaindb))
   * Inventory-History with visual Differential and Timeline of changes
-  * Custom Reporting with Excel or PowerBI
+  * Custom Reporting with Excel or PowerBI.  [DEMO Report](https://app.powerbi.com/view?r=eyJrIjoiNzUyNDkzNDAtZmFiMC00MGUyLTgyZDUtZmY4ZWZiODAzMjZhIiwidCI6ImVkNDI1ODAyLTExODYtNDRkZS04ODIzLWE0YTU3ZDE0MGEyOCIsImMiOjh9)
 * Scheduled PowerShell script for Health- and Compliance-checks
 * device grouping
 * Only outgoing HTTPS (443) communication (agent) with Proxy support
