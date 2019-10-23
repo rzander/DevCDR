@@ -42,12 +42,8 @@ Get a free instance:
    * Note: F1 (free) is limited on compute time and the site will stop if the limit is reached.
 * SSL
 
-## Server Core
-Server Core is running on .NET Core 2.2. and can only host a single instance.
-> Note: Server Core is not compatible with the existing .NET4.6 Agent. please use the new Agent for Server Core.
-
 ### Docker
-A preconfigured Docker image is available at: https://hub.docker.com/r/zanderr/devcdr_server_core/
+Another Options is the preconfigured Docker image available at: https://hub.docker.com/r/zanderr/devcdr_server_core/
 or just run:
 `docker pull zanderr/devcdr_server_core`
 
