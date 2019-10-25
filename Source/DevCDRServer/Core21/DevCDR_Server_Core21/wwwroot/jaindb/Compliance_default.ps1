@@ -46,46 +46,72 @@ if (Get-Module -ListAvailable -Name WriteAnalyticsLog) { $bLogging = $true } els
 
 #Install RuckZuck Provider for OneGet if missing...
 if (Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) { } else {
-    if ($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Installing OneGet v1.7.0.5" }) -LogType "DevCDRCore" 
+    if ($bLogging) {
+        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Installing OneGet v1.7.1.0" }) -LogType "DevCDRCore" 
     }
-    &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.0.5/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+    &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.1.0/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
-if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.7.0.5")) {
-    if ($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Updating to OneGet v1.7.0.5" }) -LogType "DevCDRCore" 
+if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.7.1.0")) {
+    if ($bLogging) {
+        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Updating to OneGet v1.7.1.0" }) -LogType "DevCDRCore" 
     }
-    &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.0.5/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+    &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.1.0/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
 #Update DevCDRAgentCore
-if ([version](get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.30") {
-    [xml]$a = gc "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
-    $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
-    $EP > $env:temp\ep.log
-    if ($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v1.0.0.30" }) -LogType "DevCDRCore" 
+if (-NOT (Get-Process DevCDRAgent -ea SilentlyContinue)) {
+    if ([version](get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.30") {
+        [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+        $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+
+        if ($EP) { 
+            if ($EP.StartsWith("HTTP", "CurrentCultureIgnoreCase")) {
+                $EP > $env:temp\ep.log
+                if ($bLogging) {
+                    Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v1.0.0.30" }) -LogType "DevCDRCore" 
+                }
+                &msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT="$($EP)" /qn REBOOT=REALLYSUPPRESS  
+            }
+            else {
+                Get-ScheduledTask DevCDR | Unregister-ScheduledTask -Confirm:$False
+                &msiexec /x https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi /qn REBOOT=REALLYSUPPRESS 
+            }
+        }
     }
-    &msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT="$($EP)" /qn REBOOT=REALLYSUPPRESS  
+
+    #Add Scheduled-Task to repair Agent 
+    if ((Get-ScheduledTask DevCDR -ea SilentlyContinue).Description -ne 'DeviceCommander fix 1.0.0.2') {
+        if ($bLogging) {
+            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1004; Description = "Registering Scheduled-Task for DevCDR fix 1.0.0.2" }) -LogType "DevCDRCore" 
+        }
+        try {
+            $scheduleObject = New-Object -ComObject schedule.service
+            $scheduleObject.connect()
+            $rootFolder = $scheduleObject.GetFolder("\")
+            $rootFolder.CreateFolder("DevCDR")
+        }
+        catch { }
+
+        [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+        $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+        if ($EP) {
+            if ($EP.StartsWith("HTTP", "CurrentCultureIgnoreCase")) {                                                              
+                $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)){ `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT=$($EP) /qn REBOOT=REALLYSUPPRESS`" }"
+                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                $trigger = New-ScheduledTaskTrigger -Daily -At 11:45am -RandomDelay 00:15:00
+                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+                Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "DevCDR" -Description "DeviceCommander fix 1.0.0.2" -User "System" -TaskPath "\DevCDR" -Force
+            }
+            else {
+                Get-ScheduledTask DevCDR | Unregister-ScheduledTask -Confirm:$False
+                &msiexec /x https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi /qn REBOOT=REALLYSUPPRESS 
+            }
+        }
+    }
 }
-
-#Add Scheduled-Task to repair Agent 
-if ((Get-ScheduledTask DevCDR -ea SilentlyContinue).Description -ne 'DeviceCommander fix 1.0.0.2') {
-    if ($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1004; Description = "Registering Scheduled-Task for DevCDR fix 1.0.0.2" }) -LogType "DevCDRCore" 
-    }
-    try {
-        $scheduleObject = New-Object -ComObject schedule.service
-        $scheduleObject.connect()
-        $rootFolder = $scheduleObject.GetFolder("\")
-        $rootFolder.CreateFolder("DevCDR")
-    }
-    catch { }
-
-    [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
-    $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
-    $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)){ `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT=$($EP) /qn REBOOT=REALLYSUPPRESS`" }"
-    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
-    $trigger = New-ScheduledTaskTrigger -Daily -At 11:45am -RandomDelay 00:15:00
-    $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
-    Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "DevCDR" -Description "DeviceCommander fix 1.0.0.2" -User "System" -TaskPath "\DevCDR" -Force
+else {
+    Get-ScheduledTask DevCDR | Unregister-ScheduledTask -Confirm:$False
 }
 
 #Fix local Admins on CloudJoined Devices, PowerShell Isseue if unknown cloud users/groups are member of a local group
@@ -107,7 +133,8 @@ if ((Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Enabled) {
         $pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | ForEach-Object -begin { $aa = $null } -process { $aa += [char]$_ } -end { $aa }; (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
         $pw = "";
 
-        if ($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1005; Description = "local Admin account disabled and new random passwort generated" }) -LogType "DevCDRCore" 
+        if ($bLogging) {
+            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1005; Description = "local Admin account disabled and new random passwort generated" }) -LogType "DevCDRCore" 
         }
     }
 }
@@ -148,7 +175,8 @@ Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimi
 
 #Only Update SW if LockScreen (LogonUI) is present
 if (get-process logonui -ea SilentlyContinue) {
-    if ($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1002; Description = "Device is locked" }) -LogType "DevCDRCore" 
+    if ($bLogging) {
+        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1002; Description = "Device is locked" }) -LogType "DevCDRCore" 
     }
 
     #Enable WOL broadcasts
@@ -168,15 +196,16 @@ if (get-process logonui -ea SilentlyContinue) {
             "AdobeReader DC", "Microsoft Power BI Desktop", "Putty", "WinSCP", "AdobeAir", "ShockwavePlayer", "VCRedist2015x64" , "VCRedist2015x86", "VCRedist2017x64" , "VCRedist2017x86",
             "VCRedist2019x64" , "VCRedist2019x86", "VCRedist2013x64", "VCRedist2013x86", "Slack", "Microsoft OneDrive",
             "VCRedist2012x64", "VCRedist2012x86", "VCRedist2010x64" , "VCRedist2010x86", "Office Timeline", "WinRAR", "Viber", "Teams Machine-Wide Installer",
-            "VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "Microsoft Azure Information Protection" )
+            "VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "Microsoft Azure Information Protection", "KeePass" )
 
         #Find Software Updates
-        $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename | Sort-Object {Get-Random}
+        $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename | Sort-Object { Get-Random }
 
         #Update only managed Software
         $ManagedSW | ForEach-Object { 
             if ($updates.PackageFilename -contains $_) { 
-                if ($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 2000; Description = "RuckZuck updating: $($_)" }) -LogType "DevCDR" 
+                if ($bLogging) {
+                    Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 2000; Description = "RuckZuck updating: $($_)" }) -LogType "DevCDR" 
                 }
                 "Updating: " + $_ ;
                 Install-Package -ProviderName RuckZuck "$($_)" -ea SilentlyContinue
@@ -191,14 +220,15 @@ if (get-process logonui -ea SilentlyContinue) {
     }
 }
 else {
-    if ($bLogging) { Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1003; Description = "Device is NOT locked" }) -LogType "DevCDRCore" 
+    if ($bLogging) {
+        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1003; Description = "Device is NOT locked" }) -LogType "DevCDRCore" 
     }
 }
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUG5lubZOMxYm7wUwkdUxEI9PT
-# Z+6gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAQEQtHL8BJJKLMVRBijbgWV9
+# Q26gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -263,12 +293,12 @@ else {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQk
-# skx8pDvZpO75uaSXtwtfphAqtzANBgkqhkiG9w0BAQEFAASCAQCT0TEekTXKMSD5
-# lpT/T3ZR/7BAsGup9WQj1tg4vQ/kEf9+BXSPo9YQhyKd91pGUh8H9exK/5yeLol9
-# /8dQzLjW9sClcVCUggWmD+1pzCLXtJkF54qekn1XHolVtnfwZCnrgI7nwUmncs7j
-# 1gvDHq23/bsM6gO8gR3rnrsO2oEMSwYUgA+K2MAepIsbwjL6OjhvXWFGpuq/0cl/
-# XjX2fZYmCavMWV4CDCctM7Hc3ysw21FB7nCZHjDnjEs+jVo9LlBTEFTTr9WESMd4
-# jXlbQhuSXqJ5KUlKyCAwW1qGkg1ga3LfR1YP4PLvH9IGqJqCM+SfPqRwnf4iDInT
-# U6CU3U05
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTK
+# 8eA8afuK9PZ1D2+VbyT0kra3/TANBgkqhkiG9w0BAQEFAASCAQAH5OQWAdHKTcsO
+# /9cGTFhT4tbQwPQG3lZZSxqaG96UlmHb1Dvf0Fdm8pa2SbXkzoFKUeFZfqnz/SSV
+# UcoPwJaeabfUYfE9YAsvbhf3hazpFZA+msCn0Lk4ii9+zs4vmaup7XtPyhKiMibi
+# nbX2NAJ5/ddE1/AHauUtSiNciIHwTvp4wsg1p9yruwjAmfjHiiBZERg8KrzCqCB+
+# LQ531a0HNUhjjsVUkPpF3YUmX7JE5mvTmOhnyc+jWeM0ExYk/8Eu9HObi1BwAxME
+# zRh95SjatqGLGb3OKxOZ21jsFmWv1qdNNwBadPdAtDzpFDizyBP/5fwCkRS36bh7
+# k83fBnFz
 # SIG # End signature block

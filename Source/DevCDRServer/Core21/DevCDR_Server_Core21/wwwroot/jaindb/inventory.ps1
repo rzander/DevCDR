@@ -203,30 +203,34 @@ getinv -Name "Printer" -WMIClass "Win32_Printer" -Properties @("DeviceID", "Capa
 $feature = Get-WindowsOptionalFeature -Online | Select-Object @{N = 'Name'; E = { $_.FeatureName } } , @{N = 'InstallState'; E = { $_.State.tostring() } } 
 $object | Add-Member -MemberType NoteProperty -Name "OptionalFeature" -Value ($feature)
 
-$user = Get-LocalUser | Select-Object Description, Enabled, UserMayChangePassword, PasswordRequired, Name, @{N = '@PasswordLastSet'; E = { [System.DateTime](($_.PasswordLastSet).ToUniversalTime()) } }, @{N = 'id'; E = { $_.SID.Value.ToString() } } | Sort-Object -Property Name
-$object | Add-Member -MemberType NoteProperty -Name "LocalUsers" -Value ($user)
+$osInfo = Get-WmiObject -Class Win32_OperatingSystem
+#Skip User Inventory on DomainControllers
+if ($osInfo.ProductType -ne 2) {
+    $user = Get-LocalUser | Select-Object Description, Enabled, UserMayChangePassword, PasswordRequired, Name, @{N = '@PasswordLastSet'; E = { [System.DateTime](($_.PasswordLastSet).ToUniversalTime()) } }, @{N = 'id'; E = { $_.SID.Value.ToString() } } | Sort-Object -Property Name
+    $object | Add-Member -MemberType NoteProperty -Name "LocalUsers" -Value ($user)
 
-#Get-LocalGroupMember has a bug if device is azure AD joined
-#$locAdmin = Get-LocalGroupMember -SID S-1-5-32-544 | Select-Object @{N = 'Name'; E = {$_.Name.Replace($($env:Computername) + "\", "")}}, ObjectClass, @{Name = 'PrincipalSource'; Expression = {$_.PrincipalSource.ToString()}}, @{Name = 'id'; Expression = {$_.SID.Value.ToString()}} | Sort-Object -Property Name
-$admingroup = (Get-WmiObject -Class Win32_Group -Filter "LocalAccount='True' AND SID='S-1-5-32-544'").Name
-$locAdmin = @()     
-$groupconnection = [ADSI]("WinNT://localhost/$admingroup,group")
-$members = $groupconnection.Members()
-ForEach ($member in $members) {
-    $name = $member.GetType().InvokeMember("Name", "GetProperty", $NULL, $member, $NULL)
-    $class = $member.GetType().InvokeMember("Class", "GetProperty", $NULL, $member, $NULL)
-    $bytes = $member.GetType().InvokeMember("objectsid", "GetProperty", $NULL, $member, $NULL)
-    $sid = New-Object Security.Principal.SecurityIdentifier ($bytes, 0)
-    $result = New-Object -TypeName psobject
-    $result | Add-Member -MemberType NoteProperty -Name Name -Value $name
-    $result | Add-Member -MemberType NoteProperty -Name ObjectClass -Value $class
-    $result | Add-Member -MemberType NoteProperty -Name id -Value $sid.Value.ToString()
-    $locAdmin = $locAdmin + $result;
+    #Get-LocalGroupMember has a bug if device is azure AD joined
+    #$locAdmin = Get-LocalGroupMember -SID S-1-5-32-544 | Select-Object @{N = 'Name'; E = {$_.Name.Replace($($env:Computername) + "\", "")}}, ObjectClass, @{Name = 'PrincipalSource'; Expression = {$_.PrincipalSource.ToString()}}, @{Name = 'id'; Expression = {$_.SID.Value.ToString()}} | Sort-Object -Property Name
+    $admingroup = (Get-WmiObject -Class Win32_Group -Filter "LocalAccount='True' AND SID='S-1-5-32-544'").Name
+    $locAdmin = @()     
+    $groupconnection = [ADSI]("WinNT://localhost/$admingroup,group")
+    $members = $groupconnection.Members()
+    ForEach ($member in $members) {
+        $name = $member.GetType().InvokeMember("Name", "GetProperty", $NULL, $member, $NULL)
+        $class = $member.GetType().InvokeMember("Class", "GetProperty", $NULL, $member, $NULL)
+        $bytes = $member.GetType().InvokeMember("objectsid", "GetProperty", $NULL, $member, $NULL)
+        $sid = New-Object Security.Principal.SecurityIdentifier ($bytes, 0)
+        $result = New-Object -TypeName psobject
+        $result | Add-Member -MemberType NoteProperty -Name Name -Value $name
+        $result | Add-Member -MemberType NoteProperty -Name ObjectClass -Value $class
+        $result | Add-Member -MemberType NoteProperty -Name id -Value $sid.Value.ToString()
+        $locAdmin = $locAdmin + $result;
+    }
+    $object | Add-Member -MemberType NoteProperty -Name "LocalAdmins" -Value ($locAdmin)
+
+    $locGroup = Get-LocalGroup | Select-Object Description, Name, PrincipalSource, ObjectClass, @{N = 'id'; E = { $_.SID.Value.ToString() } } | Sort-Object -Property Name
+    $object | Add-Member -MemberType NoteProperty -Name "LocalGroups" -Value ($locGroup)
 }
-$object | Add-Member -MemberType NoteProperty -Name "LocalAdmins" -Value ($locAdmin)
-
-$locGroup = Get-LocalGroup | Select-Object Description, Name, PrincipalSource, ObjectClass, @{N = 'id'; E = { $_.SID.Value.ToString() } } | Sort-Object -Property Name
-$object | Add-Member -MemberType NoteProperty -Name "LocalGroups" -Value ($locGroup)
 
 $fw = Get-NetFirewallProfile | Select-Object Name, Enabled
 $object | Add-Member -MemberType NoteProperty -Name "Firewall" -Value ($fw)
@@ -300,8 +304,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUe4kFZ79ssF5XomAS9qdjCpMc
-# YYCgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUt4Jc/pUH5j4OdAi3iyI/WeT5
+# TH+gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -366,12 +370,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQO
-# 4aWiyy/Nls9qbBEg/kK+7llbhDANBgkqhkiG9w0BAQEFAASCAQARwnWn794tpsY5
-# 4ziYKdxmD/ohdGvV6JqqZu0Hf4YkdpNMGSeIFm9pbjqYFXwG/gpEME7h1zUXWY/6
-# owiSdZCBoaenfCsMwuxirQBxNKrOlDABfUrkWwdRlicrZSC5VBtPwt8XqQdTsRhr
-# jCzxUcTDXbDqaVDY2aG00MkWqHDrpzNs4xwIF7tX7vS/xXeEoItVupLZTsbz4joL
-# +VZvUZJ5rqp82bBF2/J73J6Ov0eNKkEMnAJp3DSRN2Ruh1SdRuw4thZ6AoO6/tmp
-# t6ZiKWLttFILX3ayl+wbmvhO1NrE8Mx2pXVrT/I7PKkagx3z7CA2Y76vINVf2olm
-# IaFreh3A
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR8
+# ZYoi1QA2jrwpr9D076MbDTosdTANBgkqhkiG9w0BAQEFAASCAQAfOOZl0BJtgl8l
+# 0QIEOPnw10K7pY4rVd2UApZwQqQmg771/GB2glcDml8f/QIXUFY8GH09ce3GjwJh
+# A+RkP/uoasjDT1qSKcZJP8HjY+sbc8a5WxDZawDbGa+etaWK82XFAbNy+LfXuORF
+# BIAatHWwR1o4SOACUVE7BdWPBdF+PKKQfpHQqftAE40c1Uoa3n5WtYx0mvvejjw8
+# TrreBL0RviwmbFWp+vyALyLLW5lOXhirujG90gIRhWGwq1tTmB4lQWdpp/25zWm/
+# ZjC2gvCpkojZtsTgUCFhbYsJzdvNwXX5CftUU4/AshcTLq8o8eirnNFL9VsJn2Pv
+# Ar1w4jsR
 # SIG # End signature block
