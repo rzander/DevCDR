@@ -47,21 +47,21 @@ if (Get-Module -ListAvailable -Name WriteAnalyticsLog) { $bLogging = $true } els
 #Install RuckZuck Provider for OneGet if missing...
 if (Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) { } else {
     if ($bLogging) {
-        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Installing OneGet v1.7.1.0" }) -LogType "DevCDRCore" 
+        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Installing OneGet v1.7.1.2" }) -LogType "DevCDRCore" 
     }
-    &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.1.0/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+    &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.1.2/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
-if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.7.1.0")) {
+if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.7.1.2")) {
     if ($bLogging) {
-        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Updating to OneGet v1.7.1.0" }) -LogType "DevCDRCore" 
+        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Updating to OneGet v1.7.1.2" }) -LogType "DevCDRCore" 
     }
-    &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.1.0/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
+    &msiexec -i https://github.com/rzander/ruckzuck/releases/download/1.7.1.2/RuckZuck.provider.for.OneGet_x64.msi /qn REBOOT=REALLYSUPPRESS 
 }
 
 #Update DevCDRAgentCore
 if (-NOT (Get-Process DevCDRAgent -ea SilentlyContinue)) {
-    if ([version](get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.30") {
+    if ([version](get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.31") {
         [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
         $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
 
@@ -69,7 +69,7 @@ if (-NOT (Get-Process DevCDRAgent -ea SilentlyContinue)) {
             if ($EP.StartsWith("HTTP", "CurrentCultureIgnoreCase")) {
                 $EP > $env:temp\ep.log
                 if ($bLogging) {
-                    Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v1.0.0.30" }) -LogType "DevCDRCore" 
+                    Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v1.0.0.31" }) -LogType "DevCDRCore" 
                 }
                 &msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT="$($EP)" /qn REBOOT=REALLYSUPPRESS  
             }
@@ -227,8 +227,8 @@ else {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAQEQtHL8BJJKLMVRBijbgWV9
-# Q26gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUO8aIBlVa2LesijmvVOoro9lW
+# UDOgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -293,12 +293,12 @@ else {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTK
-# 8eA8afuK9PZ1D2+VbyT0kra3/TANBgkqhkiG9w0BAQEFAASCAQAH5OQWAdHKTcsO
-# /9cGTFhT4tbQwPQG3lZZSxqaG96UlmHb1Dvf0Fdm8pa2SbXkzoFKUeFZfqnz/SSV
-# UcoPwJaeabfUYfE9YAsvbhf3hazpFZA+msCn0Lk4ii9+zs4vmaup7XtPyhKiMibi
-# nbX2NAJ5/ddE1/AHauUtSiNciIHwTvp4wsg1p9yruwjAmfjHiiBZERg8KrzCqCB+
-# LQ531a0HNUhjjsVUkPpF3YUmX7JE5mvTmOhnyc+jWeM0ExYk/8Eu9HObi1BwAxME
-# zRh95SjatqGLGb3OKxOZ21jsFmWv1qdNNwBadPdAtDzpFDizyBP/5fwCkRS36bh7
-# k83fBnFz
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQK
+# 7ImXKycf45CrXO1QFkghCrJzTTANBgkqhkiG9w0BAQEFAASCAQB5jfjwV12gjuYh
+# wTe1TdlCi8Zr8/VCvvasHTjwQXMkcRSe3cjKHuFM+vGJ3lMzw0FU+F3CWeVIxqHf
+# 2t1sWUnsJccpLmE00rxzO2NzltoGLJuCGGJQzQz0mlEi4FSS1P6hp7mkS5Gx4GDq
+# WZw3bXohSzBJ9CTt0nOlXVwbZ/asifRT/LLgqiow/U+X8ljlvRDyeZtt3Qav+WVV
+# K1JOkgf6uI9cdcGaZ0wfmnTy5zftXAtpJhh+9pdYV1yH2l6yRuKXQ82Gw7qJwYel
+# 8FsfJ12HXKD84M7MYn1JR4/XmyRSH6rOrD3XcXAX6c8sq5bJDOaPnoYtjPi5REuq
+# m9wULRhc
 # SIG # End signature block
