@@ -118,6 +118,11 @@ namespace DevCDRServer
                     }
                     bChange = true;
                     AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AzureTableStorage")))
+                    {
+                        J1.Add("ConnectionId", Context.ConnectionId);
+                        DevCDR.Extensions.AzureTableStorage.UpdateEntityAsync(Environment.GetEnvironmentVariable("AzureTableStorage"), Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString() , J1.ToString());
+                    }
                 }
                 else
                 {
@@ -129,7 +134,23 @@ namespace DevCDRServer
                             jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").First().Replace(J1);
                             bChange = true;
                             AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
+
+                            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AzureTableStorage")))
+                            {
+                                J1.Add("ConnectionId", Context.ConnectionId);
+                                DevCDR.Extensions.AzureTableStorage.UpdateEntityAsync(Environment.GetEnvironmentVariable("AzureTableStorage"), Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
+                            }
                         }
+                        else
+                        {
+                            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AzureTableStorage")))
+                            {
+                                string sJSON = "{\"ConnectionID\":\"" + Context.ConnectionId + "\"}";
+                                DevCDR.Extensions.AzureTableStorage.UpdateEntityAsync(Environment.GetEnvironmentVariable("AzureTableStorage"), Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("Hostname").ToString(), sJSON);
+                            }
+                        }
+
+
                     }
                 }
             }
@@ -242,7 +263,6 @@ namespace DevCDRServer
 
             try
             {
-
                 if (lClients.Count > 0)
                 {
                     foreach (var oObj in jData.Children().ToArray())
