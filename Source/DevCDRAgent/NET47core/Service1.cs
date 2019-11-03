@@ -266,8 +266,8 @@ namespace DevCDRAgent
                                 {
                                     Thread.Sleep(200);
                                     dDuration = DateTime.Now - dStart;
-                                    if (tReInit.Interval > 5000)
-                                        tReInit.Interval = 2000;
+                                    //if (tReInit.Interval > 5000)
+                                    //    tReInit.Interval = 2000;
                                 }
                             }
                             catch (Exception ex)
