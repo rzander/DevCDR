@@ -133,7 +133,7 @@ namespace DevCDRServer.Controllers
         [AllowAnonymous]
 #endif
         [Authorize]
-        public ActionResult GetData(string Instance)
+        public ActionResult GetData(string Instance = "Default")
         {
             JArray jData = new JArray();
             try
@@ -159,7 +159,7 @@ namespace DevCDRServer.Controllers
             };
         }
 
-        public int ClientCount(string Instance)
+        public int ClientCount(string Instance = "Default")
         {
             int iCount = 0;
             try
@@ -184,7 +184,7 @@ namespace DevCDRServer.Controllers
         [AllowAnonymous]
 #endif
         [Authorize]
-        public ActionResult Groups(string Instance)
+        public ActionResult Groups(string Instance = "Default")
         {
             List<string> lGroups = new List<string>();
             try
@@ -212,7 +212,7 @@ namespace DevCDRServer.Controllers
         [AllowAnonymous]
 #endif
         [Authorize]
-        public ActionResult GetRZCatalog(string Instance)
+        public ActionResult GetRZCatalog(string Instance = "Default")
         {
             List<string> lRZCat = new List<string>();
             try
@@ -274,7 +274,7 @@ namespace DevCDRServer.Controllers
             return sID;
         }
 
-        internal void Reload(string Instance)
+        internal void Reload(string Instance = "Default")
         {
             string sID = "";
             try
@@ -308,7 +308,7 @@ namespace DevCDRServer.Controllers
             JObject oParams = JObject.Parse(sParams);
 
             string sCommand = oParams.SelectToken(@"$.command").Value<string>(); //get command name
-            string sInstance = oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
+            string sInstance = "Default"; //= oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
             string sArgs = oParams.SelectToken(@"$.args").Value<string>(); //get parameters
 
             if (string.IsNullOrEmpty(sInstance)) //Skip if instance is null
@@ -482,7 +482,7 @@ namespace DevCDRServer.Controllers
             }
         }
 
-        internal void AgentVersion(List<string> Hostnames, string sInstance)
+        internal void AgentVersion(List<string> Hostnames, string sInstance = "Default")
         {
             foreach (string sHost in Hostnames)
             {
