@@ -9,6 +9,15 @@ ENV AzureAD__ClientId ba8fd992-f3ed-4a38-b37f-0b6149bce880
 ENV AzureAD__AppIDURL https://rzander.onmicrosoft.com/abf47594-0960-461d-bb5c-5dd9ded06a05
 ENV REPORTUSER DEMO	
 ENV REPORTPASSWORD iq3ghwegiu2
+ENV Azure:SignalR:ConnectionString ""
+ENV IP2LocationURL ""
+ENV INSTANCETITLE "Default Environment"
+ENV ComputernameRegex (.*?)
+ENV Log-SharedKey ""
+ENV Log-WorkspaceID ""
+ENV ScriptInventory inventory.ps1
+ENV ScriptCompliance compliance_default.ps1
+ENV _DevCDRUrl "in case of Azure SignalR place your DevCDR URL here and remove the _ from the variable Name"
 
 FROM microsoft/dotnet:2.2-sdk AS build
 WORKDIR /src

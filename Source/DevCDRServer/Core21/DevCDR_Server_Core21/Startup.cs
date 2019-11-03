@@ -47,7 +47,14 @@ namespace DevCDR
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            services.AddSignalR();
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Azure:SignalR:ConnectionString")))
+                services.AddSignalR();
+            else
+            {
+                services.AddSignalR()
+                  .AddAzureSignalR();
+            }
+
             services.AddMemoryCache();
             services.AddResponseCompression(options =>
             {
@@ -86,10 +93,20 @@ namespace DevCDR
             app.UseAuthentication();
             app.UseCookiePolicy();
 
-            app.UseSignalR(routes =>
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Azure:SignalR:ConnectionString")))
             {
-                routes.MapHub<Default>("/chat");
-            });
+                app.UseSignalR(routes =>
+                {
+                    routes.MapHub<Default>("/chat");
+                });
+            }
+            else
+            {
+                app.UseAzureSignalR(routes =>
+                {
+                    routes.MapHub<Default>("/chat");
+                });
+            }
 
             app.UseMvc(routes =>
             {

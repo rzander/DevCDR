@@ -11,7 +11,8 @@ Greenshot 1.2.10.6
 Intel(R) Management Engine Components
 Intel(R) Processor Graphics
 Java 8 Update 221
-KeePass 2.42.1
+Java 8 Update 221 (64-bit)
+KeePass 2.43
 LastPass (uninstall only)
 Logitech Options
 Microsoft .NET Framework 4.5.1 Multi-Targeting Pack (ENU)
@@ -55,14 +56,10 @@ Microsoft Visual C++ 2010  x64 Redistributable - 10.0.40219
 Microsoft Visual C++ 2010  x86 Redistributable - 10.0.40219
 Microsoft Visual C++ 2012 Redistributable (x64) - 11.0.61030
 Microsoft Visual C++ 2012 Redistributable (x86) - 11.0.61030
-Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.30501
-Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.40660
 Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.40664
-Microsoft Visual C++ 2013 Redistributable (x86) - 12.0.30501
-Microsoft Visual C++ 2013 Redistributable (x86) - 12.0.40660
 Microsoft Visual C++ 2013 Redistributable (x86) - 12.0.40664
-Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.22.27821
-Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.22.27821
+Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.23.27820
+Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.23.27820
 Microsoft Visual Studio 2010 Tools for Office Runtime (x64)
 Microsoft Visual Studio 2015 Shell (Isolated)
 Microsoft Visual Studio Code

@@ -3,10 +3,6 @@
   "defaultProvider": "cdnjs",
   "libraries": [
     {
-      "library": "modernizr@2.8.3",
-      "destination": "wwwroot/lib/modernizr/"
-    },
-    {
       "library": "jqueryui@1.12.1",
       "destination": "wwwroot/css/jqueryui/",
       "files": [
@@ -24,8 +20,16 @@
       ]
     },
     {
-      "library": "signalr.js@2.3.0",
+      "library": "signalr.js@2.4.0",
       "destination": "wwwroot/lib/signalr.js/"
+    },
+    {
+      "library": "jquery-contextmenu@2.8.0",
+      "destination": "wwwroot/lib/jquery-contextmenu/"
+    },
+    {
+      "library": "modernizr@2.8.3",
+      "destination": "wwwroot/lib/modernizr/"
     }
-  ]
+]
 }
