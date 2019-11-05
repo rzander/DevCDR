@@ -10,8 +10,8 @@ Google Chrome
 Greenshot 1.2.10.6
 Intel(R) Management Engine Components
 Intel(R) Processor Graphics
-Java 8 Update 221
-Java 8 Update 221 (64-bit)
+Java 8 Update 231
+Java 8 Update 231 (64-bit)
 KeePass 2.43
 LastPass (uninstall only)
 Logitech Options
@@ -20,7 +20,7 @@ Microsoft .NET Framework 4.5.1 SDK
 Microsoft .NET Framework 4.5.2 Multi-Targeting Pack (ENU)
 Microsoft ASP.NET MVC 2
 Microsoft Azure Information Protection
-Microsoft Azure Storage Explorer version 1.6.2
+Microsoft Azure Storage Explorer version 1.10.1
 Microsoft Edge Beta
 Microsoft Edge Dev
 Microsoft Edge Update
@@ -74,7 +74,7 @@ NVIDIA Graphics Driver 391.40
 NVIDIA Update 31.1.10.0
 paint.net
 Printix Client
-PuTTY release 0.72 (64-bit)
+PuTTY release 0.73 (64-bit)
 Remote Desktop Connection Manager
 RuckZuck provider for OneGet
 Samsung Printer Live Update

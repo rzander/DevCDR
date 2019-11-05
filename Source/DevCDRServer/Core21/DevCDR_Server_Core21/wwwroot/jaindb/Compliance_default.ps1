@@ -61,7 +61,7 @@ if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]("1.7.1.2")) {
 
 #Update DevCDRAgentCore
 if (-NOT (Get-Process DevCDRAgent -ea SilentlyContinue)) {
-    if ([version](get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.31") {
+    if ([version](get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]"1.0.0.32") {
         [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
         $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
 
@@ -69,7 +69,7 @@ if (-NOT (Get-Process DevCDRAgent -ea SilentlyContinue)) {
             if ($EP.StartsWith("HTTP", "CurrentCultureIgnoreCase")) {
                 $EP > $env:temp\ep.log
                 if ($bLogging) {
-                    Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v1.0.0.31" }) -LogType "DevCDRCore" 
+                    Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v1.0.0.32" }) -LogType "DevCDRCore" 
                 }
                 &msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi ENDPOINT="$($EP)" /qn REBOOT=REALLYSUPPRESS  
             }
@@ -81,9 +81,9 @@ if (-NOT (Get-Process DevCDRAgent -ea SilentlyContinue)) {
     }
 
     #Add Scheduled-Task to repair Agent 
-    if ((Get-ScheduledTask DevCDR -ea SilentlyContinue).Description -ne 'DeviceCommander fix 1.0.0.2') {
+    if ((Get-ScheduledTask DevCDR -ea SilentlyContinue).Description -ne 'DeviceCommander fix 1.0.0.3') {
         if ($bLogging) {
-            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1004; Description = "Registering Scheduled-Task for DevCDR fix 1.0.0.2" }) -LogType "DevCDRCore" 
+            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1004; Description = "Registering Scheduled-Task for DevCDR fix 1.0.0.3" }) -LogType "DevCDRCore" 
         }
         try {
             $scheduleObject = New-Object -ComObject schedule.service
@@ -101,7 +101,7 @@ if (-NOT (Get-Process DevCDRAgent -ea SilentlyContinue)) {
                 $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
                 $trigger = New-ScheduledTaskTrigger -Daily -At 11:45am -RandomDelay 00:15:00
                 $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
-                Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "DevCDR" -Description "DeviceCommander fix 1.0.0.2" -User "System" -TaskPath "\DevCDR" -Force
+                Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "DevCDR" -Description "DeviceCommander fix 1.0.0.3" -User "System" -TaskPath "\DevCDR" -Force
             }
             else {
                 Get-ScheduledTask DevCDR | Unregister-ScheduledTask -Confirm:$False
@@ -227,8 +227,8 @@ else {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUO8aIBlVa2LesijmvVOoro9lW
-# UDOgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUw99eRul8TyYOWyh9odWkmy3b
+# t6egggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -293,12 +293,12 @@ else {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQK
-# 7ImXKycf45CrXO1QFkghCrJzTTANBgkqhkiG9w0BAQEFAASCAQB5jfjwV12gjuYh
-# wTe1TdlCi8Zr8/VCvvasHTjwQXMkcRSe3cjKHuFM+vGJ3lMzw0FU+F3CWeVIxqHf
-# 2t1sWUnsJccpLmE00rxzO2NzltoGLJuCGGJQzQz0mlEi4FSS1P6hp7mkS5Gx4GDq
-# WZw3bXohSzBJ9CTt0nOlXVwbZ/asifRT/LLgqiow/U+X8ljlvRDyeZtt3Qav+WVV
-# K1JOkgf6uI9cdcGaZ0wfmnTy5zftXAtpJhh+9pdYV1yH2l6yRuKXQ82Gw7qJwYel
-# 8FsfJ12HXKD84M7MYn1JR4/XmyRSH6rOrD3XcXAX6c8sq5bJDOaPnoYtjPi5REuq
-# m9wULRhc
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSD
+# 54zVy729zIypGg1cmKJeZQMUnDANBgkqhkiG9w0BAQEFAASCAQCB3PxWtwNE/CqT
+# idFTSmKK1e5gaX9+voY22Sz8T31Jai+WPRQ1GX798sMIn0rWDICpyzB5vW2ie6Ln
+# AeuXmt3rs6RUbKjJ2aJrIMTma0wEMg8jIDfLEXOos64TKHlfU2eongmC6ih7MD/g
+# A55sjDa0iZEgfNgEY3hFKUelwtP6ldmvbg/deY/JfG/6JyDW5/ZHElu8NmWS7fMu
+# BvzK0/B0mkZwqXTTrbV+B6lYqcumeSHGGkfVZSG5NuNe9n4Ofw/xWQyF6jKX46xk
+# HhkWNQ9XnuINGSwWXMLjE56aCXbVsGUgRcO/tXCi+P9j+GbtFY+YJwMfDaFhPtKi
+# GotkZKVJ
 # SIG # End signature block

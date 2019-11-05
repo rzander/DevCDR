@@ -725,7 +725,7 @@ namespace DevCDRServer.Controllers
             JObject oParams = JObject.Parse(sParams);
 
             string sCommand = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.psscript").Value<string>()); //get command
-            string sInstance = oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
+            string sInstance = "Default"; // oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
             string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
 
             if (string.IsNullOrEmpty(sInstance)) //Skip if instance is null
@@ -784,7 +784,7 @@ namespace DevCDRServer.Controllers
             JObject oParams = JObject.Parse(sParams);
 
             string sCommand = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.psscript").Value<string>()); //get command
-            string sInstance = oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
+            string sInstance = "Default"; // oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
             string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
 
             if (string.IsNullOrEmpty(sInstance)) //Skip if instance is null
@@ -843,7 +843,7 @@ namespace DevCDRServer.Controllers
             JObject oParams = JObject.Parse(sParams);
 
             string sCommand = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.psscript").Value<string>()); //get command
-            string sInstance = oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
+            string sInstance = "Default"; // oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
             string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
 
             if (string.IsNullOrEmpty(sInstance)) //Skip if instance is null
@@ -902,7 +902,7 @@ namespace DevCDRServer.Controllers
             JObject oParams = JObject.Parse(sParams);
 
             string sFile = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.file").Value<string>()); //get command
-            string sInstance = oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
+            string sInstance = "Default"; // oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
             string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
 
             string sFilePath = Path.Combine(_env.WebRootPath, sFile);
