@@ -269,6 +269,9 @@ namespace DevCDRAgent
                                     //if (tReInit.Interval > 5000)
                                     //    tReInit.Interval = 2000;
                                 }
+
+                                if (tReInit.Interval > 5000)
+                                    tReInit.Interval = 2000;
                             }
                             catch (Exception ex)
                             {
@@ -784,11 +787,17 @@ namespace DevCDRAgent
                 RZRestAPIv2.sURL = ""; //Enforce reloading RZ URL
                 RZUpdater oRZSW = new RZUpdater();
                 oRZSW.SoftwareUpdate = new SWUpdate(s1);
+                
                 if (string.IsNullOrEmpty(oRZSW.SoftwareUpdate.SW.ProductName))
                 {
                     sScriptResult = "'" + s1 + "' is NOT available in RuckZuck...!";
                     rnd = new Random();
                     tReInit.Interval = rnd.Next(200, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                }
+
+                if(string.IsNullOrEmpty(oRZSW.SoftwareUpdate.SW.PSInstall))
+                {
+                    oRZSW.SoftwareUpdate.GetInstallType();
                 }
 
                 foreach (string sPreReq in oRZSW.SoftwareUpdate.SW.PreRequisites)
@@ -919,6 +928,9 @@ namespace DevCDRAgent
             {
                 sScriptResult = e.ItemAdded.ToString();
                 Trace.WriteLine(e.ItemAdded.ToString());
+
+                if (tReInit.Interval > 5000)
+                    tReInit.Interval = 2000;
             }
         }
 
