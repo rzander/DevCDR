@@ -285,6 +285,13 @@ $object | Add-Member -MemberType NoteProperty -Name "Office365" -Value ($O365)
 $Cloud = Get-Item HKLM:SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\* -ea SilentlyContinue | Get-ItemProperty | Select-Object -Property IdpDomain, TenantId, @{N = '#UserEmail'; E = { $_.UserEmail } }, AikCertStatus, AttestationLevel, TransportKeyStatus
 $object | Add-Member -MemberType NoteProperty -Name "CloudJoin" -Value ($Cloud)
 
+#DefenderThreatDetection
+$DefThreatDet = Get-MpThreatDetection | Select-Object * -ExcludeProperty Cim*
+$object | Add-Member -MemberType NoteProperty -Name "DefenderThreatDetection" -Value ($DefThreatDet)
+#DefenderThreat
+$DefThreat = Get-MpThreat | Select-Object * -ExcludeProperty Cim*
+$object | Add-Member -MemberType NoteProperty -Name "DefenderThreat" -Value ($DefThreat)
+
 #OS Version details
 $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
 
@@ -304,8 +311,8 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUt4Jc/pUH5j4OdAi3iyI/WeT5
-# TH+gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUDuW9HT39y1EcJaE6j547X7cU
+# 5ISgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -370,12 +377,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR8
-# ZYoi1QA2jrwpr9D076MbDTosdTANBgkqhkiG9w0BAQEFAASCAQAfOOZl0BJtgl8l
-# 0QIEOPnw10K7pY4rVd2UApZwQqQmg771/GB2glcDml8f/QIXUFY8GH09ce3GjwJh
-# A+RkP/uoasjDT1qSKcZJP8HjY+sbc8a5WxDZawDbGa+etaWK82XFAbNy+LfXuORF
-# BIAatHWwR1o4SOACUVE7BdWPBdF+PKKQfpHQqftAE40c1Uoa3n5WtYx0mvvejjw8
-# TrreBL0RviwmbFWp+vyALyLLW5lOXhirujG90gIRhWGwq1tTmB4lQWdpp/25zWm/
-# ZjC2gvCpkojZtsTgUCFhbYsJzdvNwXX5CftUU4/AshcTLq8o8eirnNFL9VsJn2Pv
-# Ar1w4jsR
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRJ
+# c0/sCU2M6XZX+7xgpwvStLv6jTANBgkqhkiG9w0BAQEFAASCAQCwUFtyEvEc3gIf
+# /7AfVDPtLNpE2XrNrF4/vB5ngttN/bT74EsKgf8L8M7P+ZuHLAi+zD6GJd7f/pM7
+# cGOOjm6Pgm/MKGufA5bLaK76ZAPxtVrBe+yjBF+s0+kooDkm5lTguNZ2H2ESlhe/
+# TsSjAnfCapP/lNEw2eTwL5rxAfSRXv6bMyFYbTNEpf6MfzII9LBCd1wra3/vVI1X
+# JAn13rPOeEBCRQyl6Ue4dbVPoGCrUptFs9bkU1iNmW/gwrQowznybTMZcH1B+5I8
+# 6MAru7sY75ZSvicPu84EETsckNAZlarnp2PrUOg9fCyTTRSwK/7W6eiwa5ZJQPeX
+# fkZ55SOH
 # SIG # End signature block
