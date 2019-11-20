@@ -194,5 +194,17 @@ $object | ConvertTo-Json
     <Setting Name="FallbackEndpoint" Type="System.String" Scope="Application">
       <Value Profile="(Default)">https://devcdrcore.azurewebsites.net/chat</Value>
     </Setting>
+    <Setting Name="AgentSignature" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="HardwareID" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="CustomerID" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">DEMO</Value>
+    </Setting>
+    <Setting Name="RootCA" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">DeviceCommander</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
