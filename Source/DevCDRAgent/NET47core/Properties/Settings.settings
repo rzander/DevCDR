@@ -2,7 +2,7 @@
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="DevCDRAgent.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
-    <Setting Name="Endpoint" Type="System.String" Scope="Application">
+    <Setting Name="Endpoint" Type="System.String" Scope="User">
       <Value Profile="(Default)">https://devcdrcore.azurewebsites.net/chat</Value>
     </Setting>
     <Setting Name="PSStatus" Type="System.String" Scope="Application">
@@ -191,7 +191,7 @@ $object | ConvertTo-Json
     <Setting Name="ConnectionErrors" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">0</Value>
     </Setting>
-    <Setting Name="FallbackEndpoint" Type="System.String" Scope="Application">
+    <Setting Name="FallbackEndpoint" Type="System.String" Scope="User">
       <Value Profile="(Default)">https://devcdrcore.azurewebsites.net/chat</Value>
     </Setting>
     <Setting Name="AgentSignature" Type="System.String" Scope="User">

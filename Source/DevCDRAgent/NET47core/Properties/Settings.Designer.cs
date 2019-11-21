@@ -23,12 +23,15 @@ namespace DevCDRAgent.Properties {
             }
         }
         
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("https://devcdrcore.azurewebsites.net/chat")]
         public string Endpoint {
             get {
                 return ((string)(this["Endpoint"]));
+            }
+            set {
+                this["Endpoint"] = value;
             }
         }
         
@@ -238,12 +241,15 @@ namespace DevCDRAgent.Properties {
             }
         }
         
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("https://devcdrcore.azurewebsites.net/chat")]
         public string FallbackEndpoint {
             get {
                 return ((string)(this["FallbackEndpoint"]));
+            }
+            set {
+                this["FallbackEndpoint"] = value;
             }
         }
         
