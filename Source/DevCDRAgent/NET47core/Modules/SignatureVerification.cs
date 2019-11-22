@@ -280,6 +280,13 @@ namespace DevCDRAgent.Modules
                         Certificate = cert;
                         HasPrivateKey = cert.HasPrivateKey;
                     }
+                    else
+                    {
+                        Certificate = cert;
+                        HasPrivateKey = cert.HasPrivateKey;
+                        Exists = true;
+                        Valid = false;
+                    }
                 }
             }
         }

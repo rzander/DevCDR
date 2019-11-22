@@ -102,6 +102,36 @@ namespace DevCDRAgent
                             //Run HealthChekc every x Minutes
                             if (tLastCheck.TotalMinutes >= Properties.Settings.Default.HealtchCheckMinutes)
                             {
+                                //Update HardwareID
+                                string sResult = "{}";
+                                using (PowerShell PowerShellInstance = PowerShell.Create())
+                                {
+                                    try
+                                    {
+                                        PowerShellInstance.AddScript(Properties.Settings.Default.PSStatus);
+                                        var PSResult = PowerShellInstance.Invoke();
+                                        if (PSResult.Count() > 0)
+                                        {
+                                            sResult = PSResult.Last().BaseObject.ToString();
+                                            sResult = sResult.Replace(Environment.MachineName, Hostname);
+                                            JObject jRes = JObject.Parse(sResult);
+
+                                            if (Properties.Settings.Default.HardwareID != jRes["id"].Value<string>())
+                                            {
+                                                Properties.Settings.Default.HardwareID = jRes["id"].Value<string>();
+                                                Properties.Settings.Default.Save();
+                                                Properties.Settings.Default.Reload();
+                                            }
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine(" There was an error: {0}", ex.Message);
+                                    }
+                                }
+
+                                xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+
                                 lock (_locker)
                                 {
                                     Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
@@ -267,6 +297,12 @@ namespace DevCDRAgent
 
                         if(!string.IsNullOrEmpty(xAgent.EndpointURL))
                             Uri = xAgent.EndpointURL;
+
+                        if(Properties.Settings.Default.Endpoint != Uri)
+                        {
+                            Properties.Settings.Default.Endpoint = Uri;
+                            Properties.Settings.Default.Save();
+                        }
 
                         //string sCutomerID = SignatureVerification.findIssuingCA(Properties.Settings.Default.RootCA);
                         //X509Certificate2 custcert = SignatureVerification.GetRootCert(sCutomerID);
@@ -590,6 +626,37 @@ namespace DevCDRAgent
                     Trace.WriteLine(DateTime.Now.ToString() + "\t Set instance: " + s1);
                     try
                     {
+                        //lock (_locker)
+                        //{
+                        //    if (!string.IsNullOrEmpty(s1))
+                        //    {
+                        //        string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
+                        //        XmlDocument doc = new XmlDocument();
+                        //        doc.Load(sConfig);
+                        //        doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Instance']/value").InnerText = s1;
+                        //        doc.Save(sConfig);
+
+
+                        //        //Update Advanced Installer Persistent Properties
+                        //        RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
+                        //        if (myKey != null)
+                        //        {
+                        //            myKey.SetValue("INSTANCE", s1.Trim(), RegistryValueKind.String);
+                        //            myKey.Close();
+                        //        }
+
+                        //        RestartService();
+                        //    }
+                        //}
+                    }
+                    catch { }
+                });
+
+                connection.On<string>("setcustomer", (s1) =>
+                {
+                    Trace.WriteLine(DateTime.Now.ToString() + "\t Set customer: " + s1);
+                    try
+                    {
                         lock (_locker)
                         {
                             if (!string.IsNullOrEmpty(s1))
@@ -597,17 +664,18 @@ namespace DevCDRAgent
                                 string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
                                 XmlDocument doc = new XmlDocument();
                                 doc.Load(sConfig);
-                                doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Instance']/value").InnerText = s1;
+                                doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='CustomerID']/value").InnerText = s1;
                                 doc.Save(sConfig);
-                                RestartService();
 
                                 //Update Advanced Installer Persistent Properties
                                 RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
                                 if (myKey != null)
                                 {
-                                    myKey.SetValue("INSTANCE", s1.Trim(), RegistryValueKind.String);
+                                    myKey.SetValue("CUSTOMER", s1.Trim(), RegistryValueKind.String);
                                     myKey.Close();
                                 }
+
+                                RestartService();
                             }
                         }
                     }
@@ -625,11 +693,14 @@ namespace DevCDRAgent
                             {
                                 if (s1.StartsWith("https://"))
                                 {
-                                    string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
-                                    XmlDocument doc = new XmlDocument();
-                                    doc.Load(sConfig);
-                                    doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Endpoint']/value").InnerText = s1;
-                                    doc.Save(sConfig);
+                                    Properties.Settings.Default.Endpoint = s1;
+                                    Properties.Settings.Default.Save();
+
+                                    //string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
+                                    //XmlDocument doc = new XmlDocument();
+                                    //doc.Load(sConfig);
+                                    //doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Endpoint']/value").InnerText = s1;
+                                    //doc.Save(sConfig);
 
                                     //Update Advanced Installer Persistent Properties
                                     RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
@@ -662,8 +733,6 @@ namespace DevCDRAgent
                                 doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Groups']/value").InnerText = s1;
                                 doc.Save(sConfig);
 
-                                RestartService();
-
                                 //Update Advanced Installer Persistent Properties
                                 RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
                                 if (myKey != null)
@@ -671,6 +740,8 @@ namespace DevCDRAgent
                                     myKey.SetValue("GROUPS", s1.Trim(), RegistryValueKind.String);
                                     myKey.Close();
                                 }
+
+                                RestartService();
                             }
                         }
                     }
@@ -1147,6 +1218,7 @@ namespace DevCDRAgent
                                     Properties.Settings.Default.HardwareID = jRes["id"].Value<string>();
                                     Properties.Settings.Default.Save();
                                     Properties.Settings.Default.Reload();
+                                    xAgent = new X509AgentCert(jRes["id"].Value<string>());
                                 }
                             }
                         }
@@ -1157,6 +1229,15 @@ namespace DevCDRAgent
                     }
                 }
 
+                if (string.IsNullOrEmpty(Properties.Settings.Default.CustomerID))
+                {
+                    if(xAgent.Exists && xAgent.Valid && !string.IsNullOrEmpty(xAgent.Signature))
+                    {
+                        Properties.Settings.Default.AgentSignature = xAgent.Signature;
+                        Hostname = Environment.MachineName + "_ORPHANED";
+                    }
+                }
+
                 //initial initialization...
                 if (!string.IsNullOrEmpty(Properties.Settings.Default.CustomerID)) //CustomerID is required !!!
                 {
@@ -1164,7 +1245,7 @@ namespace DevCDRAgent
                     {
                         xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
 
-                        if(xAgent.Certificate == null)
+                        if (xAgent.Certificate == null)
                         {
                             //request machine cert...
                             Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
