@@ -470,7 +470,7 @@ namespace DevCDRAgent
                         }
                         else
                         {
-                            connection.InvokeAsync("JoinGroupCert", Properties.Settings.Default.AgentSignature).ContinueWith(task2 =>
+                            connection.InvokeAsync("JoinGroupCert", Hostname, Properties.Settings.Default.AgentSignature).ContinueWith(task2 =>
                             {
                             });
                         }
@@ -727,21 +727,25 @@ namespace DevCDRAgent
                         {
                             if (!string.IsNullOrEmpty(s1))
                             {
-                                string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
-                                XmlDocument doc = new XmlDocument();
-                                doc.Load(sConfig);
-                                doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Groups']/value").InnerText = s1;
-                                doc.Save(sConfig);
-
-                                //Update Advanced Installer Persistent Properties
-                                RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
-                                if (myKey != null)
+                                try
                                 {
-                                    myKey.SetValue("GROUPS", s1.Trim(), RegistryValueKind.String);
-                                    myKey.Close();
-                                }
+                                    string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
+                                    XmlDocument doc = new XmlDocument();
+                                    doc.Load(sConfig);
+                                    doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Groups']/value").InnerText = s1;
+                                    doc.Save(sConfig);
 
-                                RestartService();
+                                    //Update Advanced Installer Persistent Properties
+                                    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
+                                    if (myKey != null)
+                                    {
+                                        myKey.SetValue("GROUPS", s1.Trim(), RegistryValueKind.String);
+                                        myKey.Close();
+                                    }
+
+                                    RestartService();
+                                }
+                                catch { }
                             }
                         }
                     }
@@ -979,6 +983,19 @@ namespace DevCDRAgent
                                     }
                                     else
                                     {
+                                        if(xAgent.Expired)
+                                        {
+                                            //request machine cert...
+                                            Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
+                                            connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID).Wait(2000); //MachineCert
+                                            Thread.Sleep(5000);
+                                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                                            if(!string.IsNullOrEmpty(xAgent.Signature))
+                                            {
+                                                Properties.Settings.Default.AgentSignature = xAgent.Signature;
+                                                Properties.Settings.Default.Save();
+                                            }
+                                        }
                                         try
                                         {
                                             if (string.IsNullOrEmpty(xAgent.RootCA))
@@ -997,9 +1014,12 @@ namespace DevCDRAgent
                                         }
                                         catch { }
 
-                                        Trace.WriteLine(DateTime.Now.ToString() + "\t Clearing Signature... ");
-                                        Properties.Settings.Default.AgentSignature = "";
-                                        Properties.Settings.Default.Save();
+                                        if (!xAgent.Valid)
+                                        {
+                                            Trace.WriteLine(DateTime.Now.ToString() + "\t Clearing Signature... ");
+                                            Properties.Settings.Default.AgentSignature = "";
+                                            Properties.Settings.Default.Save();
+                                        }
                                     }
                                 }
                                 else
@@ -1012,102 +1032,6 @@ namespace DevCDRAgent
                                 }
                             }
                         }
-
-                        //string sDeviceID = Properties.Settings.Default.HardwareID;
-                        //if (string.IsNullOrEmpty(sDeviceID))
-                        //{
-                        //    //Get DeviceID from PSStatus-Script
-                        //    string sResult = "{}";
-                        //    using (PowerShell PowerShellInstance = PowerShell.Create())
-                        //    {
-                        //        try
-                        //        {
-                        //            PowerShellInstance.AddScript(Properties.Settings.Default.PSStatus);
-                        //            var PSResult = PowerShellInstance.Invoke();
-                        //            if (PSResult.Count() > 0)
-                        //            {
-                        //                sResult = PSResult.Last().BaseObject.ToString();
-                        //                sResult = sResult.Replace(Environment.MachineName, Hostname);
-                        //                JObject jRes = JObject.Parse(sResult);
-
-                        //                if (Properties.Settings.Default.HardwareID != jRes["id"].Value<string>())
-                        //                {
-                        //                    Properties.Settings.Default.HardwareID = jRes["id"].Value<string>();
-                        //                    Properties.Settings.Default.Save();
-                        //                    Properties.Settings.Default.Reload();
-                        //                    sDeviceID = jRes["id"].Value<string>();
-                        //                }
-                        //            }
-                        //        }
-                        //        catch (Exception ex)
-                        //        {
-                        //            Console.WriteLine(" There was an error: {0}", ex.Message);
-                        //        }
-                        //    }
-                        //}
-
-                        //xAgent = new X509AgentCert(sDeviceID);
-
-
-                        //string sCutomerID = Properties.Settings.Default.CustomerID;
-
-                        //Trace.WriteLine(DateTime.Now.ToString() + "\t CustomerID = " + sCutomerID);
-                        //if (string.IsNullOrEmpty(sCutomerID))
-                        //{
-                        //    if (string.IsNullOrEmpty(s1))
-                        //        sCutomerID = SignatureVerification.findIssuingCA(Properties.Settings.Default.RootCA); //DEVCDR is the default root CA, lets find child CA's of DEVCDR
-                        //    else
-                        //        sCutomerID = s1;
-
-                        //    //Write CustomerID to config File....
-                        //    if (!string.IsNullOrEmpty(sCutomerID))
-                        //    {
-                        //        try
-                        //        {
-                        //            string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
-                        //            XmlDocument doc = new XmlDocument();
-                        //            doc.Load(sConfig);
-                        //            doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='CustomerID']/value").InnerText = sCutomerID;
-                        //            doc.Save(sConfig);
-                        //        }
-                        //        catch { }
-                        //    }
-                        //    else
-                        //    {
-                        //        return;
-                        //    }
-                        //}
-
-                        //Trace.WriteLine(DateTime.Now.ToString() + "\t DeviceID = " + sDeviceID);
-                        //string sMSG = SignatureVerification.CreateSignature(sDeviceID, $"{sDeviceID}");
-
-                        //if (string.IsNullOrEmpty(sMSG))
-                        //{
-                        //    sMSG = SignatureVerification.CreateSignature(sDeviceID, $"{sDeviceID}");
-                        //    if (string.IsNullOrEmpty(sMSG))
-                        //    {
-                        //        //signature still missing...
-                        //        Trace.WriteLine(DateTime.Now.ToString() + "\t Signature still missing... Requesting Machine Certificate.");
-                        //        connection.InvokeAsync("GetMachineCert", sCutomerID, sDeviceID).Wait(2000); //MachineCert
-                        //    }
-                        //    else
-                        //    {
-                        //        Trace.WriteLine(DateTime.Now.ToString() + "\t Updating AgentSignature...");
-                        //        Properties.Settings.Default.AgentSignature = sMSG;
-                        //        Properties.Settings.Default.Save();
-                        //        Properties.Settings.Default.Reload();
-                        //    }
-                        //}
-                        //else
-                        //{
-                        //    if (Properties.Settings.Default.AgentSignature != sMSG)
-                        //    {
-                        //        Trace.WriteLine(DateTime.Now.ToString() + "\t Updating AgentSignature..");
-                        //        Properties.Settings.Default.AgentSignature = sMSG;
-                        //        Properties.Settings.Default.Save();
-                        //        Properties.Settings.Default.Reload();
-                        //    }
-                        //}
 
                         Random rnd = new Random();
                         tReInit.Interval = rnd.Next(100, 5000); //wait max 1s to ReInit
@@ -1192,8 +1116,41 @@ namespace DevCDRAgent
                         }
 
                         Random rnd = new Random();
-                        tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
+                        tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay * 2); //wait max 5s to ReInit
                     }
+                });
+
+                connection.On<string>("checkComplianceAsync", (s1) =>
+                {
+                    Trace.WriteLine(DateTime.Now.ToString() + "\t run compliance (cert) check... ");
+                    tLastPSAsync = DateTime.Now;
+                    var tSWScan = Task.Run(() =>
+                    {
+                        using (PowerShell PowerShellInstance = PowerShell.Create())
+                        {
+                            try
+                            {
+                                PowerShellInstance.AddScript(s1);
+                                var PSResult = PowerShellInstance.Invoke();
+                                if (PSResult.Count() > 0)
+                                {
+                                    string sResult = PSResult.Last().BaseObject.ToString();
+
+                                    if (!string.IsNullOrEmpty(sResult)) //Do not return empty results
+                                    {
+                                        connection.InvokeAsync("UpdateComplianceCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID, sResult, Properties.Settings.Default.AgentSignature).Wait(2000);
+                                        Trace.WriteLine(DateTime.Now.ToString() + "\t compliance check completed.");
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine("There was an error: {0}", ex.Message);
+                            }
+                        }
+
+                        Program.MinimizeFootprint();
+                    });
                 });
 
                 //Get HardwareID
@@ -1359,7 +1316,7 @@ namespace DevCDRAgent
                 {
                     Trace.WriteLine(DateTime.Now.ToString() + "\t AgentSignature missing... Initializing Certificate handshake.");
                     Console.WriteLine("AgentSignature missing... Initializing Certificate handshake.");
-                    connection.InvokeAsync("InitCert", Environment.MachineName, Properties.Settings.Default.AgentSignature); //request root and issuing cert
+                    connection.InvokeAsync("InitCert", Hostname, Properties.Settings.Default.AgentSignature); //request root and issuing cert
                 }
                 else
                 {
@@ -1380,7 +1337,7 @@ namespace DevCDRAgent
                                try
                                {
                                    Trace.WriteLine(DateTime.Now.ToString() + "\t JoiningGroup...");
-                                   connection.InvokeAsync("JoinGroupCert", Properties.Settings.Default.AgentSignature).ContinueWith(task2 =>
+                                   connection.InvokeAsync("JoinGroupCert", Hostname , Properties.Settings.Default.AgentSignature).ContinueWith(task2 =>
                                    {
                                    });
 
