@@ -47,7 +47,6 @@ namespace DevCDRAgent.Modules
         public X509AgentCert(string deviceID)
         {
             DeviceID = deviceID;
-            // Access Personal (MY) certificate store of current user
             X509Store my = new X509Store(StoreName.My, StoreLocation.LocalMachine);
             my.Open(OpenFlags.ReadOnly);
 
@@ -59,27 +58,39 @@ namespace DevCDRAgent.Modules
             // Find the certificate we'll use to sign
             foreach (X509Certificate2 cert in my.Certificates.Find(X509FindType.FindBySubjectName, DeviceID, true))
             {
-                Expired = false;
-                Exists = true;
-                Certificate = cert;
-                if (publicCertificates.Count > 0)
-                    ValidateChain(publicCertificates);
-                else
-                    ValidateChain();
-                HasPrivateKey = cert.HasPrivateKey;
-                Signature.ToString(); //generate Signature
+                try
+                {
+                    Expired = false;
+                    Exists = true;
+                    Certificate = cert;
+                    if (publicCertificates.Count > 0)
+                        ValidateChain(publicCertificates);
+                    else
+                        ValidateChain();
+                    HasPrivateKey = cert.HasPrivateKey;
+                    Signature.ToString(); //generate Signature
+                    break;
+                }
+                catch { }
             }
 
             if (!Exists)
             {
                 foreach (X509Certificate2 cert in my.Certificates.Find(X509FindType.FindBySubjectName, DeviceID, false))
                 {
-                    if (cert.NotAfter < DateTime.UtcNow)
+                    if (cert.NotAfter <= DateTime.UtcNow)
                     {
                         Expired = true;
                         Exists = true;
                         Certificate = cert;
                         HasPrivateKey = cert.HasPrivateKey;
+                    }
+                    else
+                    {
+                        Exists = true;
+                        Certificate = cert;
+                        HasPrivateKey = cert.HasPrivateKey;
+                        break;
                     }
                 }
             }
@@ -100,6 +111,7 @@ namespace DevCDRAgent.Modules
                 {
                     Certificate = new X509Certificate2(Convert.FromBase64String(jObj["CER"].Value<string>()));
                     Exists = true;
+                    IssuingCA = Certificate.Issuer.Split('=')[1];
                     if (publicCertificates.Count > 0)
                         ValidateChain(publicCertificates);
                     else
@@ -127,8 +139,12 @@ namespace DevCDRAgent.Modules
                 bool bChain = ch.Build(Certificate);
                 Chain = ch;
                 Status = ch.ChainStatus;
-                IssuingCA = ch.ChainElements[1].Certificate.Subject.Split('=')[1];
-                RootCA = ch.ChainElements[2].Certificate.Subject.Split('=')[1];
+                try
+                {
+                    IssuingCA = ch.ChainElements[1].Certificate.Subject.Split('=')[1];
+                    RootCA = ch.ChainElements[2].Certificate.Subject.Split('=')[1];
+                }
+                catch { }
                 Valid = bChain;
                 return bChain;
             }

@@ -279,7 +279,7 @@ namespace DevCDRAgent.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("DEMO")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string CustomerID {
             get {
                 return ((string)(this["CustomerID"]));
