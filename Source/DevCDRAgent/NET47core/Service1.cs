@@ -8,6 +8,7 @@ using RZUpdate;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
@@ -72,6 +73,7 @@ namespace DevCDRAgent
                         if (Properties.Settings.Default.InventoryCheckHours > 0) //Inventory is enabled
                         {
                             var tLastCheck = DateTime.Now - Properties.Settings.Default.InventorySuccess;
+                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
 
                             //Run Inventory every x Hours
                             if (tLastCheck.TotalHours >= Properties.Settings.Default.InventoryCheckHours)
@@ -80,17 +82,54 @@ namespace DevCDRAgent
                                 {
                                     Properties.Settings.Default.InventorySuccess = DateTime.Now;
 
-                                    try
+                                    if (string.IsNullOrEmpty(xAgent.Signature))
                                     {
-                                        Trace.WriteLine(DateTime.Now.ToString() + " starting Inventory...");
-                                        Trace.Flush();
+                                        Trace.WriteLine(DateTime.Now.ToString() + "\t starting Inventory...");
+                                        connection.SendAsync("Inventory", Hostname);
+                                        tReInit.Interval = 60000 + rnd.Next(1, 30000); //randomize ReInit intervall
+                                        return;
                                     }
-                                    catch { }
+                                    else
+                                    {
+                                        Trace.WriteLine(DateTime.Now.ToString() + "\t starting Inventory (cert)...");
 
-                                    connection.SendAsync("Inventory", Hostname);
+                                        string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
+                                        string sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=inventory.ps1&signature=" + xAgent.Signature + "' | IEX;'Inventory complete..'";
+
+                                        var tSWScan = Task.Run(() =>
+                                        {
+                                            using (PowerShell PowerShellInstance = PowerShell.Create())
+                                            {
+                                                try
+                                                {
+                                                    PowerShellInstance.AddScript(sCommand);
+                                                    var PSResult = PowerShellInstance.Invoke();
+                                                    if (PSResult.Count() > 0)
+                                                    {
+                                                        string sResult = PSResult.Last().BaseObject.ToString();
+
+                                                        if (!string.IsNullOrEmpty(sResult)) //Do not return empty results
+                                                        {
+                                                            if (sResult != sScriptResult)
+                                                            {
+                                                                sScriptResult = sResult;
+                                                                Random rnd2 = new Random();
+                                                                tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                catch (Exception ex)
+                                                {
+                                                    Console.WriteLine("There was an error: {0}", ex.Message);
+                                                }
+                                            }
+
+                                            Program.MinimizeFootprint();
+                                        });
+                                    }
 
                                     Properties.Settings.Default.Save();
-                                    Properties.Settings.Default.Reload();
                                 }
                             }
                         }
@@ -120,7 +159,6 @@ namespace DevCDRAgent
                                             {
                                                 Properties.Settings.Default.HardwareID = jRes["id"].Value<string>();
                                                 Properties.Settings.Default.Save();
-                                                Properties.Settings.Default.Reload();
                                             }
                                         }
                                     }
@@ -130,10 +168,9 @@ namespace DevCDRAgent
                                     }
                                 }
 
-                                xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
-
                                 lock (_locker)
                                 {
+                                    xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
                                     Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
 
                                     try
@@ -143,10 +180,49 @@ namespace DevCDRAgent
                                     }
                                     catch { }
 
-                                    connection.SendAsync("HealthCheck", Hostname);
+                                    if(string.IsNullOrEmpty(xAgent.Signature))
+                                        connection.SendAsync("HealthCheck", Hostname);
+                                    else
+                                    {
+                                        //connection.SendAsync("HealthCheckCert", Hostname, xAgent.Signature, Properties.Settings.Default.CustomerID);
+                                        string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
+                                        string sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=compliance.ps1&signature=" + xAgent.Signature + "' | IEX;'HealthCheck complete..'";
+
+                                        var tSWScan = Task.Run(() =>
+                                        {
+                                            using (PowerShell PowerShellInstance = PowerShell.Create())
+                                            {
+                                                try
+                                                {
+                                                    PowerShellInstance.AddScript(sCommand);
+                                                    var PSResult = PowerShellInstance.Invoke();
+                                                    if (PSResult.Count() > 0)
+                                                    {
+                                                        string sResult2 = PSResult.Last().BaseObject.ToString();
+
+                                                        if (!string.IsNullOrEmpty(sResult2)) //Do not return empty results
+                                                        {
+                                                            if (sResult2 != sScriptResult)
+                                                            {
+                                                                sScriptResult = sResult2;
+                                                                Random rnd2 = new Random();
+                                                                tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                catch (Exception ex)
+                                                {
+                                                    Console.WriteLine("There was an error: {0}", ex.Message);
+                                                }
+                                            }
+
+                                            Program.MinimizeFootprint();
+                                        });
+                                    }
+
 
                                     Properties.Settings.Default.Save();
-                                    Properties.Settings.Default.Reload();
                                 }
                             }
                         }
@@ -342,7 +418,6 @@ namespace DevCDRAgent
                 tReInit.Interval = 120000 + rnd.Next(1, 30000); //randomize ReInit intervall
                 Program.MinimizeFootprint();
             }
-
 
 
         }
@@ -742,12 +817,6 @@ namespace DevCDRAgent
                                     Properties.Settings.Default.Endpoint = s1;
                                     Properties.Settings.Default.Save();
 
-                                    //string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
-                                    //XmlDocument doc = new XmlDocument();
-                                    //doc.Load(sConfig);
-                                    //doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Endpoint']/value").InnerText = s1;
-                                    //doc.Save(sConfig);
-
                                     //Update Advanced Installer Persistent Properties
                                     RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
                                     if (myKey != null)
@@ -835,18 +904,21 @@ namespace DevCDRAgent
                             {
                                 try
                                 {
-                                    string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
-                                    XmlDocument doc = new XmlDocument();
-                                    doc.Load(sConfig);
-                                    doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Groups']/value").InnerText = s1;
-                                    doc.Save(sConfig);
-
-                                    //Update Advanced Installer Persistent Properties
-                                    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
-                                    if (myKey != null)
+                                    if (string.IsNullOrEmpty(xAgent.Signature))
                                     {
-                                        myKey.SetValue("GROUPS", s1.Trim(), RegistryValueKind.String);
-                                        myKey.Close();
+                                        string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
+                                        XmlDocument doc = new XmlDocument();
+                                        doc.Load(sConfig);
+                                        doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='Groups']/value").InnerText = s1;
+                                        doc.Save(sConfig);
+
+                                        //Update Advanced Installer Persistent Properties
+                                        RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
+                                        if (myKey != null)
+                                        {
+                                            myKey.SetValue("GROUPS", s1.Trim(), RegistryValueKind.String);
+                                            myKey.Close();
+                                        }
                                     }
 
                                     RestartService();
@@ -1148,8 +1220,8 @@ namespace DevCDRAgent
                                             if (Properties.Settings.Default.AgentSignature != xAgent.Signature)
                                             {
                                                 Properties.Settings.Default.AgentSignature = xAgent.Signature;
+                                                Properties.Settings.Default.Endpoint = xAgent.EndpointURL;
                                                 Properties.Settings.Default.Save();
-                                                Properties.Settings.Default.Reload();
                                             }
                                         }
                                     }
@@ -1200,8 +1272,22 @@ namespace DevCDRAgent
                                 {
                                     Properties.Settings.Default.AgentSignature = xAgent.Signature;
                                     Properties.Settings.Default.HealthCheckSuccess = new DateTime(); //reset Health check
+                                    Properties.Settings.Default.Endpoint = xAgent.EndpointURL;
+
+                                    try
+                                    {
+                                        //Update Advanced Installer Persistent Properties
+                                        RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
+                                        if (myKey != null)
+                                        {
+                                            myKey.SetValue("ENDPOINT", xAgent.EndpointURL, RegistryValueKind.String);
+                                            myKey.Close();
+                                        }
+                                    }
+                                    catch { }
+
                                     Properties.Settings.Default.Save();
-                                    Properties.Settings.Default.Reload();
+                                    RestartService();
                                 }
                             }
                         }
@@ -1309,8 +1395,8 @@ namespace DevCDRAgent
                                     if (Properties.Settings.Default.AgentSignature != xAgent.Signature)
                                     {
                                         Properties.Settings.Default.AgentSignature = xAgent.Signature;
+                                        Properties.Settings.Default.Endpoint = xAgent.EndpointURL;
                                         Properties.Settings.Default.Save();
-                                        Properties.Settings.Default.Reload();
                                     }
                                 }
                             }
@@ -1382,7 +1468,7 @@ namespace DevCDRAgent
                             //request machine cert...
                             Thread.Sleep(5000);
                             Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
-                            connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID).Wait(2000); //MachineCert
+                            connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID).Wait(5000); //MachineCert
                             Thread.Sleep(5000);
                             xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
 
@@ -1393,8 +1479,8 @@ namespace DevCDRAgent
                                     if(Properties.Settings.Default.AgentSignature != xAgent.Signature)
                                     {
                                         Properties.Settings.Default.AgentSignature = xAgent.Signature;
+                                        Properties.Settings.Default.Endpoint = xAgent.EndpointURL;
                                         Properties.Settings.Default.Save();
-                                        Properties.Settings.Default.Reload();
                                     }
                                 }
                             }
@@ -1446,8 +1532,7 @@ namespace DevCDRAgent
                 {
                     Console.WriteLine("AgentSignature exists... Starting Signature verification.");
                     Trace.WriteLine(DateTime.Now.ToString() + "\t AgentSignature exists... Starting Signature verification.");
-                    string sSignature = Properties.Settings.Default.AgentSignature;
-                    connection.InvokeAsync("InitCert", Hostname, sSignature).ContinueWith(task1 =>
+                    connection.InvokeAsync("InitCert", Hostname, xAgent.Signature).ContinueWith(task1 =>
                     {
                        try
                        {
@@ -1474,6 +1559,30 @@ namespace DevCDRAgent
 
 
                    });
+                }
+
+
+                //Update PowerShell Module
+                if (!string.IsNullOrEmpty(xAgent.Signature))
+                {
+                    try
+                    {
+                        string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
+                        string sModule;
+                        using (var wc = new System.Net.WebClient())
+                            sModule = wc.DownloadString(sEndPoint + "/devcdr/getfile?filename=compliance.psm1&signature=" + xAgent.Signature);
+                        
+                        if(!Directory.Exists(Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\WindowsPowerShell\Modules\Compliance")))
+                        {
+                            Directory.CreateDirectory(Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\WindowsPowerShell\Modules\Compliance"));
+                        }
+
+                        File.WriteAllText(Environment.ExpandEnvironmentVariables(@" % ProgramFiles%\WindowsPowerShell\Modules\Compliance\compliance.psm1"), sModule);
+                    }
+                    catch(Exception ex)
+                    {
+                        Trace.TraceError(DateTime.Now.ToString()  + "\t" + ex.Message);
+                    }
                 }
             }
             catch (Exception ex)
