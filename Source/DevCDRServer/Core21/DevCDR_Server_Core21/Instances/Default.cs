@@ -9,6 +9,11 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Net.Http;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.Hosting;
+using DevCDR.Extensions;
+using System.IO;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace DevCDRServer
 {
@@ -22,13 +27,13 @@ namespace DevCDRServer
         private static string IP2LocationURL = "";
         private static readonly HttpClient client = new HttpClient();
         private static IMemoryCache _cache;
-
+        public static string wwwrootPath;
 
         public static int ClientCount { get { return lClients.Distinct().Count(); } }
 
         public async Task Init(string name)
         {
-            string sEndPoint = Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
+            //string sEndPoint = Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
 
             name = name.ToUpper();
             _connections.Remove(name, ""); //Remove existing Name
@@ -40,6 +45,7 @@ namespace DevCDRServer
             lClients.Add(name);
             lClients.Remove("");
 
+
             //Request Status
             await Clients.Client(Context.ConnectionId).SendAsync("status", name);
 
@@ -47,17 +53,200 @@ namespace DevCDRServer
             {
                 await JoinGroup("Devices");
             }
+
+        }
+
+        public async Task InitCert(string name, string signature)
+        {
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+            {
+                X509AgentCert oSig = new X509AgentCert(name, signature);
+                try
+                {
+                    if (X509AgentCert.publicCertificates.Count == 0)
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(getPublicCertAsync("DeviceCommander", false).Result))); //root
+
+                    var xIssuing = new X509Certificate2(Convert.FromBase64String(getPublicCertAsync(oSig.IssuingCA, false).Result));
+                    if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+                        X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+                    oSig.ValidateChain(X509AgentCert.publicCertificates);
+                }
+                catch { }
+
+                if (oSig.Exists && oSig.Valid)
+                {
+                    name = name.ToUpper();
+                    _connections.Remove(name, ""); //Remove existing Name
+                    _connections.Add(name, Context.ConnectionId); //Add Name
+
+                    IP2LocationURL = Environment.GetEnvironmentVariable("IP2LocationURL") ?? "";
+
+                    lClients.Remove(name);
+                    lClients.Add(name);
+                    lClients.Remove("");
+
+                    //Request Status
+                    await Clients.Client(Context.ConnectionId).SendAsync("status", name);
+
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        await JoinGroup("Devices");
+                    }
+                }
+                else
+                {
+                    await Clients.Client(Context.ConnectionId).SendAsync("setAgentSignature", "");
+                }
+            }
+            else
+            {
+                //No external CertAuthority defined... start classic mode:
+                name = name.ToUpper();
+                _connections.Remove(name, ""); //Remove existing Name
+                _connections.Add(name, Context.ConnectionId); //Add Name
+
+                IP2LocationURL = Environment.GetEnvironmentVariable("IP2LocationURL") ?? "";
+
+                lClients.Remove(name);
+                lClients.Add(name);
+                lClients.Remove("");
+
+                //Request Status
+                await Clients.Client(Context.ConnectionId).SendAsync("status", name);
+
+                if (!string.IsNullOrEmpty(name))
+                {
+                    await JoinGroup("Devices");
+                }
+            }
+        }
+
+        public async Task UpdateCompliance(string CustomerID, string DeviceId, string ComplianceResult)
+        {
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+            {
+                await setComplianceAsync(CustomerID, DeviceId, ComplianceResult);
+            }
+        }
+
+        public async Task UpdateComplianceCert(string CustomerID, string DeviceId, string ComplianceResult, string signature)
+        {
+            X509AgentCert oSig = new X509AgentCert(DeviceId, signature);
+
+            try
+            {
+                if (X509AgentCert.publicCertificates.Count == 0)
+                    X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(getPublicCertAsync("DeviceCommander", false).Result))); //root
+
+                var xIssuing = new X509Certificate2(Convert.FromBase64String(getPublicCertAsync(oSig.IssuingCA, false).Result));
+                if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+                    X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+                oSig.ValidateChain(X509AgentCert.publicCertificates);
+            }
+            catch { }
+
+            if (oSig.Exists && oSig.Valid)
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                {
+                    await setComplianceAsync(CustomerID, DeviceId, ComplianceResult);
+                }
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                {
+                    await Clients.Client(Context.ConnectionId).SendAsync("setAgentSignature", "");
+                }
+            }
+        }
+
+        public async Task GetCert(string customer, bool useKey = true)
+        {
+            string orgCustomer = customer;
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+            {
+                if(customer == "DEMO")
+                {
+                    string sIssuingCA = getPublicCertAsync(customer, false).Result;
+                    await Clients.Client(Context.ConnectionId).SendAsync("setCert", sIssuingCA);
+                }
+                else
+                {
+                    string sIssuingCA = getPublicCertAsync(customer, useKey).Result;
+                    await Clients.Client(Context.ConnectionId).SendAsync("setCert", sIssuingCA);
+                }
+            }
+        }
+
+        public async Task GetMachineCert(string customer, string deviceID)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(customer + deviceID))
+                {
+                    string sCert = getMachineCertAsync(deviceID, customer).Result;
+                    await Clients.Client(Context.ConnectionId).SendAsync("setCert", sCert);
+                }
+            }
+            catch
+            {
+            }
         }
 
         public void HealthCheck(string name)
         {
             string regName = Environment.GetEnvironmentVariable("ComputernameRegex") ?? "(.*?)";
-            string complianceFile = Environment.GetEnvironmentVariable("ScriptCompliance") ?? "compliance_default.ps1";
+            string complianceFile = Environment.GetEnvironmentVariable("ScriptCompliance") ?? "Compliance_default.ps1";
             Match m = Regex.Match(name, regName, RegexOptions.IgnoreCase);
             if (m.Success)
             {
                 string sEndPoint = Environment.GetEnvironmentVariable("DevCDRUrl") ?? Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
                 Clients.Client(Context.ConnectionId).SendAsync("returnPSAsync", "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=" + complianceFile + "' | IEX;''", "Host");
+
+                //string spath = Path.Combine(wwwrootPath, "jaindb", complianceFile);
+                //string sPS = File.ReadAllText(spath);
+
+                //Clients.Client(Context.ConnectionId).SendAsync("checkComplianceAsync", sPS);
+            }
+        }
+
+        public void HealthCheckCert(string name, string signature, string customerid)
+        {
+            string regName = Environment.GetEnvironmentVariable("ComputernameRegex") ?? "(.*?)";
+            Match m = Regex.Match(name, regName, RegexOptions.IgnoreCase);
+            if (m.Success)
+            {
+                X509AgentCert oSig = new X509AgentCert(name, signature);
+
+                try
+                {
+                    if (X509AgentCert.publicCertificates.Count == 0)
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(getPublicCertAsync("DeviceCommander", false).Result))); //root
+
+                    var xIssuing = new X509Certificate2(Convert.FromBase64String(getPublicCertAsync(oSig.IssuingCA, false).Result));
+                    if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+                        X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+                    oSig.ValidateChain(X509AgentCert.publicCertificates);
+                }
+                catch { }
+
+                if (oSig.Exists && oSig.Valid)
+                {
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                    {
+                        string sScript = getScriptAsync(customerid, "compliance.ps1").Result;
+                        if(string.IsNullOrEmpty(sScript))
+                            sScript = getScriptAsync("DEMO", "compliance.ps1").Result;
+
+                        if(!string.IsNullOrEmpty(sScript))
+                            Clients.Client(Context.ConnectionId).SendAsync("checkComplianceAsync", sScript);
+                    }
+                }
+
             }
         }
 
@@ -73,12 +262,52 @@ namespace DevCDRServer
             }
         }
 
-
         public Task JoinGroup(string groupName)
         {
             if (!lGroups.Contains(groupName))
             {
                 lGroups.Add(groupName);
+            }
+
+            return Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+        }
+
+        public Task JoinGroupCert(string name, string signature)
+        {
+            string groupName = "unknown";
+            try
+            {
+                X509AgentCert oSig = new X509AgentCert(name, signature);
+
+                try
+                {
+                    if (X509AgentCert.publicCertificates.Count == 0)
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(getPublicCertAsync("DeviceCommander", false).Result))); //root
+
+                    var xIssuing = new X509Certificate2(Convert.FromBase64String(getPublicCertAsync(oSig.IssuingCA, false).Result));
+                    if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+                        X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+                    oSig.ValidateChain(X509AgentCert.publicCertificates);
+                }
+                catch { }
+
+                if (oSig.Exists && oSig.Valid && !string.IsNullOrEmpty(oSig.IssuingCA))
+                {
+                    groupName = oSig.IssuingCA;
+
+                    if (!string.IsNullOrEmpty(groupName))
+                    {
+                        if (!lGroups.Contains(groupName))
+                        {
+                            lGroups.Add(groupName);
+                        }
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                ex.Message.ToString();
             }
 
             return Groups.AddToGroupAsync(Context.ConnectionId, groupName);
@@ -110,6 +339,9 @@ namespace DevCDRServer
             bool bChange = false;
             try
             {
+                if (string.IsNullOrEmpty(J1.GetValue("Hostname").Value<string>()))
+                    return; 
+
                 if (jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").Count() == 0) //Prevent Duplicates
                 {
                     lock (jData)
@@ -118,6 +350,11 @@ namespace DevCDRServer
                     }
                     bChange = true;
                     AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                    {
+                        J1.Add("ConnectionId", Context.ConnectionId);
+                        await setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
+                    }
                 }
                 else
                 {
@@ -129,6 +366,20 @@ namespace DevCDRServer
                             jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").First().Replace(J1);
                             bChange = true;
                             AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
+
+                            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                            {
+                                J1.Add("ConnectionId", Context.ConnectionId);
+                                setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
+                            }
+                        }
+                        else
+                        {
+                            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                            {
+                                string sJSON = "{\"ConnectionID\":\"" + Context.ConnectionId + "\"}";
+                                setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("Hostname").ToString(), sJSON);
+                            }
                         }
                     }
                 }
@@ -211,7 +462,6 @@ namespace DevCDRServer
             Clients.All.SendAsync("wol", MAC);
         }
 
-
         public override async Task OnConnectedAsync()
         {
             //string name = Context.User.Identity.Name;
@@ -242,7 +492,6 @@ namespace DevCDRServer
 
             try
             {
-
                 if (lClients.Count > 0)
                 {
                     foreach (var oObj in jData.Children().ToArray())
@@ -309,5 +558,142 @@ namespace DevCDRServer
             return IP;
         }
 
+        private static async Task<string> getPublicCertAsync(string CertName, bool useKey = true)
+        {
+            if (string.IsNullOrEmpty(CertName))
+                return "";
+
+            if (_cache == null)
+                _cache = new MemoryCache(new MemoryCacheOptions());
+
+            bool bCached = false;
+            _cache.TryGetValue(CertName, out string Cert);
+            if (string.IsNullOrEmpty(Cert))
+            {
+                try
+                {
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                    {
+                        string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                        sURL = sURL.Replace("{fn}", "fnGetPublicCert");
+
+                        if (useKey)
+                        {
+                            var stringTask = client.GetStringAsync($"{sURL}&key={CertName}");
+                            Cert = await stringTask;
+                        }
+                        else
+                        {
+                            var stringTask = client.GetStringAsync($"{sURL}&name={CertName}");
+                            Cert = await stringTask;
+                        }
+                    }
+                }
+                catch { return Cert; }
+            }
+            else
+            {
+                bCached = true;
+            }
+
+            if (!string.IsNullOrEmpty(Cert))
+            {
+                if (!bCached)
+                {
+                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(15)); //cache hash for x Seconds
+                    _cache.Set(CertName, Cert, cacheEntryOptions);
+                }
+            }
+
+            return Cert;
+        }
+
+        private static async Task<string> getMachineCertAsync(string deviceid, string key)
+        {
+            string Cert = "";
+            try
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                {
+                    string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                    sURL = sURL.Replace("{fn}", "fnRequestAgentCert");
+
+                    var stringTask = client.GetStringAsync($"{sURL}&deviceid={deviceid}&key={key}");
+                    Cert = await stringTask;
+
+                }
+            }
+            catch(Exception ex)
+            {
+                ex.Message.ToString();
+                return Cert; 
+            }
+
+
+            return Cert;
+        }
+
+        private static async Task<string> getScriptAsync(string customerid, string filename)
+        {
+            string Res = "";
+            try
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                {
+                    string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                    sURL = sURL.Replace("{fn}", "fnGetFile");
+
+                    var stringTask = client.GetStringAsync($"{sURL}&customerid={customerid}&file={filename}");
+                    Res = await stringTask;
+
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.Message.ToString();
+                return Res;
+            }
+
+
+            return Res;
+        }
+
+        private static async Task setComplianceAsync(string customerid, string deviceid, string compliancedata)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                {
+                    string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                    sURL = sURL.Replace("{fn}", "fnUpdateCompliance");
+
+                    StringContent oData = new StringContent(compliancedata, Encoding.UTF8, "application/json");
+                    await client.PostAsync($"{sURL}&deviceid={deviceid}&customerid={customerid}", oData);
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.Message.ToString();
+            }
+        }
+
+        private static async Task setStatusAsync(string customerid, string deviceid, string compliancedata)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                {
+                    string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                    sURL = sURL.Replace("{fn}", "fnUpdateStatus");
+
+                    StringContent oData = new StringContent(compliancedata, Encoding.UTF8, "application/json");
+                    await client.PostAsync($"{sURL}&deviceid={deviceid}&customerid={customerid}", oData);
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.Message.ToString();
+            }
+        }
     }
 }

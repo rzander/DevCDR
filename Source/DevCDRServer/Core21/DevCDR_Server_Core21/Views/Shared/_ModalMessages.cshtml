@@ -7,7 +7,7 @@
             </div>
             <div class="modal-body">
                 Run the following PowerShell command with administrative priviledges: <br />
-                <samp>&msiexec -i @ViewData["MSI"] ENDPOINT=@ViewData["Endpoint"] /qn REBOOT=REALLYSUPPRESS</samp>
+                <samp>@ViewData["InstallCMD"]</samp>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>

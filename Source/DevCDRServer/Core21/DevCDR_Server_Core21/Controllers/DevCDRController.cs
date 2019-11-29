@@ -1,10 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using DevCDR.Extensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.FileProviders;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -14,7 +14,9 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace DevCDRServer.Controllers
 {
@@ -31,6 +33,16 @@ namespace DevCDRServer.Controllers
             _hubContext = hubContext;
             _env = env;
             _cache = memoryCache;
+
+            try
+            {
+                Type xType = Type.GetType("DevCDRServer.Default");
+
+                MemberInfo[] memberInfos = xType.GetMember("wwwrootPath", BindingFlags.Public | BindingFlags.Static);
+                ((FieldInfo)memberInfos[0]).SetValue(new string(""), _env.WebRootPath);
+            }
+            catch { }
+
 
             if (string.IsNullOrEmpty(AzureLog.WorkspaceId))
             {
@@ -81,10 +93,23 @@ namespace DevCDRServer.Controllers
             ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default";
             ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             ViewBag.Endpoint = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat";
-            if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCore.msi")))
-                ViewBag.MSI = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCore.msi";
+            ViewBag.Customer = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "DEMO";
+
+
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+            {
+                if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
+                    ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"}  /qn REBOOT=REALLYSUPPRESS";
+                else
+                    ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
+            }
             else
-                ViewBag.MSI = "https://devcdrcore.azurewebsites.net/DevCDRAgentCore.msi";
+            {
+                if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
+                    ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
+                else
+                    ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
+            }
             ViewBag.Route = "/chat";
 
             var sRoot = Directory.GetCurrentDirectory();
@@ -129,11 +154,156 @@ namespace DevCDRServer.Controllers
             return View();
         }
 
+        //Get a File and authenticate with signature
+        [AllowAnonymous]
+        public ActionResult GetFile(string filename, string signature, string customerid = "")
+        {
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+            {
+                X509AgentCert oSig = new X509AgentCert("", signature);
+
+                try
+                {
+                    if (X509AgentCert.publicCertificates.Count == 0)
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+
+                    var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
+                    if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+                        X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+                    oSig.ValidateChain(X509AgentCert.publicCertificates);
+                }
+                catch { }
+
+                if (oSig.Exists && oSig.Valid)
+                {
+
+                    string sScript = GetScriptAsync(oSig.IssuingCA, filename).Result;
+                    
+                    if (string.IsNullOrEmpty(sScript))
+                        sScript = GetScriptAsync("DEMO", filename).Result;
+
+                    if (!string.IsNullOrEmpty(sScript))
+                    {
+                        //replace %ENDPOINTURL% with real Endpoint from Certificate...
+                        sScript = sScript.Replace("%ENDPOINTURL%", oSig.EndpointURL.Replace("/chat", ""));
+                        return new ContentResult()
+                        {
+                            Content = sScript,
+                            ContentType = "text/plain"
+                        };
+                    }
+                }
+            }
+            return null;
+        }
+
+        private async Task<string> GetPublicCertAsync(string CertName, bool useKey = true)
+        {
+            if (string.IsNullOrEmpty(CertName))
+                return "";
+
+            if (_cache == null)
+                _cache = new MemoryCache(new MemoryCacheOptions());
+
+            bool bCached = false;
+            _cache.TryGetValue(CertName, out string Cert);
+            if (string.IsNullOrEmpty(Cert))
+            {
+                try
+                {
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                    {
+                        using (HttpClient client = new HttpClient())
+                        {
+                            string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                            sURL = sURL.Replace("{fn}", "fnGetPublicCert");
+
+                            if (useKey)
+                            {
+                                var stringTask = client.GetStringAsync($"{sURL}&key={CertName}");
+                                Cert = await stringTask;
+                            }
+                            else
+                            {
+                                var stringTask = client.GetStringAsync($"{sURL}&name={CertName}");
+                                Cert = await stringTask;
+                            }
+                        }
+                    }
+                }
+                catch { return Cert; }
+            }
+            else
+            {
+                bCached = true;
+            }
+
+            if (!string.IsNullOrEmpty(Cert))
+            {
+                if (!bCached)
+                {
+                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(15)); //cache hash for x Seconds
+                    _cache.Set(CertName, Cert, cacheEntryOptions);
+                }
+            }
+
+            return Cert;
+        }
+
+        private async Task<string> GetScriptAsync(string customerid, string filename)
+        {
+            string Res = "";
+            if (string.IsNullOrEmpty(filename))
+                return null;
+            if (string.IsNullOrEmpty(customerid))
+                return null;
+
+            if (_cache == null)
+                _cache = new MemoryCache(new MemoryCacheOptions());
+
+            _cache.TryGetValue(customerid + filename, out Res);
+
+            if(!string.IsNullOrEmpty(Res))
+            {
+                return Res;
+            }
+
+            try
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                {
+                    string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                    sURL = sURL.Replace("{fn}", "fnGetFile");
+
+                    using (HttpClient client = new HttpClient())
+                    {
+                        Res = await client.GetStringAsync($"{sURL}&customerid={customerid}&file={filename}");
+
+                        if(!string.IsNullOrEmpty(Res))
+                        {
+                            var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(5)); //cache hash for x Seconds
+                            _cache.Set(customerid + filename, Res, cacheEntryOptions);
+                        }
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.Message.ToString();
+                return Res;
+            }
+
+
+            return Res;
+        }
+
 #if DEBUG
         [AllowAnonymous]
 #endif
         [Authorize]
-        public ActionResult GetData(string Instance)
+        public ActionResult GetData(string Instance = "Default")
         {
             JArray jData = new JArray();
             try
@@ -159,7 +329,7 @@ namespace DevCDRServer.Controllers
             };
         }
 
-        public int ClientCount(string Instance)
+        public int ClientCount(string Instance = "Default")
         {
             int iCount = 0;
             try
@@ -184,7 +354,7 @@ namespace DevCDRServer.Controllers
         [AllowAnonymous]
 #endif
         [Authorize]
-        public ActionResult Groups(string Instance)
+        public ActionResult Groups(string Instance = "Default")
         {
             List<string> lGroups = new List<string>();
             try
@@ -212,7 +382,7 @@ namespace DevCDRServer.Controllers
         [AllowAnonymous]
 #endif
         [Authorize]
-        public ActionResult GetRZCatalog(string Instance)
+        public ActionResult GetRZCatalog(string Instance = "Default")
         {
             List<string> lRZCat = new List<string>();
             try
@@ -274,7 +444,7 @@ namespace DevCDRServer.Controllers
             return sID;
         }
 
-        internal void Reload(string Instance)
+        internal void Reload(string Instance = "Default")
         {
             string sID = "";
             try
@@ -308,7 +478,7 @@ namespace DevCDRServer.Controllers
             JObject oParams = JObject.Parse(sParams);
 
             string sCommand = oParams.SelectToken(@"$.command").Value<string>(); //get command name
-            string sInstance = oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
+            string sInstance = "Default"; //= oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
             string sArgs = oParams.SelectToken(@"$.args").Value<string>(); //get parameters
 
             if (string.IsNullOrEmpty(sInstance)) //Skip if instance is null
@@ -384,7 +554,7 @@ namespace DevCDRServer.Controllers
                     break;
                 case "Compliance":
                     string sEndPoint2 = Environment.GetEnvironmentVariable("DevCDRUrl") ?? Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
-                    string complianceFile = Environment.GetEnvironmentVariable("ScriptCompliance") ?? "compliance_default.ps1";
+                    string complianceFile = Environment.GetEnvironmentVariable("ScriptCompliance") ?? "compliance.ps1";
                     RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint2 + "/jaindb/getps?filename=" + complianceFile + "' | IEX;'Compliance check complete..'", sInstance, sCommand);
                     break;
             }
@@ -482,7 +652,7 @@ namespace DevCDRServer.Controllers
             }
         }
 
-        internal void AgentVersion(List<string> Hostnames, string sInstance)
+        internal void AgentVersion(List<string> Hostnames, string sInstance = "Default")
         {
             foreach (string sHost in Hostnames)
             {
@@ -725,7 +895,7 @@ namespace DevCDRServer.Controllers
             JObject oParams = JObject.Parse(sParams);
 
             string sCommand = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.psscript").Value<string>()); //get command
-            string sInstance = oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
+            string sInstance = "Default"; // oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
             string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
 
             if (string.IsNullOrEmpty(sInstance)) //Skip if instance is null
@@ -784,7 +954,7 @@ namespace DevCDRServer.Controllers
             JObject oParams = JObject.Parse(sParams);
 
             string sCommand = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.psscript").Value<string>()); //get command
-            string sInstance = oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
+            string sInstance = "Default"; // oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
             string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
 
             if (string.IsNullOrEmpty(sInstance)) //Skip if instance is null
@@ -843,7 +1013,7 @@ namespace DevCDRServer.Controllers
             JObject oParams = JObject.Parse(sParams);
 
             string sCommand = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.psscript").Value<string>()); //get command
-            string sInstance = oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
+            string sInstance = "Default"; // oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
             string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
 
             if (string.IsNullOrEmpty(sInstance)) //Skip if instance is null
@@ -902,7 +1072,7 @@ namespace DevCDRServer.Controllers
             JObject oParams = JObject.Parse(sParams);
 
             string sFile = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.file").Value<string>()); //get command
-            string sInstance = oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
+            string sInstance = "Default"; // oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
             string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
 
             string sFilePath = Path.Combine(_env.WebRootPath, sFile);

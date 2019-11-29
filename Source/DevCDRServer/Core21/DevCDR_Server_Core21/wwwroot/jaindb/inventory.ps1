@@ -156,13 +156,14 @@ function SetID {
 		
         [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
         $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+        $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
         $devcdrgrp = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Groups' }).value
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDREndpoint" -Value $EP
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRGroups" -Value $devcdrgrp
+		$AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRCustomerID" -Value $customerId
         return $null
     }   
 }
-
 
 $object = New-Object PSObject
 getinv -Name "Battery" -WMIClass "win32_Battery" -Properties @("@BatteryStatus", "Caption", "Chemistry", "#Name", "@Status", "PowerManagementCapabilities", "#DeviceID") -AppendObject ([ref]$object)
@@ -285,6 +286,13 @@ $object | Add-Member -MemberType NoteProperty -Name "Office365" -Value ($O365)
 $Cloud = Get-Item HKLM:SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\* -ea SilentlyContinue | Get-ItemProperty | Select-Object -Property IdpDomain, TenantId, @{N = '#UserEmail'; E = { $_.UserEmail } }, AikCertStatus, AttestationLevel, TransportKeyStatus
 $object | Add-Member -MemberType NoteProperty -Name "CloudJoin" -Value ($Cloud)
 
+#DefenderThreatDetection
+$DefThreatDet = Get-MpThreatDetection | Select-Object * -ExcludeProperty Cim*
+$object | Add-Member -MemberType NoteProperty -Name "DefenderThreatDetection" -Value ($DefThreatDet)
+#DefenderThreat
+$DefThreat = Get-MpThreat | Select-Object * -ExcludeProperty Cim*
+$object | Add-Member -MemberType NoteProperty -Name "DefenderThreat" -Value ($DefThreat)
+
 #OS Version details
 $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
 
@@ -300,12 +308,11 @@ $id = $object."#id"
 $con = $object | ConvertTo-Json -Depth 5 -Compress
 Write-Host "Device ID: $($id)"
 Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" -Method Post -Body $con -ContentType "application/json; charset=utf-8")
-
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUt4Jc/pUH5j4OdAi3iyI/WeT5
-# TH+gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUDwuEo/Mo88oq17DwyfEkzkjn
+# vwOgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -370,12 +377,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR8
-# ZYoi1QA2jrwpr9D076MbDTosdTANBgkqhkiG9w0BAQEFAASCAQAfOOZl0BJtgl8l
-# 0QIEOPnw10K7pY4rVd2UApZwQqQmg771/GB2glcDml8f/QIXUFY8GH09ce3GjwJh
-# A+RkP/uoasjDT1qSKcZJP8HjY+sbc8a5WxDZawDbGa+etaWK82XFAbNy+LfXuORF
-# BIAatHWwR1o4SOACUVE7BdWPBdF+PKKQfpHQqftAE40c1Uoa3n5WtYx0mvvejjw8
-# TrreBL0RviwmbFWp+vyALyLLW5lOXhirujG90gIRhWGwq1tTmB4lQWdpp/25zWm/
-# ZjC2gvCpkojZtsTgUCFhbYsJzdvNwXX5CftUU4/AshcTLq8o8eirnNFL9VsJn2Pv
-# Ar1w4jsR
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTT
+# crVRNspMKxtw9yfLkfBOexfalzANBgkqhkiG9w0BAQEFAASCAQAXLbrt+dMJ13cl
+# nQFCPaC4UQum4USxXQk9wwS24oekL3tAfZk/FJSjAGnL+a2lCvz8582DDTdq1SHA
+# FhubqqYAW8F9HQ6AGosZC9Cn3xipaykNbT3bRAugG6WNIyysNMNMARsEJYxTLoxh
+# X6gg2qdWxmRHLU8EtpUfYwgEidSwsNQk/blR6Mhb73cT2GT8Ri2qmrTAsXV+1Fap
+# lFjoQOANjc9r4glqyVnoUcKOxc8hNVBkbUcB3rhwSkiRSqFKmFObWQB8SMUAQlwr
+# TrtewctW03b/cQF7pQnTw1PZmomFn1w1WIOhu4D6fDuBKsEfTAxg1/me8Rg2wuxD
+# E90dTZ62
 # SIG # End signature block

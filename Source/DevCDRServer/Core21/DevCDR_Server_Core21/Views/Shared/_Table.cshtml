@@ -1,6 +1,6 @@
 ﻿<script type="text/javascript">
     $(document).ready(function () {
-        var ajaxurl = '/DevCDR/GetData?Instance=@ViewData["Instance"].ToString()';
+        var ajaxurl = '/DevCDR/GetData';
 
         var table = $('#test').DataTable({
             "lengthMenu": [[15, 25, 50, -1], [15, 25, 50, "All"]],
@@ -80,7 +80,7 @@
             dom: '<"top"Bi>frt<"bottom"lp><"clear">'
         });
 
-        var groupurl = '/DevCDR/Groups?Instance=@ViewData["Instance"].ToString()';
+        var groupurl = '/DevCDR/Groups';
         $.post(groupurl, "",
             function (data, status) {
                 jQuery.each(data, function (i, val) {
