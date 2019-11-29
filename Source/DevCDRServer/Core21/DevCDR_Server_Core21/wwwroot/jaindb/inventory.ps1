@@ -156,13 +156,14 @@ function SetID {
 		
         [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
         $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+        $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
         $devcdrgrp = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Groups' }).value
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDREndpoint" -Value $EP
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRGroups" -Value $devcdrgrp
+		$AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRCustomerID" -Value $customerId
         return $null
     }   
 }
-
 
 $object = New-Object PSObject
 getinv -Name "Battery" -WMIClass "win32_Battery" -Properties @("@BatteryStatus", "Caption", "Chemistry", "#Name", "@Status", "PowerManagementCapabilities", "#DeviceID") -AppendObject ([ref]$object)
@@ -307,12 +308,11 @@ $id = $object."#id"
 $con = $object | ConvertTo-Json -Depth 5 -Compress
 Write-Host "Device ID: $($id)"
 Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" -Method Post -Body $con -ContentType "application/json; charset=utf-8")
-
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUDuW9HT39y1EcJaE6j547X7cU
-# 5ISgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUDwuEo/Mo88oq17DwyfEkzkjn
+# vwOgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -377,12 +377,12 @@ Write-Host "Hash:" (Invoke-RestMethod -Uri "%LocalURL%:%WebPort%/upload/$($id)" 
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRJ
-# c0/sCU2M6XZX+7xgpwvStLv6jTANBgkqhkiG9w0BAQEFAASCAQCwUFtyEvEc3gIf
-# /7AfVDPtLNpE2XrNrF4/vB5ngttN/bT74EsKgf8L8M7P+ZuHLAi+zD6GJd7f/pM7
-# cGOOjm6Pgm/MKGufA5bLaK76ZAPxtVrBe+yjBF+s0+kooDkm5lTguNZ2H2ESlhe/
-# TsSjAnfCapP/lNEw2eTwL5rxAfSRXv6bMyFYbTNEpf6MfzII9LBCd1wra3/vVI1X
-# JAn13rPOeEBCRQyl6Ue4dbVPoGCrUptFs9bkU1iNmW/gwrQowznybTMZcH1B+5I8
-# 6MAru7sY75ZSvicPu84EETsckNAZlarnp2PrUOg9fCyTTRSwK/7W6eiwa5ZJQPeX
-# fkZ55SOH
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTT
+# crVRNspMKxtw9yfLkfBOexfalzANBgkqhkiG9w0BAQEFAASCAQAXLbrt+dMJ13cl
+# nQFCPaC4UQum4USxXQk9wwS24oekL3tAfZk/FJSjAGnL+a2lCvz8582DDTdq1SHA
+# FhubqqYAW8F9HQ6AGosZC9Cn3xipaykNbT3bRAugG6WNIyysNMNMARsEJYxTLoxh
+# X6gg2qdWxmRHLU8EtpUfYwgEidSwsNQk/blR6Mhb73cT2GT8Ri2qmrTAsXV+1Fap
+# lFjoQOANjc9r4glqyVnoUcKOxc8hNVBkbUcB3rhwSkiRSqFKmFObWQB8SMUAQlwr
+# TrtewctW03b/cQF7pQnTw1PZmomFn1w1WIOhu4D6fDuBKsEfTAxg1/me8Rg2wuxD
+# E90dTZ62
 # SIG # End signature block
