@@ -173,20 +173,16 @@ namespace DevCDRAgent
                                     xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
                                     Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
 
-                                    try
+                                    if (string.IsNullOrEmpty(xAgent.Signature))
                                     {
                                         Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
-                                        Trace.Flush();
-                                    }
-                                    catch { }
-
-                                    if(string.IsNullOrEmpty(xAgent.Signature))
                                         connection.SendAsync("HealthCheck", Hostname);
+                                    }
                                     else
                                     {
                                         //connection.SendAsync("HealthCheckCert", Hostname, xAgent.Signature, Properties.Settings.Default.CustomerID);
                                         string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
-                                        string sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=compliance.ps1&signature=" + xAgent.Signature + "' | IEX;'HealthCheck complete..'";
+                                        string sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=compliance.ps1&signature=" + xAgent.Signature + "' | IEX";
 
                                         var tSWScan = Task.Run(() =>
                                         {
@@ -202,12 +198,13 @@ namespace DevCDRAgent
 
                                                         if (!string.IsNullOrEmpty(sResult2)) //Do not return empty results
                                                         {
-                                                            if (sResult2 != sScriptResult)
-                                                            {
-                                                                sScriptResult = sResult2;
-                                                                Random rnd2 = new Random();
-                                                                tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
-                                                            }
+
+                                                            //sScriptResult = "Compliance check completed...";
+                                                            connection.InvokeAsync("UpdateComplianceCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID, sResult2, Properties.Settings.Default.AgentSignature).Wait(2000);
+
+                                                            //Random rnd2 = new Random();
+                                                            //tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+
                                                         }
                                                     }
                                                 }
@@ -920,10 +917,16 @@ namespace DevCDRAgent
                                             myKey.Close();
                                         }
                                     }
-
-                                    RestartService();
                                 }
                                 catch { }
+
+                                sScriptResult = "restart Agent...";
+                                RestartService();
+                            }
+                            else
+                            {
+                                sScriptResult = "restart Agent...";
+                                RestartService();
                             }
                         }
                     }
@@ -952,8 +955,8 @@ namespace DevCDRAgent
                 {
                     try
                     {
-                        RestartService();
                         sScriptResult = "restart Agent...";
+                        RestartService();
                     }
                     catch { }
                 });
@@ -1297,26 +1300,33 @@ namespace DevCDRAgent
                     }
                 });
 
-                connection.On<string>("checkComplianceAsync", (s1) =>
+                connection.On<string>("checkInventoryAsync", (s1) =>
                 {
-                    Trace.WriteLine(DateTime.Now.ToString() + "\t run compliance (cert) check... ");
+                    Trace.WriteLine(DateTime.Now.ToString() + "\t run inventory (cert) ... ");
                     tLastPSAsync = DateTime.Now;
+                    xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                    string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
+                    string sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=inventory.ps1&signature=" + xAgent.Signature + "' | IEX;'done'";
+
                     var tSWScan = Task.Run(() =>
                     {
                         using (PowerShell PowerShellInstance = PowerShell.Create())
                         {
                             try
                             {
-                                PowerShellInstance.AddScript(s1);
+                                PowerShellInstance.AddScript(sCommand);
                                 var PSResult = PowerShellInstance.Invoke();
                                 if (PSResult.Count() > 0)
                                 {
-                                    string sResult = PSResult.Last().BaseObject.ToString();
+                                    string sResult2 = PSResult.Last().BaseObject.ToString();
 
-                                    if (!string.IsNullOrEmpty(sResult)) //Do not return empty results
+                                    if (!string.IsNullOrEmpty(sResult2)) //Do not return empty results
                                     {
-                                        connection.InvokeAsync("UpdateComplianceCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID, sResult, Properties.Settings.Default.AgentSignature).Wait(2000);
-                                        Trace.WriteLine(DateTime.Now.ToString() + "\t compliance check completed.");
+                                        sScriptResult = "Inventory completed...";
+                                        Random rnd2 = new Random();
+                                        tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                                        Properties.Settings.Default.InventorySuccess = DateTime.Now;
+                                        Trace.WriteLine(DateTime.Now.ToString() + "\t Inventory completed.");
                                     }
                                 }
                             }
@@ -1325,8 +1335,46 @@ namespace DevCDRAgent
                                 Console.WriteLine("There was an error: {0}", ex.Message);
                             }
                         }
+                    });
+                });
 
-                        Program.MinimizeFootprint();
+                connection.On<string>("checkComplianceAsync", (s1) =>
+                {
+                    Trace.WriteLine(DateTime.Now.ToString() + "\t run compliance (cert) check... ");
+                    tLastPSAsync = DateTime.Now;
+                    xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                    string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
+                    string sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=compliance.ps1&signature=" + xAgent.Signature + "' | IEX;";
+
+                    var tSWScan = Task.Run(() =>
+                    {
+                        using (PowerShell PowerShellInstance = PowerShell.Create())
+                        {
+                            try
+                            {
+                                PowerShellInstance.AddScript(sCommand);
+                                var PSResult = PowerShellInstance.Invoke();
+                                if (PSResult.Count() > 0)
+                                {
+                                    string sResult2 = PSResult.Last().BaseObject.ToString();
+
+                                    if (!string.IsNullOrEmpty(sResult2)) //Do not return empty results
+                                    {
+
+                                        sScriptResult = "Compliance check completed";
+                                        Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
+
+                                        connection.InvokeAsync("UpdateComplianceCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID, sResult2, Properties.Settings.Default.AgentSignature).Wait(2000);
+                                        Trace.WriteLine(DateTime.Now.ToString() + "\t compliance check completed.");
+
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine("There was an error: {0}", ex.Message);
+                            }
+                        }
                     });
                 });
 
@@ -1577,7 +1625,7 @@ namespace DevCDRAgent
                             Directory.CreateDirectory(Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\WindowsPowerShell\Modules\Compliance"));
                         }
 
-                        File.WriteAllText(Environment.ExpandEnvironmentVariables(@" % ProgramFiles%\WindowsPowerShell\Modules\Compliance\compliance.psm1"), sModule);
+                        File.WriteAllText(Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\WindowsPowerShell\Modules\Compliance\compliance.psm1"), sModule);
                     }
                     catch(Exception ex)
                     {
