@@ -500,9 +500,16 @@ namespace DevCDRServer.Controllers
                     AgentVersion(lHostnames, sInstance);
                     break;
                 case "Inv":
-                    string sEndPoint = Environment.GetEnvironmentVariable("DevCDRUrl") ?? Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
-                    string inventoryFile = Environment.GetEnvironmentVariable("ScriptInventory") ?? "inventory.ps1";
-                    RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=" + inventoryFile +"' | IEX;'Inventory complete..'", sInstance, sCommand);
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                    {
+                        CheckInventory(lHostnames);
+                    }
+                    else
+                    {
+                        string sEndPoint = Environment.GetEnvironmentVariable("DevCDRUrl") ?? Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
+                        string inventoryFile = Environment.GetEnvironmentVariable("ScriptInventory") ?? "inventory.ps1";
+                        RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=" + inventoryFile + "' | IEX;'Inventory complete..'", sInstance, sCommand);
+                    }
                     break;
                 case "Restart":
                     RunCommand(lHostnames, "restart-computer -force", sInstance, sCommand);
@@ -553,9 +560,16 @@ namespace DevCDRServer.Controllers
                     sendWOL(lHostnames, sInstance, GetAllMACAddresses());
                     break;
                 case "Compliance":
-                    string sEndPoint2 = Environment.GetEnvironmentVariable("DevCDRUrl") ?? Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
-                    string complianceFile = Environment.GetEnvironmentVariable("ScriptCompliance") ?? "compliance.ps1";
-                    RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint2 + "/jaindb/getps?filename=" + complianceFile + "' | IEX;'Compliance check complete..'", sInstance, sCommand);
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                    {
+                        CheckCompliance(lHostnames);
+                    }
+                    else
+                    {
+                        string sEndPoint2 = Environment.GetEnvironmentVariable("DevCDRUrl") ?? Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
+                        string complianceFile = Environment.GetEnvironmentVariable("ScriptCompliance") ?? "compliance.ps1";
+                        RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint2 + "/jaindb/getps?filename=" + complianceFile + "' | IEX;'Compliance check complete..'", sInstance, sCommand);
+                    }
                     break;
             }
 
@@ -672,6 +686,54 @@ namespace DevCDRServer.Controllers
                 {
                     AzureLog.PostAsync(new { Computer = sHost, EventID = 2008, Description = $"get Agent version" });
                     _hubContext.Clients.Client(sID).SendAsync("version", "HUB");
+                }
+            }
+        }
+
+        internal void CheckInventory(List<string> Hostnames, string sInstance = "Default")
+        {
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "Get Inventory..."); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "AgentVersion"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2011, Description = $"get Inventory" });
+                    _hubContext.Clients.Client(sID).SendAsync("checkInventoryAsync", "HUB");
+                }
+            }
+        }
+
+        internal void CheckCompliance(List<string> Hostnames, string sInstance = "Default")
+        {
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "Get Compliance..."); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "AgentVersion"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2012, Description = $"get Compliance data" });
+                    _hubContext.Clients.Client(sID).SendAsync("checkComplianceAsync", "HUB");
                 }
             }
         }
