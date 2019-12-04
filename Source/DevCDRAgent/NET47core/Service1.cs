@@ -826,31 +826,34 @@ namespace DevCDRAgent
                                 }
                                 else
                                 {
-                                    //Stop status
-                                    tReCheck.Enabled = false;
-                                    tReInit.Enabled = false;
-
-                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Set Customer: " + s1);
-                                    //set Customer
-                                    string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
-                                    XmlDocument doc = new XmlDocument();
-                                    doc.Load(sConfig);
-                                    doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='CustomerID']/value").InnerText = s1;
-                                    doc.Save(sConfig);
-
-                                    //Update Advanced Installer Persistent Properties
-                                    try
+                                    if (!string.IsNullOrEmpty(s1))
                                     {
-                                        RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
-                                        if (myKey != null)
+                                        //Stop status
+                                        tReCheck.Enabled = false;
+                                        tReInit.Enabled = false;
+
+                                        Trace.WriteLine(DateTime.Now.ToString() + "\t Set Customer: " + s1);
+                                        //set Customer
+                                        string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
+                                        XmlDocument doc = new XmlDocument();
+                                        doc.Load(sConfig);
+                                        doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='CustomerID']/value").InnerText = s1;
+                                        doc.Save(sConfig);
+
+                                        //Update Advanced Installer Persistent Properties
+                                        try
                                         {
-                                            myKey.SetValue("CUSTOMER", s1.Trim(), RegistryValueKind.String);
-                                            myKey.Close();
+                                            RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
+                                            if (myKey != null)
+                                            {
+                                                myKey.SetValue("CUSTOMER", s1.Trim(), RegistryValueKind.String);
+                                                myKey.Close();
+                                            }
                                         }
-                                    }
-                                    catch(Exception ex)
-                                    {
-                                        Trace.TraceError(DateTime.Now.ToString() + "\t Error: " + ex.Message);
+                                        catch (Exception ex)
+                                        {
+                                            Trace.TraceError(DateTime.Now.ToString() + "\t Error: " + ex.Message);
+                                        }
                                     }
 
                                     //remove all Certificates
@@ -1136,12 +1139,23 @@ namespace DevCDRAgent
                                     {
                                         if (xAgent.Exists && xAgent.Valid && xAgent.HasPrivateKey && !string.IsNullOrEmpty(xAgent.Signature))
                                         {
-                                            if (Properties.Settings.Default.AgentSignature != xAgent.Signature)
+                                            //If the rot has changed...
+                                            if (string.IsNullOrEmpty(xAgent.RootCA))
                                             {
-                                                Trace.WriteLine(DateTime.Now.ToString() + "\t Updating Signature... ");
-                                                Properties.Settings.Default.AgentSignature = xAgent.Signature;
-                                                Properties.Settings.Default.Save();
+                                                Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + Properties.Settings.Default.RootCA);
+                                                connection.InvokeAsync("GetCert", Properties.Settings.Default.RootCA, false).Wait(1000); //request root cert
+                                                Thread.Sleep(1500);
                                             }
+
+                                            //If the IssuingCA has changed...
+                                            if (string.IsNullOrEmpty(xAgent.IssuingCA))
+                                            {
+                                                Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + xAgent.Certificate.Issuer.Split('=')[1]);
+                                                connection.InvokeAsync("GetCert", xAgent.Certificate.Issuer.Split('=')[1], false).Wait(1000); //request issuer cert
+                                                Thread.Sleep(1500);
+                                            }
+
+                                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
 
                                             if (!string.IsNullOrEmpty(xAgent.EndpointURL))
                                             {
@@ -1162,6 +1176,13 @@ namespace DevCDRAgent
                                                     Properties.Settings.Default.FallbackEndpoint = xAgent.FallbackURL;
                                                     Properties.Settings.Default.Save();
                                                 }
+                                            }
+
+                                            if (Properties.Settings.Default.AgentSignature != xAgent.Signature)
+                                            {
+                                                Trace.WriteLine(DateTime.Now.ToString() + "\t Updating Signature... ");
+                                                Properties.Settings.Default.AgentSignature = xAgent.Signature;
+                                                Properties.Settings.Default.Save();
                                             }
                                         }
                                         else
@@ -1227,6 +1248,9 @@ namespace DevCDRAgent
                                                 Properties.Settings.Default.Save();
                                             }
                                         }
+                                    } else
+                                    {
+                                        Properties.Settings.Default.AgentSignature = "";
                                     }
                                 }
                             }
@@ -1302,80 +1326,96 @@ namespace DevCDRAgent
 
                 connection.On<string>("checkInventoryAsync", (s1) =>
                 {
-                    Trace.WriteLine(DateTime.Now.ToString() + "\t run inventory (cert) ... ");
-                    tLastPSAsync = DateTime.Now;
-                    xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
-                    string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
-                    string sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=inventory.ps1&signature=" + xAgent.Signature + "' | IEX;'done'";
-
-                    var tSWScan = Task.Run(() =>
+                    if (string.IsNullOrEmpty(xAgent.Signature))
                     {
-                        using (PowerShell PowerShellInstance = PowerShell.Create())
-                        {
-                            try
-                            {
-                                PowerShellInstance.AddScript(sCommand);
-                                var PSResult = PowerShellInstance.Invoke();
-                                if (PSResult.Count() > 0)
-                                {
-                                    string sResult2 = PSResult.Last().BaseObject.ToString();
+                        Trace.WriteLine(DateTime.Now.ToString() + "\t starting Inventory...");
+                        connection.SendAsync("Inventory", Hostname);
+                    }
+                    else
+                    {
+                        Trace.WriteLine(DateTime.Now.ToString() + "\t run inventory (cert) ... ");
+                        tLastPSAsync = DateTime.Now;
+                        xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                        string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
+                        string sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=inventory.ps1&signature=" + xAgent.Signature + "' | IEX;'done'";
 
-                                    if (!string.IsNullOrEmpty(sResult2)) //Do not return empty results
+                        var tSWScan = Task.Run(() =>
+                        {
+                            using (PowerShell PowerShellInstance = PowerShell.Create())
+                            {
+                                try
+                                {
+                                    PowerShellInstance.AddScript(sCommand);
+                                    var PSResult = PowerShellInstance.Invoke();
+                                    if (PSResult.Count() > 0)
                                     {
-                                        sScriptResult = "Inventory completed...";
-                                        Random rnd2 = new Random();
-                                        tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                                        string sResult2 = PSResult.Last().BaseObject.ToString();
+
+                                        if (!string.IsNullOrEmpty(sResult2)) //Do not return empty results
+                                    {
+                                            sScriptResult = "Inventory completed...";
+                                            Random rnd2 = new Random();
+                                            tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
                                         Properties.Settings.Default.InventorySuccess = DateTime.Now;
-                                        Trace.WriteLine(DateTime.Now.ToString() + "\t Inventory completed.");
+                                            Trace.WriteLine(DateTime.Now.ToString() + "\t Inventory completed.");
+                                        }
                                     }
                                 }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine("There was an error: {0}", ex.Message);
+                                }
                             }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine("There was an error: {0}", ex.Message);
-                            }
-                        }
-                    });
+                        });
+                    }
                 });
 
                 connection.On<string>("checkComplianceAsync", (s1) =>
                 {
-                    Trace.WriteLine(DateTime.Now.ToString() + "\t run compliance (cert) check... ");
-                    tLastPSAsync = DateTime.Now;
-                    xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
-                    string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
-                    string sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=compliance.ps1&signature=" + xAgent.Signature + "' | IEX;";
-
-                    var tSWScan = Task.Run(() =>
+                    if (string.IsNullOrEmpty(xAgent.Signature))
                     {
-                        using (PowerShell PowerShellInstance = PowerShell.Create())
-                        {
-                            try
-                            {
-                                PowerShellInstance.AddScript(sCommand);
-                                var PSResult = PowerShellInstance.Invoke();
-                                if (PSResult.Count() > 0)
-                                {
-                                    string sResult2 = PSResult.Last().BaseObject.ToString();
+                        Trace.WriteLine(DateTime.Now.ToString() + " starting HealthCheck...");
+                        connection.SendAsync("HealthCheck", Hostname);
+                    }
+                    else
+                    {
+                        Trace.WriteLine(DateTime.Now.ToString() + "\t run compliance (cert) check... ");
+                        tLastPSAsync = DateTime.Now;
+                        xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                        string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
+                        string sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=compliance.ps1&signature=" + xAgent.Signature + "' | IEX;";
 
-                                    if (!string.IsNullOrEmpty(sResult2)) //Do not return empty results
+                        var tSWScan = Task.Run(() =>
+                        {
+                            using (PowerShell PowerShellInstance = PowerShell.Create())
+                            {
+                                try
+                                {
+                                    PowerShellInstance.AddScript(sCommand);
+                                    var PSResult = PowerShellInstance.Invoke();
+                                    if (PSResult.Count() > 0)
+                                    {
+                                        string sResult2 = PSResult.Last().BaseObject.ToString();
+
+                                        if (!string.IsNullOrEmpty(sResult2)) //Do not return empty results
                                     {
 
-                                        sScriptResult = "Compliance check completed";
-                                        Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
+                                            sScriptResult = "Compliance check completed";
+                                            Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
 
-                                        connection.InvokeAsync("UpdateComplianceCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID, sResult2, Properties.Settings.Default.AgentSignature).Wait(2000);
-                                        Trace.WriteLine(DateTime.Now.ToString() + "\t compliance check completed.");
+                                            connection.InvokeAsync("UpdateComplianceCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID, sResult2, Properties.Settings.Default.AgentSignature).Wait(2000);
+                                            Trace.WriteLine(DateTime.Now.ToString() + "\t compliance check completed.");
 
+                                        }
                                     }
                                 }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine("There was an error: {0}", ex.Message);
+                                }
                             }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine("There was an error: {0}", ex.Message);
-                            }
-                        }
-                    });
+                        });
+                    }
                 });
 
                 //Get HardwareID
