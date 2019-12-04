@@ -96,15 +96,32 @@ namespace DevCDRServer
                 }
                 else
                 {
-                    if(oSig.Exists)
+
+                    //Just for the case that something is wrong with the certificates...
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AllowAll")))
                     {
-                        await Clients.Client(Context.ConnectionId).SendAsync("setAgentSignature", "");
+                        name = name.ToUpper();
+                        _connections.Remove(name, ""); //Remove existing Name
+                        _connections.Add(name, Context.ConnectionId); //Add Name
+
+                        IP2LocationURL = Environment.GetEnvironmentVariable("IP2LocationURL") ?? "";
+
+                        lClients.Remove(name);
+                        lClients.Add(name);
+                        lClients.Remove("");
+
+                        //Request Status
+                        await Clients.Client(Context.ConnectionId).SendAsync("status", name);
+
+                        if (!string.IsNullOrEmpty(name))
+                        {
+                            await JoinGroup("Devices");
+                        }
                     }
                     else
                     {
                         await Clients.Client(Context.ConnectionId).SendAsync("setAgentSignature", "");
                     }
-
                 }
             }
             else
