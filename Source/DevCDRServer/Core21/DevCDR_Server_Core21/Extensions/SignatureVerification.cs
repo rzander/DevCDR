@@ -349,10 +349,11 @@ namespace DevCDR.Extensions
         {
             try
             {
+                publicCertificates = publicCert;
                 X509Chain ch = new X509Chain(true);
                 ch.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
                 ch.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
-                foreach (X509Certificate2 xPub in publicCertificates)
+                foreach (X509Certificate2 xPub in publicCert)
                 {
                     ch.ChainPolicy.ExtraStore.Add(xPub);
                 }

@@ -96,7 +96,15 @@ namespace DevCDRServer
                 }
                 else
                 {
-                    await Clients.Client(Context.ConnectionId).SendAsync("setAgentSignature", "");
+                    if(oSig.Exists)
+                    {
+                        await Clients.Client(Context.ConnectionId).SendAsync("setAgentSignature", "");
+                    }
+                    else
+                    {
+                        await Clients.Client(Context.ConnectionId).SendAsync("setAgentSignature", "");
+                    }
+
                 }
             }
             else
