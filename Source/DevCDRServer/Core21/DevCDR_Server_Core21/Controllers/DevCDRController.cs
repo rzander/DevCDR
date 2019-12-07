@@ -93,7 +93,7 @@ namespace DevCDRServer.Controllers
             ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default";
             ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             ViewBag.Endpoint = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat";
-            ViewBag.Customer = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "DEMO";
+            ViewBag.Customer = Environment.GetEnvironmentVariable("CUSTOMERID") ?? "DEMO";
 
 
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))

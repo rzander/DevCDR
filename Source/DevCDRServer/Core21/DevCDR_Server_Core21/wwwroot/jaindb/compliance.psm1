@@ -41,7 +41,7 @@ function Test-NetMetered {
                 $res = $true
             }
             
-			if ($cost.NetworkCostType -eq [Windows.Networking.Connectivity.NetworkCostType]::Unrestricted) {
+            if ($cost.NetworkCostType -eq [Windows.Networking.Connectivity.NetworkCostType]::Unrestricted) {
                 $res = $false
             }
 
@@ -399,11 +399,58 @@ Function Test-Bitlocker {
     if ($global:chk.ContainsKey("Bitlocker")) { $global:chk.Remove("Bitlocker") }
     $global:chk.Add("Bitlocker", $bRes)
 }
+
+Function Test-DiskSpace {
+    <#
+        .Description
+        Check free Disk-Space
+    #>
+
+    #Get FreeSpace in %
+    $c = get-psdrive C
+    $free = [math]::Round((10 / (($c).Used + ($c).Free) * ($c).Free)) * 10
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("FreeSpace")) { $global:chk.Remove("FreeSpace") }
+    $global:chk.Add("FreeSpace", $free)
+}
+
+Function Test-TPM {
+    <#
+        .Description
+        Check TPM Status
+    #>
+
+    $res = "No"
+    #Get FreeSpace in %
+    $tpm = Get-Tpm -ea SilentlyContinue
+    if($tpm) {
+        if($tpm.TpmReady) { $res = "Ready" }
+        if($tpm.LockedOut) { $res = "LockedOut" }
+    }
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("TPM")) { $global:chk.Remove("TPM") }
+    $global:chk.Add("TPM", $res)
+}Confirm-SecureBootUEFI
+
+Function Test-SecureBoot {
+    <#
+        .Description
+        Check TPM Status
+    #>
+
+    $res = Confirm-SecureBootUEFI
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("SecureBoot")) { $global:chk.Remove("SecureBoot") }
+    $global:chk.Add("SecureBoot", $res)
+}
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUGK8JxZVts7YLEGcEI05DlZy9
-# b1ugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTai/Nxteoq/hu8lgLKXD2Mo5
+# sKugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -468,12 +515,12 @@ Function Test-Bitlocker {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRd
-# lPoKPMEq7VZ++AOhOE99LRIvpzANBgkqhkiG9w0BAQEFAASCAQABGF3/9Q52Bhgg
-# fBap3Xca9DRwMam145NSYLiS1FP42G6/+i3IsNx/xmA+OxD0ihM0nrU4mPURDG4S
-# f0jF6KgkV14JdAbs5Lpjb+O33q6g9ZzC470khzHQBKxOOesglQZCTWHxF+AesenB
-# Ue9Ec+zyiXHkz3YMQVb27yZT6AlvlfYprIHnPiMgjxnHMB0747powG1G9QYKP7EZ
-# FsG7aSnCm5A2lWdjY6u1BbzNMO+83Zy3kRAS+VJqY31EpLZ+NfrWj/zHzXhQJptt
-# hyyT1fPT9fObJVelu0JUozoCLRa3asOTVPA8cknGfJV2eWJP0qtswpOUeaDtMERs
-# tiJSrYy6
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR+
+# NLDgP+CFmV3Qco1FvMVcEURhEjANBgkqhkiG9w0BAQEFAASCAQAg2W5tG6szH5qz
+# KnbZWA16ybEowY21zkK2q5ONbiqtfnyoBb130Uyt4FFxBjJT+nfIcrmvhBXymaxJ
+# LSqftoa7S7BuKWdr+C3qYzsB25+52MuhnQ/vFntmMo7523lZAiWS5xLsZJY/3DyT
+# +zEMiA6vPGCUoqZGQEMMcteoCzKaM9MqmGTQXHbOwFKkI4LNTBT68GVLwJmObMah
+# MZnaMXebB03uNGr2OgKppUmAAAihjG2X+VHIHwNwWygr9naFpsDHBEktbwuTmdRR
+# Mwwxnd9n/sGdBucRhs0OE0KIquv1M1O+cawZMr5WrpBrEGNkV0I8SxAMq9pOmsUS
+# VbCh+uYy
 # SIG # End signature block
