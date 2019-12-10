@@ -9,9 +9,7 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Net.Http;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.AspNetCore.Hosting;
 using DevCDR.Extensions;
-using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
@@ -60,7 +58,7 @@ namespace DevCDRServer
         {
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
             {
-                X509AgentCert oSig = new X509AgentCert(name, signature);
+                X509AgentCert oSig = new X509AgentCert(signature);
                 try
                 {
                     if (X509AgentCert.publicCertificates.Count == 0)
@@ -157,7 +155,7 @@ namespace DevCDRServer
 
         public async Task UpdateComplianceCert(string CustomerID, string DeviceId, string ComplianceResult, string signature)
         {
-            X509AgentCert oSig = new X509AgentCert(DeviceId, signature);
+            X509AgentCert oSig = new X509AgentCert(signature);
 
             try
             {
@@ -177,6 +175,39 @@ namespace DevCDRServer
                 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
                 {
                     await setComplianceAsync(CustomerID, DeviceId, ComplianceResult);
+                }
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                {
+                    await Clients.Client(Context.ConnectionId).SendAsync("setAgentSignature", "");
+                }
+            }
+        }
+
+        public async Task UpdateComplianceCert2(string ComplianceResult, string signature)
+        {
+            X509AgentCert oSig = new X509AgentCert(signature);
+
+            try
+            {
+                if (X509AgentCert.publicCertificates.Count == 0)
+                    X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(getPublicCertAsync("DeviceCommander", false).Result))); //root
+
+                var xIssuing = new X509Certificate2(Convert.FromBase64String(getPublicCertAsync(oSig.IssuingCA, false).Result));
+                if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+                    X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+                oSig.ValidateChain(X509AgentCert.publicCertificates);
+            }
+            catch { }
+
+            if (oSig.Exists && oSig.Valid)
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                {
+                    await setComplianceAsync(oSig.CustomerID, oSig.DeviceID, ComplianceResult);
                 }
             }
             else
@@ -244,7 +275,7 @@ namespace DevCDRServer
             Match m = Regex.Match(name, regName, RegexOptions.IgnoreCase);
             if (m.Success)
             {
-                X509AgentCert oSig = new X509AgentCert(name, signature);
+                X509AgentCert oSig = new X509AgentCert(signature);
 
                 try
                 {
@@ -275,6 +306,37 @@ namespace DevCDRServer
             }
         }
 
+        public void HealthCheckCert2(string signature)
+        {
+            X509AgentCert oSig = new X509AgentCert(signature);
+
+            try
+            {
+                if (X509AgentCert.publicCertificates.Count == 0)
+                    X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(getPublicCertAsync("DeviceCommander", false).Result))); //root
+
+                var xIssuing = new X509Certificate2(Convert.FromBase64String(getPublicCertAsync(oSig.IssuingCA, false).Result));
+                if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+                    X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+                oSig.ValidateChain(X509AgentCert.publicCertificates);
+            }
+            catch { }
+
+            if (oSig.Exists && oSig.Valid)
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                {
+                    string sScript = getScriptAsync(oSig.CustomerID, "compliance.ps1").Result;
+                    if (string.IsNullOrEmpty(sScript))
+                        sScript = getScriptAsync("DEMO", "compliance.ps1").Result;
+
+                    if (!string.IsNullOrEmpty(sScript))
+                        Clients.Client(Context.ConnectionId).SendAsync("checkComplianceAsync", sScript);
+                }
+            }
+        }
+
         public void Inventory(string name)
         {
             string regName = Environment.GetEnvironmentVariable("ComputernameRegex") ?? "(.*?)";
@@ -302,7 +364,7 @@ namespace DevCDRServer
             string groupName = "unknown";
             try
             {
-                X509AgentCert oSig = new X509AgentCert(name, signature);
+                X509AgentCert oSig = new X509AgentCert(signature);
 
                 try
                 {
@@ -331,6 +393,47 @@ namespace DevCDRServer
                 }
             }
             catch(Exception ex)
+            {
+                ex.Message.ToString();
+            }
+
+            return Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+        }
+
+        public Task JoinGroupCert2(string signature)
+        {
+            string groupName = "unknown";
+            try
+            {
+                X509AgentCert oSig = new X509AgentCert(signature);
+
+                try
+                {
+                    if (X509AgentCert.publicCertificates.Count == 0)
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(getPublicCertAsync("DeviceCommander", false).Result))); //root
+
+                    var xIssuing = new X509Certificate2(Convert.FromBase64String(getPublicCertAsync(oSig.IssuingCA, false).Result));
+                    if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+                        X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+                    oSig.ValidateChain(X509AgentCert.publicCertificates);
+                }
+                catch { }
+
+                if (oSig.Exists && oSig.Valid && !string.IsNullOrEmpty(oSig.IssuingCA))
+                {
+                    groupName = oSig.IssuingCA;
+
+                    if (!string.IsNullOrEmpty(groupName))
+                    {
+                        if (!lGroups.Contains(groupName))
+                        {
+                            lGroups.Add(groupName);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
             {
                 ex.Message.ToString();
             }
@@ -712,6 +815,25 @@ namespace DevCDRServer
                     sURL = sURL.Replace("{fn}", "fnUpdateStatus");
 
                     StringContent oData = new StringContent(compliancedata, Encoding.UTF8, "application/json");
+                    await client.PostAsync($"{sURL}&deviceid={deviceid}&customerid={customerid}", oData);
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.Message.ToString();
+            }
+        }
+
+        private static async Task putFileAsync(string customerid, string deviceid, string data)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                {
+                    string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                    sURL = sURL.Replace("{fn}", "fnUploadFile");
+
+                    StringContent oData = new StringContent(data, Encoding.UTF8, "application/json");
                     await client.PostAsync($"{sURL}&deviceid={deviceid}&customerid={customerid}", oData);
                 }
             }

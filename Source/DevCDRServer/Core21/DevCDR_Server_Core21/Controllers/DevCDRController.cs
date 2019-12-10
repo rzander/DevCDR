@@ -1,8 +1,10 @@
 ﻿using DevCDR.Extensions;
+using jaindb;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
@@ -156,11 +158,11 @@ namespace DevCDRServer.Controllers
 
         //Get a File and authenticate with signature
         [AllowAnonymous]
-        public ActionResult GetFile(string filename, string signature, string customerid = "")
+        public ActionResult GetFile(string filename, string signature)
         {
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
             {
-                X509AgentCert oSig = new X509AgentCert("", signature);
+                X509AgentCert oSig = new X509AgentCert(signature);
 
                 try
                 {
@@ -197,6 +199,7 @@ namespace DevCDRServer.Controllers
             }
             return null;
         }
+
 
         private async Task<string> GetPublicCertAsync(string CertName, bool useKey = true)
         {
@@ -297,6 +300,60 @@ namespace DevCDRServer.Controllers
 
 
             return Res;
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        public async Task<string> PutFileAsync(string signature, string data = "")
+        {
+            X509AgentCert oSig = new X509AgentCert(signature);
+
+            try
+            {
+                if (X509AgentCert.publicCertificates.Count == 0)
+                    X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+
+                var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
+                if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+                    X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+                oSig.ValidateChain(X509AgentCert.publicCertificates);
+            }
+            catch { }
+
+            if (oSig.Exists && oSig.Valid)
+            {
+                try
+                {
+                    if (string.IsNullOrEmpty(data))
+                    {
+                        using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
+                            data = reader.ReadToEnd();
+                    }
+
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                    {
+                        string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                        sURL = sURL.Replace("{fn}", "fnUploadFile");
+
+                        using (HttpClient client = new HttpClient())
+                        {
+                            StringContent oData = new StringContent(data, Encoding.UTF8, "application/json");
+                            await client.PostAsync($"{sURL}&deviceid={oSig.DeviceID}.json&customerid={oSig.CustomerID}", oData);
+                        }
+
+                        return jDB.UploadFull(data, oSig.DeviceID, "INV");
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ex.Message.ToString();
+                    return null;
+                }
+            }
+
+            return null;
         }
 
 #if DEBUG

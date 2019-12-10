@@ -17,6 +17,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace DevCDRServer.Controllers
 {
@@ -804,6 +805,26 @@ namespace DevCDRServer.Controllers
 
         //    return new JObject();
         //}
+
+        private static readonly HttpClient client = new HttpClient();
+        private static async Task putFileAsync(string customerid, string deviceid, string data)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                {
+                    string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                    sURL = sURL.Replace("{fn}", "fnUploadFile");
+
+                    StringContent oData = new StringContent(data, Encoding.UTF8, "application/json");
+                    await client.PostAsync($"{sURL}&deviceid={deviceid}&customerid={customerid}", oData);
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.Message.ToString();
+            }
+        }
     }
 
 
