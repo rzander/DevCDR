@@ -44,9 +44,10 @@ namespace DevCDRAgent.Modules
     public class X509AgentCert
     {
         public static X509Certificate2Collection publicCertificates = new X509Certificate2Collection();
-        public X509AgentCert(string deviceID)
+        public X509AgentCert(string deviceID, string customerID)
         {
             DeviceID = deviceID;
+            CustomerID = customerID;
             X509Store my = new X509Store(StoreName.My, StoreLocation.LocalMachine);
             my.Open(OpenFlags.ReadOnly);
 
@@ -96,9 +97,8 @@ namespace DevCDRAgent.Modules
             }
         }
 
-        public X509AgentCert(string deviceID, string signature)
+        public X509AgentCert(string signature)
         {
-            DeviceID = deviceID;
             Exists = false;
             Expired = false;
             Valid = false;
@@ -107,23 +107,24 @@ namespace DevCDRAgent.Modules
             try
             {
                 JObject jObj = JObject.Parse(Encoding.Default.GetString(Convert.FromBase64String(signature)));
-                if (deviceID == jObj["MSG"].Value<string>())
-                {
-                    Certificate = new X509Certificate2(Convert.FromBase64String(jObj["CER"].Value<string>()));
-                    Exists = true;
-                    IssuingCA = Certificate.Issuer.Split('=')[1];
-                    if (publicCertificates.Count > 0)
-                        ValidateChain(publicCertificates);
-                    else
-                        ValidateChain();
-                    HasPrivateKey = Certificate.HasPrivateKey;
-                    Signature.ToString(); //generate Signature
+                DeviceID = jObj["MSG"].Value<string>().Split(';')[0];
+                CustomerID = jObj["MSG"].Value<string>().Split(';')[1] ?? "";
 
-                    if (Certificate.NotAfter < DateTime.UtcNow)
-                    {
-                        Expired = true;
-                    }
+                Certificate = new X509Certificate2(Convert.FromBase64String(jObj["CER"].Value<string>()));
+                Exists = true;
+                IssuingCA = Certificate.Issuer.Split('=')[1];
+                if (publicCertificates.Count > 0)
+                    ValidateChain(publicCertificates);
+                else
+                    ValidateChain();
+                HasPrivateKey = Certificate.HasPrivateKey;
+                Signature.ToString(); //generate Signature
+
+                if (Certificate.NotAfter < DateTime.UtcNow)
+                {
+                    Expired = true;
                 }
+
             }
             catch { }
         }
@@ -136,6 +137,11 @@ namespace DevCDRAgent.Modules
             {
                 X509Chain ch = new X509Chain(true);
                 ch.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                //ch.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+                foreach (X509Certificate2 xPub in publicCertificates)
+                {
+                    ch.ChainPolicy.ExtraStore.Add(xPub);
+                }
                 bool bChain = ch.Build(Certificate);
                 Chain = ch;
                 Status = ch.ChainStatus;
@@ -162,7 +168,8 @@ namespace DevCDRAgent.Modules
             {
                 X509Chain ch = new X509Chain(true);
                 ch.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-                foreach (X509Certificate2 xPub in publicCertificates)
+                //ch.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+                foreach (X509Certificate2 xPub in publicCert)
                 {
                     ch.ChainPolicy.ExtraStore.Add(xPub);
                 }
@@ -170,8 +177,13 @@ namespace DevCDRAgent.Modules
                 bool bChain = ch.Build(Certificate);
                 Chain = ch;
                 Status = ch.ChainStatus;
-                IssuingCA = ch.ChainElements[1].Certificate.Subject.Split('=')[1];
-                RootCA = ch.ChainElements[2].Certificate.Subject.Split('=')[1];
+                try
+                {
+                    IssuingCA = ch.ChainElements[1].Certificate.Subject.Split('=')[1];
+                    RootCA = ch.ChainElements[2].Certificate.Subject.Split('=')[1];
+                }
+                catch { }
+
                 Valid = bChain;
                 return bChain;
             }
@@ -231,6 +243,8 @@ namespace DevCDRAgent.Modules
 
         public string DeviceID { get; set; }
 
+        public string CustomerID { get; set; }
+
         public string Signature
         {
             get
@@ -267,7 +281,7 @@ namespace DevCDRAgent.Modules
 
                         //create JSON
                         JObject jObj = new JObject();
-                        jObj.Add(new JProperty("MSG", DeviceID));
+                        jObj.Add(new JProperty("MSG", DeviceID + ";" + CustomerID));
                         jObj.Add(new JProperty("SIG", sig));
                         jObj.Add(new JProperty("CER", Convert.ToBase64String(Certificate.Export(X509ContentType.Cert)))); //Public Key
 

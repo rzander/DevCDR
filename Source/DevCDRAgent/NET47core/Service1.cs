@@ -60,11 +60,11 @@ namespace DevCDRAgent
 
                 if (connection != null && isconnected)
                 {
-                    if (string.IsNullOrEmpty(Properties.Settings.Default.AgentSignature))
+                    if (string.IsNullOrEmpty(xAgent.Signature))
                         connection.SendAsync("Init", Hostname);
                     else
                     {
-                        connection.SendAsync("InitCert", Hostname, Properties.Settings.Default.AgentSignature);
+                        connection.SendAsync("InitCert", Hostname, xAgent.Signature);
                     }
 
 
@@ -73,7 +73,7 @@ namespace DevCDRAgent
                         if (Properties.Settings.Default.InventoryCheckHours > 0) //Inventory is enabled
                         {
                             var tLastCheck = DateTime.Now - Properties.Settings.Default.InventorySuccess;
-                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID );
 
                             //Run Inventory every x Hours
                             if (tLastCheck.TotalHours >= Properties.Settings.Default.InventoryCheckHours)
@@ -170,7 +170,7 @@ namespace DevCDRAgent
 
                                 lock (_locker)
                                 {
-                                    xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                                    xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
                                     Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
 
                                     if (string.IsNullOrEmpty(xAgent.Signature))
@@ -200,7 +200,7 @@ namespace DevCDRAgent
                                                         {
 
                                                             //sScriptResult = "Compliance check completed...";
-                                                            connection.InvokeAsync("UpdateComplianceCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID, sResult2, Properties.Settings.Default.AgentSignature).Wait(2000);
+                                                            connection.InvokeAsync("UpdateComplianceCert2", sResult2, xAgent.Signature).Wait(2000);
 
                                                             //Random rnd2 = new Random();
                                                             //tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
@@ -330,7 +330,6 @@ namespace DevCDRAgent
                 //Only fallback if we have internet...
                 if (IsConnectedToInternet())
                 {
-
                     if(Properties.Settings.Default.ConnectionErrors > 5)
                     {
                         string sDeviceID = Properties.Settings.Default.HardwareID;
@@ -366,15 +365,17 @@ namespace DevCDRAgent
                             }
                         }
 
-                        xAgent = new X509AgentCert(sDeviceID);
+                        xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
 
-                        if(!string.IsNullOrEmpty(xAgent.EndpointURL))
+                        if (!string.IsNullOrEmpty(xAgent.EndpointURL))
+                        {
                             Uri = xAgent.EndpointURL;
 
-                        if(Properties.Settings.Default.Endpoint != Uri)
-                        {
-                            Properties.Settings.Default.Endpoint = Uri;
-                            Properties.Settings.Default.Save();
+                            if (Properties.Settings.Default.Endpoint != Uri)
+                            {
+                                Properties.Settings.Default.Endpoint = Uri;
+                                Properties.Settings.Default.Save();
+                            }
                         }
 
                         //string sCutomerID = SignatureVerification.findIssuingCA(Properties.Settings.Default.RootCA);
@@ -515,7 +516,7 @@ namespace DevCDRAgent
                         Trace.Write(DateTime.Now.ToString() + "\t Agent init... ");
                         lock (_locker) //prevent parallel status
                         {
-                            if (string.IsNullOrEmpty(Properties.Settings.Default.AgentSignature))
+                            if (string.IsNullOrEmpty(xAgent.Signature))
                             {
                                 connection.SendAsync("Init", Hostname).ContinueWith(task1 =>
                                 {
@@ -523,7 +524,7 @@ namespace DevCDRAgent
                             }
                             else
                             {
-                                connection.SendAsync("InitCert", Hostname, Properties.Settings.Default.AgentSignature).ContinueWith(task1 =>
+                                connection.SendAsync("InitCert", Hostname, xAgent.Signature).ContinueWith(task1 =>
                                 {
                                 });
                             }
@@ -533,7 +534,7 @@ namespace DevCDRAgent
                     catch { }
                     try
                     {
-                        if (string.IsNullOrEmpty(Properties.Settings.Default.AgentSignature))
+                        if (string.IsNullOrEmpty(xAgent.Signature))
                         {
                             foreach (string sGroup in Properties.Settings.Default.Groups.Split(';'))
                             {
@@ -544,7 +545,7 @@ namespace DevCDRAgent
                         }
                         else
                         {
-                            connection.InvokeAsync("JoinGroupCert", Hostname, Properties.Settings.Default.AgentSignature).ContinueWith(task2 =>
+                            connection.InvokeAsync("JoinGroupCert2", xAgent.Signature).ContinueWith(task2 =>
                             {
                             });
                         }
@@ -614,10 +615,12 @@ namespace DevCDRAgent
                                             Properties.Settings.Default.HardwareID = jRes["id"].Value<string>();
                                             Properties.Settings.Default.Save();
                                             Properties.Settings.Default.Reload();
+
+                                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
                                         }
 
                                         jRes.Add("ScriptResult", sScriptResult);
-                                        if (string.IsNullOrEmpty(Properties.Settings.Default.AgentSignature))
+                                        if (string.IsNullOrEmpty(xAgent.Signature))
                                             jRes.Add("Groups", Properties.Settings.Default.Groups);
                                         else
                                             jRes.Add("Groups", xAgent.IssuingCA);
@@ -627,6 +630,7 @@ namespace DevCDRAgent
                                 catch (Exception ex)
                                 {
                                     Console.WriteLine(" There was an error: {0}", ex.Message);
+                                    Trace.TraceError(DateTime.Now.ToString() + "\t ERROR..." + ex.Message);
                                 }
                             }
 
@@ -1125,7 +1129,7 @@ namespace DevCDRAgent
                             {
                                 if (!string.IsNullOrEmpty(Properties.Settings.Default.HardwareID))
                                 {
-                                    xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                                    xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
 
                                     if (xAgent.Certificate == null)
                                     {
@@ -1143,19 +1147,19 @@ namespace DevCDRAgent
                                             if (string.IsNullOrEmpty(xAgent.RootCA))
                                             {
                                                 Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + Properties.Settings.Default.RootCA);
-                                                connection.InvokeAsync("GetCert", Properties.Settings.Default.RootCA, false).Wait(1000); //request root cert
-                                                Thread.Sleep(1500);
+                                                connection.InvokeAsync("GetCert", Properties.Settings.Default.RootCA, false).Wait(5000); //request root cert
+                                                Thread.Sleep(2500);
                                             }
 
                                             //If the IssuingCA has changed...
                                             if (string.IsNullOrEmpty(xAgent.IssuingCA))
                                             {
                                                 Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + xAgent.Certificate.Issuer.Split('=')[1]);
-                                                connection.InvokeAsync("GetCert", xAgent.Certificate.Issuer.Split('=')[1], false).Wait(1000); //request issuer cert
-                                                Thread.Sleep(1500);
+                                                connection.InvokeAsync("GetCert", xAgent.Certificate.Issuer.Split('=')[1], false).Wait(5000); //request issuer cert
+                                                Thread.Sleep(2500);
                                             }
 
-                                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
 
                                             if (!string.IsNullOrEmpty(xAgent.EndpointURL))
                                             {
@@ -1193,7 +1197,7 @@ namespace DevCDRAgent
                                                 Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
                                                 connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID).Wait(2000); //MachineCert
                                                 Thread.Sleep(5000);
-                                                xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                                                xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
                                                 if (!string.IsNullOrEmpty(xAgent.Signature))
                                                 {
                                                     Properties.Settings.Default.AgentSignature = xAgent.Signature;
@@ -1205,15 +1209,15 @@ namespace DevCDRAgent
                                                 if (string.IsNullOrEmpty(xAgent.RootCA))
                                                 {
                                                     Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + Properties.Settings.Default.RootCA);
-                                                    connection.InvokeAsync("GetCert", Properties.Settings.Default.RootCA, false).Wait(1000); //request root cert
-                                                    Thread.Sleep(1500);
+                                                    connection.InvokeAsync("GetCert", Properties.Settings.Default.RootCA, false).Wait(5000); //request root cert
+                                                    Thread.Sleep(2500);
                                                 }
 
                                                 if (string.IsNullOrEmpty(xAgent.IssuingCA))
                                                 {
                                                     Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + xAgent.Certificate.Issuer.Split('=')[1]);
-                                                    connection.InvokeAsync("GetCert", xAgent.Certificate.Issuer.Split('=')[1], false).Wait(1000); //request issuer cert
-                                                    Thread.Sleep(1500);
+                                                    connection.InvokeAsync("GetCert", xAgent.Certificate.Issuer.Split('=')[1], false).Wait(5000); //request issuer cert
+                                                    Thread.Sleep(2500);
                                                 }
                                             }
                                             catch { }
@@ -1231,11 +1235,11 @@ namespace DevCDRAgent
                                         //request machine cert...
                                         Thread.Sleep(2000);
                                         Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
-                                        connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID).Wait(2000); //MachineCert
-                                        Thread.Sleep(2000);
+                                        connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID).Wait(5000); //MachineCert
+                                        Thread.Sleep(2500);
                                     }
 
-                                    xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                                    xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
 
                                     if (xAgent.Exists && xAgent.Valid)
                                     {
@@ -1289,7 +1293,7 @@ namespace DevCDRAgent
                             SignatureVerification.addCertToStore(cert, StoreName.Root, StoreLocation.LocalMachine);
                         }
 
-                        xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                        xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
 
                         if (xAgent.Exists && xAgent.Valid)
                         {
@@ -1335,7 +1339,7 @@ namespace DevCDRAgent
                     {
                         Trace.WriteLine(DateTime.Now.ToString() + "\t run inventory (cert) ... ");
                         tLastPSAsync = DateTime.Now;
-                        xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                        xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
                         string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
                         string sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=inventory.ps1&signature=" + xAgent.Signature + "' | IEX;'done'";
 
@@ -1381,7 +1385,7 @@ namespace DevCDRAgent
                     {
                         Trace.WriteLine(DateTime.Now.ToString() + "\t run compliance (cert) check... ");
                         tLastPSAsync = DateTime.Now;
-                        xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                        xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
                         string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
                         string sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=compliance.ps1&signature=" + xAgent.Signature + "' | IEX;";
 
@@ -1398,12 +1402,11 @@ namespace DevCDRAgent
                                         string sResult2 = PSResult.Last().BaseObject.ToString();
 
                                         if (!string.IsNullOrEmpty(sResult2)) //Do not return empty results
-                                    {
-
+                                        {
                                             sScriptResult = "Compliance check completed";
                                             Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
 
-                                            connection.InvokeAsync("UpdateComplianceCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID, sResult2, Properties.Settings.Default.AgentSignature).Wait(2000);
+                                            connection.InvokeAsync("UpdateComplianceCert2", sResult2, xAgent.Signature).Wait(2000);
                                             Trace.WriteLine(DateTime.Now.ToString() + "\t compliance check completed.");
 
                                         }
@@ -1421,36 +1424,39 @@ namespace DevCDRAgent
                 //Get HardwareID
                 if (string.IsNullOrEmpty(Properties.Settings.Default.HardwareID))
                 {
-                    //Get DeviceID from PSStatus-Script
-                    string sResult = "{}";
-                    using (PowerShell PowerShellInstance = PowerShell.Create())
+                    lock (_locker)
                     {
-                        try
+                        //Get DeviceID from PSStatus-Script
+                        string sResult = "{}";
+                        using (PowerShell PowerShellInstance = PowerShell.Create())
                         {
-                            PowerShellInstance.AddScript(Properties.Settings.Default.PSStatus);
-                            var PSResult = PowerShellInstance.Invoke();
-                            if (PSResult.Count() > 0)
+                            try
                             {
-                                sResult = PSResult.Last().BaseObject.ToString();
-                                sResult = sResult.Replace(Environment.MachineName, Hostname);
-                                JObject jRes = JObject.Parse(sResult);
-
-                                if (Properties.Settings.Default.HardwareID != jRes["id"].Value<string>())
+                                PowerShellInstance.AddScript(Properties.Settings.Default.PSStatus);
+                                var PSResult = PowerShellInstance.Invoke();
+                                if (PSResult.Count() > 0)
                                 {
-                                    Properties.Settings.Default.HardwareID = jRes["id"].Value<string>();
-                                    Properties.Settings.Default.Save();
-                                    Properties.Settings.Default.Reload();
+                                    sResult = PSResult.Last().BaseObject.ToString();
+                                    sResult = sResult.Replace(Environment.MachineName, Hostname);
+                                    JObject jRes = JObject.Parse(sResult);
+
+                                    if (Properties.Settings.Default.HardwareID != jRes["id"].Value<string>())
+                                    {
+                                        Properties.Settings.Default.HardwareID = jRes["id"].Value<string>();
+                                        Properties.Settings.Default.Save();
+                                        Properties.Settings.Default.Reload();
+                                    }
                                 }
                             }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(" There was an error: {0}", ex.Message);
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(" There was an error: {0}", ex.Message);
+                            }
                         }
                     }
                 }
 
-                xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
 
                 if (string.IsNullOrEmpty(Properties.Settings.Default.CustomerID))
                 {
@@ -1466,7 +1472,7 @@ namespace DevCDRAgent
                 {
                     if (!string.IsNullOrEmpty(Properties.Settings.Default.HardwareID))
                     {
-                        xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                        xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
 
                         if (xAgent.Certificate == null)
                         {
@@ -1474,7 +1480,7 @@ namespace DevCDRAgent
                             Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
                             connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID).Wait(5000); //MachineCert
                             Thread.Sleep(5000);
-                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
                             
                             if (xAgent.Exists && xAgent.Valid)
                             {
@@ -1496,10 +1502,13 @@ namespace DevCDRAgent
                             {
                                 if (Properties.Settings.Default.AgentSignature != xAgent.Signature)
                                 {
-                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Updating Signature... ");
-                                    Properties.Settings.Default.AgentSignature = xAgent.Signature;
-                                    Properties.Settings.Default.Save();
-                                    Properties.Settings.Default.Reload();
+                                    lock (_locker)
+                                    {
+                                        Trace.WriteLine(DateTime.Now.ToString() + "\t Updating Signature... ");
+                                        Properties.Settings.Default.AgentSignature = xAgent.Signature;
+                                        Properties.Settings.Default.Save();
+                                        Properties.Settings.Default.Reload();
+                                    }
                                 }
 
                                 if (!string.IsNullOrEmpty(xAgent.EndpointURL))
@@ -1558,7 +1567,7 @@ namespace DevCDRAgent
                             Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
                             connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID).Wait(5000); //MachineCert
                             Thread.Sleep(5000);
-                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID);
+                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
 
                             if(xAgent.Exists && xAgent.Valid)
                             {
@@ -1634,7 +1643,7 @@ namespace DevCDRAgent
                                try
                                {
                                    Trace.WriteLine(DateTime.Now.ToString() + "\t JoiningGroup...");
-                                   connection.InvokeAsync("JoinGroupCert", Hostname , Properties.Settings.Default.AgentSignature).ContinueWith(task2 =>
+                                   connection.InvokeAsync("JoinGroupCert2", xAgent.Signature).ContinueWith(task2 =>
                                    {
                                    });
 
