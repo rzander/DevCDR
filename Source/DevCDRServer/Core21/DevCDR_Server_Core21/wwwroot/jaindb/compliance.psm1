@@ -184,10 +184,7 @@ function Test-Administrators {
             $members | ForEach-Object { $_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -like "S-1-12-1-*" } | ForEach-Object { Remove-LocalGroupMember -Name $localgroup $_ } 
             $bRes = $true;
         }
-    }
-    #if ($null -eq $global:chk) { $global:chk = @{ } }
-    #if ($global:chk.ContainsKey("FixAdministrators")) { $global:chk.Remove("FixAdministrators") }
-    #$global:chk.Add("FixAdministrators", $bRes)
+    } 
 }
 
 function Test-LocalAdmin {
@@ -195,12 +192,11 @@ function Test-LocalAdmin {
         .Description
          disable local Admin account if PW is older than 4 hours
     #>
-    $Admins = ""
 
     #Skip fix if running on a DC
     if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) {
         if ((Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Enabled) {
-            #Fix if local Admin PW is older than 4 Hours
+            #Disable if local Admin PW is older than 4 Hours
             if (((get-date) - (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).PasswordLastSet).TotalHours -gt 4) {
                 #Disable local Admin
                 (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Disable-LocalUser
@@ -218,9 +214,27 @@ function Test-LocalAdmin {
         }
     }
 
-    #if ($null -eq $global:chk) { $global:chk = @{ } }
-    #if ($global:chk.ContainsKey("LocalAdmin")) { $global:chk.Remove("LocalAdmin") }
-    #$global:chk.Add("LocalAdmin", $Admins)
+    $admingroup = (Get-WmiObject -Class Win32_Group -Filter "LocalAccount='True' AND SID='S-1-5-32-544'").Name
+    $locAdmin = @()     
+    $groupconnection = [ADSI]("WinNT://localhost/$admingroup,group")
+    $members = $groupconnection.Members()
+    ForEach ($member in $members) {
+        $name = $member.GetType().InvokeMember("Name", "GetProperty", $NULL, $member, $NULL)
+        $class = $member.GetType().InvokeMember("Class", "GetProperty", $NULL, $member, $NULL)
+        $bytes = $member.GetType().InvokeMember("objectsid", "GetProperty", $NULL, $member, $NULL)
+        $sid = New-Object Security.Principal.SecurityIdentifier ($bytes, 0)
+        $result = New-Object -TypeName psobject
+        $result | Add-Member -MemberType NoteProperty -Name Name -Value $name
+        $result | Add-Member -MemberType NoteProperty -Name ObjectClass -Value $class
+        $result | Add-Member -MemberType NoteProperty -Name id -Value $sid.Value.ToString()
+        if ($result.id -notlike "S-1-5-21-*-500" ) {
+            $locAdmin = $locAdmin + $result;
+        }
+    }
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("Admins")) { $global:chk.Remove("Admins") }
+    $global:chk.Add("Admins", $locAdmin.Count)
 }
 
 function Test-WOL {
@@ -424,9 +438,9 @@ Function Test-TPM {
     $res = "No"
     #Get FreeSpace in %
     $tpm = Get-Tpm -ea SilentlyContinue
-    if($tpm) {
-        if($tpm.TpmReady) { $res = "Ready" }
-        if($tpm.LockedOut) { $res = "LockedOut" }
+    if ($tpm) {
+        if ($tpm.TpmReady) { $res = "Ready" }
+        if ($tpm.LockedOut) { $res = "LockedOut" }
     }
 
     if ($null -eq $global:chk) { $global:chk = @{ } }
@@ -449,8 +463,8 @@ Function Test-SecureBoot {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTai/Nxteoq/hu8lgLKXD2Mo5
-# sKugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUJPyeNV+cFd84h2NMfM5kmb4e
+# DiSgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -515,12 +529,12 @@ Function Test-SecureBoot {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR+
-# NLDgP+CFmV3Qco1FvMVcEURhEjANBgkqhkiG9w0BAQEFAASCAQAg2W5tG6szH5qz
-# KnbZWA16ybEowY21zkK2q5ONbiqtfnyoBb130Uyt4FFxBjJT+nfIcrmvhBXymaxJ
-# LSqftoa7S7BuKWdr+C3qYzsB25+52MuhnQ/vFntmMo7523lZAiWS5xLsZJY/3DyT
-# +zEMiA6vPGCUoqZGQEMMcteoCzKaM9MqmGTQXHbOwFKkI4LNTBT68GVLwJmObMah
-# MZnaMXebB03uNGr2OgKppUmAAAihjG2X+VHIHwNwWygr9naFpsDHBEktbwuTmdRR
-# Mwwxnd9n/sGdBucRhs0OE0KIquv1M1O+cawZMr5WrpBrEGNkV0I8SxAMq9pOmsUS
-# VbCh+uYy
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSB
+# VzscYn5ACJqpeLDgSmsn0k1D+DANBgkqhkiG9w0BAQEFAASCAQAB8MHyWNFHuzy7
+# /Vjc/26pSMtZVmnxvMSDROIbNzmG3EV/YbonrU+EUA53gz3ON5W6ie7ARLWSJhJy
+# B6ceELxlxoenpwtrgAhVEHQG5JVU9lsLYdQAPTVIcosz8on2PTp+dNSL67Rfnfww
+# yT/IUeQX3bWhQkBrt+tugNN4SmwXaz+qhbHFjtW8afVR6qtL+1QfvKo7DGajH6wl
+# 9xkcvxLYpFjpqUs7wKrQvZpJqA61JshXnxbnOb25JHgxjK4/4W1RgYjcTVXNbZff
+# b2OhG3HpQN9kpkRrYYitOK2V6fCIE/KJl3MO301UoqiOMS6VjqrvtwKROyrJvvDX
+# Tg/gopFD
 # SIG # End signature block

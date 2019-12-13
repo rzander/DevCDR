@@ -2,7 +2,7 @@
 Test-Nuget
 Test-OneGetProvider("1.7.1.2")
 Test-DevCDRAgent("2.0.1.17")
-Test-Administrators 
+#Test-Administrators 
 Test-LocalAdmin
 Test-WOL
 Test-FastBoot

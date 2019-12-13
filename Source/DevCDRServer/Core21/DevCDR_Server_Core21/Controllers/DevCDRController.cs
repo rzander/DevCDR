@@ -336,6 +336,21 @@ namespace DevCDRServer.Controllers
                         string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
                         sURL = sURL.Replace("{fn}", "fnUploadFile");
 
+                        try
+                        {
+                            if (data.StartsWith("{"))
+                            {
+                                var jObj = JObject.Parse(data);
+
+                                jObj.Remove("OptionalFeature");
+                                if (jObj.Remove("Services"))
+                                {
+                                    data = jObj.ToString(Formatting.None);
+                                }
+                            }
+                        }
+                        catch { }
+
                         using (HttpClient client = new HttpClient())
                         {
                             StringContent oData = new StringContent(data, Encoding.UTF8, "application/json");
