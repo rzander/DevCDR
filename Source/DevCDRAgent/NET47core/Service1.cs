@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
+using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
@@ -91,10 +92,20 @@ namespace DevCDRAgent
                                     }
                                     else
                                     {
-                                        Trace.WriteLine(DateTime.Now.ToString() + "\t starting Inventory (cert)...");
-
+                                        Trace.WriteLine(DateTime.Now.ToString() + "\t run inventory (cert) ... ");
+                                        tLastPSAsync = DateTime.Now;
+                                        xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
                                         string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
-                                        string sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=inventory.ps1&signature=" + xAgent.Signature + "' | IEX;'Inventory complete..'";
+                                        string sCommand = "";
+
+                                        //recommended way
+                                        using (HttpClient oWebClient = new HttpClient())
+                                        {
+                                            sCommand = oWebClient.GetStringAsync(sEndPoint + "/devcdr/getfile?filename=inventory2.ps1&signature=" + xAgent.Signature).Result;
+                                        }
+                                        //alternative way
+                                        if (string.IsNullOrEmpty(sCommand))
+                                            sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=inventory2.ps1&signature=" + xAgent.Signature + "' | IEX";
 
                                         var tSWScan = Task.Run(() =>
                                         {
@@ -106,16 +117,22 @@ namespace DevCDRAgent
                                                     var PSResult = PowerShellInstance.Invoke();
                                                     if (PSResult.Count() > 0)
                                                     {
-                                                        string sResult = PSResult.Last().BaseObject.ToString();
+                                                        string sResult2 = PSResult.Last().BaseObject.ToString();
 
-                                                        if (!string.IsNullOrEmpty(sResult)) //Do not return empty results
+                                                        if (!string.IsNullOrEmpty(sResult2)) //Do not return empty results
                                                         {
-                                                            if (sResult != sScriptResult)
+                                                            using (HttpClient oWebClient = new HttpClient())
                                                             {
-                                                                sScriptResult = sResult;
-                                                                Random rnd2 = new Random();
-                                                                tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                                                                HttpContent oCont = new StringContent(sResult2);
+                                                                var sRes = oWebClient.PostAsync(sEndPoint + "/devcdr/PutFileAsync?signature=" + xAgent.Signature, oCont).Result;
+                                                                sRes.StatusCode.ToString();
                                                             }
+
+                                                            sScriptResult = "Inventory completed...";
+                                                            Random rnd2 = new Random();
+                                                            tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                                                            Properties.Settings.Default.InventorySuccess = DateTime.Now;
+                                                            Trace.WriteLine(DateTime.Now.ToString() + "\t Inventory completed.");
                                                         }
                                                     }
                                                 }
@@ -124,8 +141,6 @@ namespace DevCDRAgent
                                                     Console.WriteLine("There was an error: {0}", ex.Message);
                                                 }
                                             }
-
-                                            Program.MinimizeFootprint();
                                         });
                                     }
 
@@ -1341,7 +1356,16 @@ namespace DevCDRAgent
                         tLastPSAsync = DateTime.Now;
                         xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
                         string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
-                        string sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=inventory.ps1&signature=" + xAgent.Signature + "' | IEX;'done'";
+                        string sCommand = "";
+
+                        //recommended way
+                        using (HttpClient oWebClient = new HttpClient())
+                        {
+                            sCommand = oWebClient.GetStringAsync(sEndPoint + "/devcdr/getfile?filename=inventory2.ps1&signature=" + xAgent.Signature).Result;
+                        }
+                        //alternative way
+                        if(string.IsNullOrEmpty(sCommand))
+                            sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=inventory2.ps1&signature=" + xAgent.Signature + "' | IEX";
 
                         var tSWScan = Task.Run(() =>
                         {
@@ -1356,11 +1380,18 @@ namespace DevCDRAgent
                                         string sResult2 = PSResult.Last().BaseObject.ToString();
 
                                         if (!string.IsNullOrEmpty(sResult2)) //Do not return empty results
-                                    {
+                                        {
+                                            using (HttpClient oWebClient = new HttpClient())
+                                            {
+                                                HttpContent oCont = new StringContent(sResult2);
+                                                var sRes = oWebClient.PostAsync(sEndPoint + "/devcdr/PutFileAsync?signature=" + xAgent.Signature, oCont).Result;
+                                                sRes.StatusCode.ToString();
+                                            }
+
                                             sScriptResult = "Inventory completed...";
                                             Random rnd2 = new Random();
                                             tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
-                                        Properties.Settings.Default.InventorySuccess = DateTime.Now;
+                                            Properties.Settings.Default.InventorySuccess = DateTime.Now;
                                             Trace.WriteLine(DateTime.Now.ToString() + "\t Inventory completed.");
                                         }
                                     }
