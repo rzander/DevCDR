@@ -336,6 +336,7 @@ namespace DevCDRServer.Controllers
                         string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
                         sURL = sURL.Replace("{fn}", "fnUploadFile");
 
+                        string sNewData = data;
                         try
                         {
                             if (data.StartsWith("{"))
@@ -345,7 +346,7 @@ namespace DevCDRServer.Controllers
                                 jObj.Remove("OptionalFeature");
                                 if (jObj.Remove("Services"))
                                 {
-                                    data = jObj.ToString(Formatting.None);
+                                    sNewData = jObj.ToString(Formatting.None);
                                 }
                             }
                         }
@@ -353,7 +354,7 @@ namespace DevCDRServer.Controllers
 
                         using (HttpClient client = new HttpClient())
                         {
-                            StringContent oData = new StringContent(data, Encoding.UTF8, "application/json");
+                            StringContent oData = new StringContent(sNewData, Encoding.UTF8, "application/json");
                             await client.PostAsync($"{sURL}&deviceid={oSig.DeviceID}.json&customerid={oSig.CustomerID}", oData);
                         }
 
