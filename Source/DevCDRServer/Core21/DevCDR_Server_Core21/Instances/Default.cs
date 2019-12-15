@@ -530,6 +530,108 @@ namespace DevCDRServer
             }
         }
 
+        public async void Status2(string name, string Status, string signature)
+        {
+            X509AgentCert oSig = new X509AgentCert(signature);
+
+            if (string.IsNullOrEmpty(AzureLog.WorkspaceId))
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Log-WorkspaceID")) && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Log-SharedKey")))
+                {
+                    AzureLog = new DevCDR.Extensions.AzureLogAnalytics(Environment.GetEnvironmentVariable("Log-WorkspaceID"), Environment.GetEnvironmentVariable("Log-SharedKey"), "DevCDR_" + (Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default"));
+                }
+            }
+
+            var J1 = JObject.Parse(Status);
+
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
+            {
+                string ClientIP = Context.GetHttpContext().Connection.RemoteIpAddress.ToString();
+                J1["Internal IP"] = ClientIP;
+                try
+                {
+                    J1["Internal IP"] = GetLocAsync(ClientIP).Result;
+                }
+                catch { }
+            }
+
+            bool bChange = false;
+            try
+            {
+                if (string.IsNullOrEmpty(J1.GetValue("Hostname").Value<string>()))
+                    return;
+
+                if (jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").Count() == 0) //Prevent Duplicates
+                {
+                    lock (jData)
+                    {
+                        jData.Add(J1);
+                    }
+                    bChange = true;
+                    AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                    {
+                        J1.Add("ConnectionId", Context.ConnectionId);
+
+                        if (!string.IsNullOrEmpty(oSig.CustomerID))
+                            await setStatusAsync(oSig.CustomerID, oSig.DeviceID, J1.ToString());
+                        else
+                            await setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
+                    }
+                }
+                else
+                {
+
+                        //Changes ?
+                        if (jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").First().ToString(Formatting.None) != J1.ToString(Formatting.None))
+                        {
+                            jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").First().Replace(J1);
+                            bChange = true;
+                            AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
+
+                            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                            {
+                                J1.Add("ConnectionId", Context.ConnectionId);
+                                if(!string.IsNullOrEmpty(oSig.CustomerID))
+                                    await setStatusAsync(oSig.CustomerID, J1.GetValue("id").ToString(), J1.ToString());
+                                else
+                                    await setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
+                            }
+                        }
+                        else
+                        {
+                            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                            {
+                                string sJSON = "{\"ConnectionID\":\"" + Context.ConnectionId + "\"}";
+                            if (!string.IsNullOrEmpty(oSig.CustomerID))
+                                await setStatusAsync(oSig.CustomerID, J1.GetValue("id").ToString(), J1.ToString());
+                            else
+                                await setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
+
+                            //setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("Hostname").ToString(), sJSON);
+                            }
+                        }
+                    
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.Message.ToString();
+            }
+
+            if (bChange)
+            {
+                try
+                {
+                    await Clients.Group("web").SendAsync("newData", name, jData.ToString()); //Enforce PageUpdate
+                }
+                catch (Exception ex)
+                {
+                    ex.Message.ToString();
+                }
+            }
+        }
+
         public void RunPS(string who, string message)
         {
             foreach (var connectionId in _connections.GetConnections(who.ToUpper()))

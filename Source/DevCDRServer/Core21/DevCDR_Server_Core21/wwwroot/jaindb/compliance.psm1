@@ -86,12 +86,12 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.2", $DownloadURL = "https
     $global:chk.Add("OneGetProvider", (Get-PackageProvider -Name Ruckzuck).Version.ToString())
 }
 
-function Test-DevCDRAgent($AgentVersion = "2.0.1.16") {
+function Test-DevCDRAgent($AgentVersion = "2.0.1.18") {
     <#
         .Description
         Install or Update DevCDRAgentCore if required
     #>
-    $fix = "1.0.0.5"
+    $fix = "1.0.0.6"
     if (-NOT (Get-Process DevCDRAgent -ea SilentlyContinue)) {
         if ([version](get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]($AgentVersion)) {
             [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
@@ -227,7 +227,8 @@ function Test-LocalAdmin {
         $result | Add-Member -MemberType NoteProperty -Name Name -Value $name
         $result | Add-Member -MemberType NoteProperty -Name ObjectClass -Value $class
         $result | Add-Member -MemberType NoteProperty -Name id -Value $sid.Value.ToString()
-        if ($result.id -notlike "S-1-5-21-*-500" ) {
+        #Exclude locaAdmin and DomainAdmins
+        if (($result.id -notlike "S-1-5-21-*-500" ) -and ($result.id -notlike "S-1-5-21-*-512" )) {
             $locAdmin = $locAdmin + $result;
         }
     }
@@ -388,13 +389,13 @@ Function Test-Defender($Age = 7) {
         if ($ScanAge -ge $Age) { Start-MpScan -ScanType QuickScan }
 
         if ($null -eq $global:chk) { $global:chk = @{ } }
-        if ($global:chk.ContainsKey("DefenderScangAge")) { $global:chk.Remove("DefenderScangAge") }
-        $global:chk.Add("DefenderScangAge", $ScanAge)
+        if ($global:chk.ContainsKey("DefenderScanAge")) { $global:chk.Remove("DefenderScangAge") }
+        $global:chk.Add("DefenderScanAge", $ScanAge)
     }
     else {
         if ($null -eq $global:chk) { $global:chk = @{ } }
-        if ($global:chk.ContainsKey("DefenderScangAge")) { $global:chk.Remove("DefenderScangAge") }
-        $global:chk.Add("DefenderScangAge", 999)
+        if ($global:chk.ContainsKey("DefenderScanAge")) { $global:chk.Remove("DefenderScanAge") }
+        $global:chk.Add("DefenderScanAge", 999)
     }
 }
 
@@ -460,11 +461,52 @@ Function Test-SecureBoot {
     if ($global:chk.ContainsKey("SecureBoot")) { $global:chk.Remove("SecureBoot") }
     $global:chk.Add("SecureBoot", $res)
 }
+
+Function Test-Office {
+    <#
+        .Description
+        Check Office Status
+    #>
+
+    $O365 = (Get-ItemProperty HKLM:SOFTWARE\Microsoft\Office\ClickToRun\Configuration -ea SilentlyContinue).VersionToReport
+
+    if (-NOT $O365) {
+        $O365 = (Get-ItemProperty HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object { $_.DisplayName -like "Microsoft Office Professional Plus *" }).DisplayVersion | Select-Object -First 1
+    }
+
+    if (-NOT $O365) {
+        $O365 = (Get-ItemProperty HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object { $_.DisplayName -like "Microsoft Office Standard *" }).DisplayVersion | Select-Object -First 1
+    }
+
+    if (-NOT $O365) {
+        $O365 = (Get-ItemProperty HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object { $_.DisplayName -like "Microsoft Office Home *" }).DisplayVersion | Select-Object -First 1
+    }
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("Office")) { $global:chk.Remove("Office") }
+    $global:chk.Add("Office", $O365 )
+}
+
+Function Test-DefenderThreats {
+    <#
+        .Description
+        Check Virus Threat Status
+    #>
+
+    if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVirusProduct" -ea SilentlyContinue).displayName.count -eq 1) {
+        $Threats = Get-MpThreatDetection
+    }
+    else { $Threats = $null }
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("AVThreats")) { $global:chk.Remove("AVThreats") }
+    $global:chk.Add("AVThreats", $Threats.count)
+}
+
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUJPyeNV+cFd84h2NMfM5kmb4e
-# DiSgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNDZ6SR2fgOoaBfMdsda/GkMA
+# LH+gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -529,12 +571,12 @@ Function Test-SecureBoot {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSB
-# VzscYn5ACJqpeLDgSmsn0k1D+DANBgkqhkiG9w0BAQEFAASCAQAB8MHyWNFHuzy7
-# /Vjc/26pSMtZVmnxvMSDROIbNzmG3EV/YbonrU+EUA53gz3ON5W6ie7ARLWSJhJy
-# B6ceELxlxoenpwtrgAhVEHQG5JVU9lsLYdQAPTVIcosz8on2PTp+dNSL67Rfnfww
-# yT/IUeQX3bWhQkBrt+tugNN4SmwXaz+qhbHFjtW8afVR6qtL+1QfvKo7DGajH6wl
-# 9xkcvxLYpFjpqUs7wKrQvZpJqA61JshXnxbnOb25JHgxjK4/4W1RgYjcTVXNbZff
-# b2OhG3HpQN9kpkRrYYitOK2V6fCIE/KJl3MO301UoqiOMS6VjqrvtwKROyrJvvDX
-# Tg/gopFD
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ7
+# qHkE7hyM4jajgjmqDnqQ6jSlhTANBgkqhkiG9w0BAQEFAASCAQB4kJy5dDWAvWYE
+# Wq3ik5xFEOU6hURlwseZaHHvh/rF8imilRnhhUTnm8Z7Xek1yEkYQik5XcFQgTIZ
+# kk5zmQeLxxRoBKK/7bLb/rgKh41kXyNY5lrmO2ziGgRhrufppy0sZR26GonEaL0k
+# lKwkIUfVsz+qYJBjkUoLptVK1gKpDrPaIY5rVTkkDNHbANB0jqqu1+WSjaXF5oG9
+# 9nRK4l9ngU7XtCMnZxfEPmHT60HRampWMQi1gthkgW5O873Azas2dX9D0pWGcsL/
+# SZLsELnoN6RE/aAoGUwOARPYDGMwqt6vhe/qiov1XYxxm5KgUG9hh0EzkWYIE1vK
+# 28+Z/KxS
 # SIG # End signature block
