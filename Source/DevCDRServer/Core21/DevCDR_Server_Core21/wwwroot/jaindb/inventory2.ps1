@@ -1,4 +1,4 @@
-function GetHash([string]$txt) {
+﻿function GetHash([string]$txt) {
     return GetMD5($txt)
 }
 
