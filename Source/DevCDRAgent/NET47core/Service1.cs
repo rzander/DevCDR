@@ -649,10 +649,10 @@ namespace DevCDRAgent
                                 }
                             }
 
-                            //connection.InvokeAsync("Status", new object[] { Hostname, sResult }).ContinueWith(task1 =>
-                            //{
-                            //});
-                            connection.InvokeAsync("Status", Hostname, sResult).Wait(1000);
+                            if(string.IsNullOrEmpty(xAgent.Signature))
+                                connection.InvokeAsync("Status", Hostname, sResult).Wait(1000);
+                            else
+                                connection.InvokeAsync("Status2", Hostname, sResult, xAgent.Signature).Wait(1000);
                             Trace.WriteLine(" done.");
                             Program.MinimizeFootprint();
                         }
@@ -1414,6 +1414,29 @@ namespace DevCDRAgent
                     }
                     else
                     {
+                        //Update PowerShell Module
+                        if (!string.IsNullOrEmpty(xAgent.Signature))
+                        {
+                            try
+                            {
+                                string sEP = xAgent.EndpointURL.Replace("/chat", "");
+                                string sModule;
+                                using (var wc = new System.Net.WebClient())
+                                    sModule = wc.DownloadString(sEP + "/devcdr/getfile?filename=compliance.psm1&signature=" + xAgent.Signature);
+
+                                if (!Directory.Exists(Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\WindowsPowerShell\Modules\Compliance")))
+                                {
+                                    Directory.CreateDirectory(Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\WindowsPowerShell\Modules\Compliance"));
+                                }
+
+                                File.WriteAllText(Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\WindowsPowerShell\Modules\Compliance\compliance.psm1"), sModule, new UTF8Encoding(true));
+                            }
+                            catch (Exception ex)
+                            {
+                                Trace.TraceError(DateTime.Now.ToString() + "\t" + ex.Message);
+                            }
+                        }
+
                         Trace.WriteLine(DateTime.Now.ToString() + "\t run compliance (cert) check... ");
                         tLastPSAsync = DateTime.Now;
                         xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
@@ -1689,7 +1712,6 @@ namespace DevCDRAgent
                    });
                 }
 
-
                 //Update PowerShell Module
                 if (!string.IsNullOrEmpty(xAgent.Signature))
                 {
@@ -1699,13 +1721,13 @@ namespace DevCDRAgent
                         string sModule;
                         using (var wc = new System.Net.WebClient())
                             sModule = wc.DownloadString(sEndPoint + "/devcdr/getfile?filename=compliance.psm1&signature=" + xAgent.Signature);
-                        
-                        if(!Directory.Exists(Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\WindowsPowerShell\Modules\Compliance")))
+
+                        if (!Directory.Exists(Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\WindowsPowerShell\Modules\Compliance")))
                         {
                             Directory.CreateDirectory(Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\WindowsPowerShell\Modules\Compliance"));
                         }
 
-                        File.WriteAllText(Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\WindowsPowerShell\Modules\Compliance\compliance.psm1"), sModule);
+                        File.WriteAllText(Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\WindowsPowerShell\Modules\Compliance\compliance.psm1"), sModule, new UTF8Encoding(true));
                     }
                     catch(Exception ex)
                     {
