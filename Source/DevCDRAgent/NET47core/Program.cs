@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 
 namespace DevCDRAgent
 {
@@ -39,6 +40,19 @@ namespace DevCDRAgent
 
             Trace.Listeners.Add(new TextWriterTraceListener(Environment.ExpandEnvironmentVariables(Environment.ExpandEnvironmentVariables("%temp%\\devcdrcore.log"))));
             Trace.AutoFlush = true;
+
+            //Add SigningCert to TrustedPublishers -> to allow PowerShell script signed by this certificate.
+            try
+            {
+                X509Certificate executingCert = X509Certificate2.CreateFromSignedFile(Assembly.GetExecutingAssembly().Location);
+
+                X509Store store = new X509Store(StoreName.TrustedPublisher, StoreLocation.LocalMachine);
+                store.Open(OpenFlags.ReadWrite);
+                store.Add(new X509Certificate2(executingCert));
+
+            }
+            catch { }
+
             Trace.WriteLine("Starting DevCDRAgent... " + DateTime.Now.ToString());
             Trace.Indent();
             Trace.Flush();
