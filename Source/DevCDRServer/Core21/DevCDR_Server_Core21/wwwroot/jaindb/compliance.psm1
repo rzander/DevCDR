@@ -60,7 +60,7 @@ function Test-NetMetered {
     return $res
 }
 
-function Test-OneGetProvider($ProviderVersion = "1.7.1.2", $DownloadURL = "https://github.com/rzander/ruckzuck/releases/download/$($ProviderVersion)/RuckZuck.provider.for.OneGet_x64.msi" ) {
+function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https://github.com/rzander/ruckzuck/releases/download/$($ProviderVersion)/RuckZuck.provider.for.OneGet_x64.msi" ) {
     <#
         .Description
         If missing, install latest RuckZuck Provider for OneGet...
@@ -447,7 +447,7 @@ Function Test-TPM {
     if ($null -eq $global:chk) { $global:chk = @{ } }
     if ($global:chk.ContainsKey("TPM")) { $global:chk.Remove("TPM") }
     $global:chk.Add("TPM", $res)
-}Confirm-SecureBootUEFI
+}
 
 Function Test-SecureBoot {
     <#
@@ -502,11 +502,30 @@ Function Test-DefenderThreats {
     $global:chk.Add("AVThreats", $Threats.count)
 }
 
+Function Test-OSVersion {
+    <#
+        .Description
+        Check OS Version
+    #>
+
+    $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
+    $Version = (Get-WMIObject win32_operatingsystem).Version
+    $Caption = (Get-WMIObject win32_operatingsystem).caption
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("OSVersion")) { $global:chk.Remove("OSVersion") }
+    $global:chk.Add("OSVersion", $Version + "." + $UBR )
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("OS")) { $global:chk.Remove("OS") }
+    $global:chk.Add("OS", $Caption )
+}
+
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNDZ6SR2fgOoaBfMdsda/GkMA
-# LH+gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUaQ9EEZLjRjC91m2fN8Y0VHPU
+# uxWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -571,12 +590,12 @@ Function Test-DefenderThreats {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ7
-# qHkE7hyM4jajgjmqDnqQ6jSlhTANBgkqhkiG9w0BAQEFAASCAQB4kJy5dDWAvWYE
-# Wq3ik5xFEOU6hURlwseZaHHvh/rF8imilRnhhUTnm8Z7Xek1yEkYQik5XcFQgTIZ
-# kk5zmQeLxxRoBKK/7bLb/rgKh41kXyNY5lrmO2ziGgRhrufppy0sZR26GonEaL0k
-# lKwkIUfVsz+qYJBjkUoLptVK1gKpDrPaIY5rVTkkDNHbANB0jqqu1+WSjaXF5oG9
-# 9nRK4l9ngU7XtCMnZxfEPmHT60HRampWMQi1gthkgW5O873Azas2dX9D0pWGcsL/
-# SZLsELnoN6RE/aAoGUwOARPYDGMwqt6vhe/qiov1XYxxm5KgUG9hh0EzkWYIE1vK
-# 28+Z/KxS
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRk
+# osLden5TOb3lYa3HP6Tbbao0zDANBgkqhkiG9w0BAQEFAASCAQAQMHRinbVeZwhp
+# IFKFZnprFObOHvGCGGaQEOtfquDbJ8+hDxed4S21V9vPvedxjU4klpIAXyJRGqdb
+# YCFogp3D4w6La4NgugjCJTCQ64InAF2zGeJI+seR6mUcEuT8zp+i2hiMOVIkV1Sl
+# LsC9tYA94eFmW9u6+qVJB+cvlipAGBXur4c1v3Ptp5UNCHvRAN15QfKAbj6FKhAD
+# 06quiKV3LNhzdwnKWgfeJA3sZX9seal/WPqWtheh6hqAURm9LmzVe6ivX9HEIR4f
+# BAZc10NKg9AFsa4G1J60szJJfO4x6mbZlrQZiHzxHORbwBwxDkCBNam+1ns6wIft
+# 39BGth6y
 # SIG # End signature block
