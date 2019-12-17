@@ -298,7 +298,7 @@ namespace DevCDR.Extensions
             }
         }
 
-        public X509AgentCert(string signature)
+        public X509AgentCert(string signature , bool noCheck = false)
         {
             Exists = false;
             Expired = false;
@@ -318,12 +318,17 @@ namespace DevCDR.Extensions
                 Certificate = new X509Certificate2(Convert.FromBase64String(jObj["CER"].Value<string>()));
                 IssuingCA = Certificate.Issuer.Split('=')[1];
                 Exists = true;
-                if (publicCertificates.Count > 0)
-                    ValidateChain(publicCertificates);
-                else
-                    ValidateChain();
+                
+                if (!noCheck)
+                {
+                    if (publicCertificates.Count > 0)
+                        ValidateChain(publicCertificates);
+                    else
+                        ValidateChain();
+                    
+                    Signature.ToString(); //generate Signature
+                }
                 HasPrivateKey = Certificate.HasPrivateKey;
-                Signature.ToString(); //generate Signature
 
                 if (Certificate.NotAfter < DateTime.UtcNow)
                 {

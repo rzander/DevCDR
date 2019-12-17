@@ -503,11 +503,11 @@ namespace DevCDRServer
                         }
                         else
                         {
-                            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-                            {
-                                string sJSON = "{\"ConnectionID\":\"" + Context.ConnectionId + "\"}";
-                                setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("Hostname").ToString(), sJSON);
-                            }
+                            //if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                            //{
+                            //    string sJSON = "{\"ConnectionID\":\"" + Context.ConnectionId + "\"}";
+                            //    setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("Hostname").ToString(), sJSON);
+                            //}
                         }
                     }
                 }
@@ -532,7 +532,7 @@ namespace DevCDRServer
 
         public async void Status2(string name, string Status, string signature)
         {
-            X509AgentCert oSig = new X509AgentCert(signature);
+            X509AgentCert oSig = new X509AgentCert(signature, true); //do not validate signature for performance 
 
             if (string.IsNullOrEmpty(AzureLog.WorkspaceId))
             {
@@ -551,6 +551,10 @@ namespace DevCDRServer
                 try
                 {
                     J1["Internal IP"] = GetLocAsync(ClientIP).Result;
+                    if (J1["IP"] == null)
+                        J1.Add(new JProperty("IP", ClientIP));
+                    else
+                        J1["IP"] = ClientIP;
                 }
                 catch { }
             }
@@ -581,7 +585,8 @@ namespace DevCDRServer
                 }
                 else
                 {
-
+                    lock (jData)
+                    {
                         //Changes ?
                         if (jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").First().ToString(Formatting.None) != J1.ToString(Formatting.None))
                         {
@@ -592,26 +597,26 @@ namespace DevCDRServer
                             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
                             {
                                 J1.Add("ConnectionId", Context.ConnectionId);
-                                if(!string.IsNullOrEmpty(oSig.CustomerID))
-                                    await setStatusAsync(oSig.CustomerID, J1.GetValue("id").ToString(), J1.ToString());
+                                if (!string.IsNullOrEmpty(oSig.CustomerID))
+                                    setStatusAsync(oSig.CustomerID, J1.GetValue("id").ToString(), J1.ToString());
                                 else
-                                    await setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
+                                    setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
                             }
                         }
                         else
                         {
                             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
                             {
-                                string sJSON = "{\"ConnectionID\":\"" + Context.ConnectionId + "\"}";
-                            if (!string.IsNullOrEmpty(oSig.CustomerID))
-                                await setStatusAsync(oSig.CustomerID, J1.GetValue("id").ToString(), J1.ToString());
-                            else
-                                await setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
+                                //string sJSON = "{\"ConnectionID\":\"" + Context.ConnectionId + "\"}";
+                                //if (!string.IsNullOrEmpty(oSig.CustomerID))
+                                //    await setStatusAsync(oSig.CustomerID, J1.GetValue("id").ToString(), J1.ToString());
+                                //else
+                                //    await setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
 
-                            //setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("Hostname").ToString(), sJSON);
+                                //setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("Hostname").ToString(), sJSON);
                             }
                         }
-                    
+                    }
                 }
             }
             catch (Exception ex)
