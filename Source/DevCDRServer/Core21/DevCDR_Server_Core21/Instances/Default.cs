@@ -12,6 +12,7 @@ using Microsoft.Extensions.Caching.Memory;
 using DevCDR.Extensions;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Threading;
 
 namespace DevCDRServer
 {
@@ -495,11 +496,11 @@ namespace DevCDRServer
                             bChange = true;
                             AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
 
-                            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-                            {
-                                J1.Add("ConnectionId", Context.ConnectionId);
-                                setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
-                            }
+                            //if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                            //{
+                            //    J1.Add("ConnectionId", Context.ConnectionId);
+                            //    setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
+                            //}
                         }
                         else
                         {
@@ -585,13 +586,21 @@ namespace DevCDRServer
                 }
                 else
                 {
-                    lock (jData)
+
+                    //Changes ?
+                    if (jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").First().ToString(Formatting.None) != J1.ToString(Formatting.None))
                     {
-                        //Changes ?
-                        if (jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").First().ToString(Formatting.None) != J1.ToString(Formatting.None))
+                        lock (jData)
                         {
                             jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").First().Replace(J1);
                             bChange = true;
+                        }
+                    }
+
+                    if (bChange)
+                    {
+                        Task.Run(() =>
+                        {
                             AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
 
                             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
@@ -602,20 +611,7 @@ namespace DevCDRServer
                                 else
                                     setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
                             }
-                        }
-                        else
-                        {
-                            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-                            {
-                                //string sJSON = "{\"ConnectionID\":\"" + Context.ConnectionId + "\"}";
-                                //if (!string.IsNullOrEmpty(oSig.CustomerID))
-                                //    await setStatusAsync(oSig.CustomerID, J1.GetValue("id").ToString(), J1.ToString());
-                                //else
-                                //    await setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
-
-                                //setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("Hostname").ToString(), sJSON);
-                            }
-                        }
+                        });
                     }
                 }
             }
