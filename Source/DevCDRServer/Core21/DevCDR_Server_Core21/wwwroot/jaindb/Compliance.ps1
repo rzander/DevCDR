@@ -1,7 +1,8 @@
 ﻿Import-Module Compliance
+Test-OSVersion
 Test-Nuget
 Test-OneGetProvider("1.7.1.3")
-Test-DevCDRAgent("2.0.1.19")
+Test-DevCDRAgent("2.0.1.20")
 #Test-Administrators 
 Test-LocalAdmin
 Test-WOL
@@ -11,9 +12,11 @@ Test-Bitlocker
 Test-DiskSpace
 Test-TPM
 Test-SecureBoot 
+Test-Office
+Test-Firewall
+Test-Software
 
 if (Test-locked) {
-
     $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", "VSTO2010", "GIMP",
         "AdobeReader DC", "Microsoft Power BI Desktop", "Putty", "WinSCP", "AdobeAir", "ShockwavePlayer", 
         "VCRedist2019x64" , "VCRedist2019x86", "VCRedist2013x64", "VCRedist2013x86", "Slack", "Microsoft OneDrive", "Paint.Net",
@@ -29,7 +32,9 @@ if (Test-locked) {
 }
 
 if((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVirusProduct" -ea SilentlyContinue).displayName.count -eq 1) {
-	try{ Test-Defender(10) } catch{}
+    try{ Test-Defender(10) } catch{}
+    Test-ASR
+    Test-DefenderThreats 
 }
 
 $global:chk.Add("Computername", $env:computername)

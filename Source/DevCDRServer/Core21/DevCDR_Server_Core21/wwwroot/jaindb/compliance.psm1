@@ -330,6 +330,21 @@ function Test-locked {
     return $bRes
 }
 
+function Test-Software {
+    <#
+        .Description
+        Check for missing SW Updates
+    #>
+
+    #Find Software Updates
+    $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename
+
+    if ($updates.count -gt 0) {
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("RZUpdates")) { $global:chk.Remove("RZUpdates") }
+        if ($updates) { $global:chk.Add("RZUpdates", $updates.PackageFilename -join ';') } else { $global:chk.Add("RZUpdates", 0) }
+    }
+}
 function Update-Software {
     <#
         .Description
@@ -521,11 +536,40 @@ Function Test-OSVersion {
     $global:chk.Add("OS", $Caption )
 }
 
+Function Test-ASR {
+    <#
+        .Description
+        Check Attack Surface Reduction
+    #>
+
+    $i = ((Get-MpPreference).AttackSurfaceReductionRules_Actions | Where-Object { $_ -eq 1 } ).count
+    if ($i -gt 0) {
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("ASR")) { $global:chk.Remove("ASR") }
+        $global:chk.Add("ASR", $i )
+    }
+}
+
+Function Test-Firewall {
+    <#
+        .Description
+        Check Windows Firewall
+    #>
+
+    $i = ((Get-NetFirewallProfile).enabled | Where-Object { $_ -eq $true } ).count
+    if ($i -gt 0) {
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("FW")) { $global:chk.Remove("FW") }
+        $global:chk.Add("FW", $i )
+    }
+}
+
+
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUaQ9EEZLjRjC91m2fN8Y0VHPU
-# uxWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjZk4NrdICqSoBj6N1loYtXVG
+# VPygggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -591,11 +635,11 @@ Function Test-OSVersion {
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
 # MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRk
-# osLden5TOb3lYa3HP6Tbbao0zDANBgkqhkiG9w0BAQEFAASCAQAQMHRinbVeZwhp
-# IFKFZnprFObOHvGCGGaQEOtfquDbJ8+hDxed4S21V9vPvedxjU4klpIAXyJRGqdb
-# YCFogp3D4w6La4NgugjCJTCQ64InAF2zGeJI+seR6mUcEuT8zp+i2hiMOVIkV1Sl
-# LsC9tYA94eFmW9u6+qVJB+cvlipAGBXur4c1v3Ptp5UNCHvRAN15QfKAbj6FKhAD
-# 06quiKV3LNhzdwnKWgfeJA3sZX9seal/WPqWtheh6hqAURm9LmzVe6ivX9HEIR4f
-# BAZc10NKg9AFsa4G1J60szJJfO4x6mbZlrQZiHzxHORbwBwxDkCBNam+1ns6wIft
-# 39BGth6y
+# w73DumMIqZvL7uBSe4UZ93+MVTANBgkqhkiG9w0BAQEFAASCAQCHx8/wvHbVhbGC
+# aEup3nwK0xUEYCANyUSmq/bvmheAoSmIhXADcg/VtL3YIW/d9wTRzLFueGFvuXIe
+# b+lBOEf41hJT8V2BGNppaYRL+K0IwpLwH+sQEnCiwZAZdNa0lftlgVORZe6ivshD
+# 7d8MUOP/jJZGnrAvP4XVxVlmyWUruHtO9Zf4yEi1KRnTKD/4Nqo5mXBhbLTxvCZ5
+# jZ/DDXbzdTRFjik94eojkXNOLGPuhNE84hSqGAPts4N7alXdCqJ54GrN5+EdeYmO
+# km7nhtxFGZ+4wBz1+0GaUAH+RMS/vQ2LRhn9K9/6ef8wI5RtT5VeNYNqjkddviWQ
+# 7EMLoNBS
 # SIG # End signature block
