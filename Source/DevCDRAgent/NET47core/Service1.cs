@@ -330,7 +330,9 @@ namespace DevCDRAgent
                 Properties.Settings.Default.ConnectionErrors = 0;
                 Properties.Settings.Default.Save();
                 Properties.Settings.Default.Reload();
-                Connect();
+
+                Task.Run(() => Connect());
+                
             }
             catch (Exception ex)
             {
@@ -392,24 +394,9 @@ namespace DevCDRAgent
                                 Properties.Settings.Default.Save();
                             }
                         }
-
-                        //string sCutomerID = SignatureVerification.findIssuingCA(Properties.Settings.Default.RootCA);
-                        //X509Certificate2 custcert = SignatureVerification.GetRootCert(sCutomerID);
-                        //string sDNSName = custcert.GetNameInfo(X509NameType.DnsFromAlternativeName, false);
-
-                        //if (!string.IsNullOrEmpty(sDNSName))
-                        //{
-                        //    if (custcert.Issuer != custcert.Subject) //do not add Endpoint from root ca
-                        //    {
-                        //        if ($"https://{sDNSName}/chat" != Properties.Settings.Default.Endpoint)
-                        //        {
-                        //            Uri = $"https://{sDNSName}/chat";
-                        //        }
-                        //    }
-                        //}
                     }
                     //Fallback to default endpoint after 1Days and 15 Errors
-                    if (((DateTime.Now - Properties.Settings.Default.LastConnection).TotalDays > 1) && (Properties.Settings.Default.ConnectionErrors >= 15))
+                    if (((DateTime.Now - Properties.Settings.Default.LastConnection).TotalDays >= 1) && (Properties.Settings.Default.ConnectionErrors >= 15))
                     {
                         if (!string.IsNullOrEmpty(xAgent.FallbackURL))
                             Uri = xAgent.FallbackURL;
@@ -432,7 +419,7 @@ namespace DevCDRAgent
                 Program.MinimizeFootprint();
             }
 
-
+            base.OnStart(args);
         }
 
         private void Connect()
@@ -845,7 +832,36 @@ namespace DevCDRAgent
                                 }
                                 else
                                 {
-                                    if (!string.IsNullOrEmpty(s1))
+                                    if (s1 == "OFF") //switch to legacy mode
+                                    {
+                                        //Stop status
+                                        tReCheck.Enabled = false;
+                                        tReInit.Enabled = false;
+
+                                        Trace.WriteLine(DateTime.Now.ToString() + "\t Set Customer: " + s1);
+                                        //set Customer
+                                        string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
+                                        XmlDocument doc = new XmlDocument();
+                                        doc.Load(sConfig);
+                                        doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='CustomerID']/value").InnerText = "";
+                                        doc.Save(sConfig);
+
+                                        //Update Advanced Installer Persistent Properties
+                                        try
+                                        {
+                                            RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
+                                            if (myKey != null)
+                                            {
+                                                myKey.DeleteValue("CUSTOMER");
+                                                myKey.Close();
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Trace.TraceError(DateTime.Now.ToString() + "\t Error: " + ex.Message);
+                                        }
+                                    }
+                                    else
                                     {
                                         //Stop status
                                         tReCheck.Enabled = false;
@@ -1131,7 +1147,7 @@ namespace DevCDRAgent
                 {
                     lock (_locker)
                     {
-                        Trace.WriteLine(DateTime.Now.ToString() + "\t Set AgentSignature: " + s1);
+                        Trace.WriteLine(DateTime.Now.ToString() + "\t Set AgentSignature " + s1);
                         try
                         {
                             if (string.IsNullOrEmpty(Properties.Settings.Default.CustomerID) && !string.IsNullOrEmpty(s1))
@@ -1277,7 +1293,10 @@ namespace DevCDRAgent
                             Random rnd = new Random();
                             tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
                         }
-                        catch { }
+                        catch(Exception ex)
+                        {
+                            Trace.TraceError(DateTime.Now.ToString() + "\t ERROR 1296: " + ex.Message);
+                        }
                     }
                 });
 
@@ -1510,9 +1529,9 @@ namespace DevCDRAgent
                     }
                 }
 
-                xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
+                xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID.Trim());
 
-                if (string.IsNullOrEmpty(Properties.Settings.Default.CustomerID))
+                if (string.IsNullOrEmpty(Properties.Settings.Default.CustomerID.Trim()))
                 {
                     if(xAgent.Exists && xAgent.Valid && !string.IsNullOrEmpty(xAgent.Signature))
                     {
@@ -1522,19 +1541,19 @@ namespace DevCDRAgent
                 }
 
                 //initial initialization...
-                if (!string.IsNullOrEmpty(Properties.Settings.Default.CustomerID)) //CustomerID is required !!!
+                if (!string.IsNullOrEmpty(Properties.Settings.Default.CustomerID.Trim())) //CustomerID is required !!!
                 {
                     if (!string.IsNullOrEmpty(Properties.Settings.Default.HardwareID))
                     {
-                        xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
+                        xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID.Trim());
 
                         if (xAgent.Certificate == null)
                         {
                             //request machine cert...
                             Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
-                            connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID).Wait(5000); //MachineCert
+                            connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(5000); //MachineCert
                             Thread.Sleep(5000);
-                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
+                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID.Trim());
                             
                             if (xAgent.Exists && xAgent.Valid)
                             {
@@ -1619,9 +1638,9 @@ namespace DevCDRAgent
                             //request machine cert...
                             Thread.Sleep(5000);
                             Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
-                            connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID, Properties.Settings.Default.HardwareID).Wait(5000); //MachineCert
+                            connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(5000); //MachineCert
                             Thread.Sleep(5000);
-                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
+                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID.Trim());
 
                             if(xAgent.Exists && xAgent.Valid)
                             {
@@ -1639,7 +1658,7 @@ namespace DevCDRAgent
                     }
                 }
 
-                if (string.IsNullOrEmpty(Properties.Settings.Default.AgentSignature + Properties.Settings.Default.CustomerID))
+                if (string.IsNullOrEmpty(Properties.Settings.Default.AgentSignature.Trim() + Properties.Settings.Default.CustomerID.Trim()))
                 {
                     Trace.WriteLine(DateTime.Now.ToString() + "\t AgentSignature and CustomerID missing... Starting legacy mode.");
                     Console.WriteLine("AgentSignature and CustomerID missing... Starting legacy mode.");
@@ -1673,7 +1692,7 @@ namespace DevCDRAgent
                     return;
                 }
 
-                if (string.IsNullOrEmpty(Properties.Settings.Default.AgentSignature))
+                if (string.IsNullOrEmpty(Properties.Settings.Default.AgentSignature.Trim()))
                 {
                     Trace.WriteLine(DateTime.Now.ToString() + "\t AgentSignature missing... Initializing Certificate handshake.");
                     Console.WriteLine("AgentSignature missing... Initializing Certificate handshake.");
@@ -1685,30 +1704,28 @@ namespace DevCDRAgent
                     Trace.WriteLine(DateTime.Now.ToString() + "\t AgentSignature exists... Starting Signature verification.");
                     connection.InvokeAsync("InitCert", Hostname, xAgent.Signature).ContinueWith(task1 =>
                     {
-                       try
-                       {
-                           if (task1.IsFaulted)
-                           {
-                               Trace.WriteLine($"There was an error calling send: {task1.Exception.GetBaseException()}");
-                               Console.WriteLine("There was an error calling send: {0}", task1.Exception.GetBaseException());
-                           }
-                           else
-                           {
-                               try
-                               {
-                                   Trace.WriteLine(DateTime.Now.ToString() + "\t JoiningGroup...");
-                                   connection.InvokeAsync("JoinGroupCert2", xAgent.Signature).ContinueWith(task2 =>
-                                   {
-                                   });
+                       //try
+                       //{
+                       //    if (task1.IsFaulted)
+                       //    {
+                       //        Trace.WriteLine($"There was an error calling send: {task1.Exception.GetBaseException()}");
+                       //        Console.WriteLine("There was an error calling send: {0}", task1.Exception.GetBaseException());
+                       //    }
+                       //    else
+                       //    {
+                       //        try
+                       //        {
+                       //            Trace.WriteLine(DateTime.Now.ToString() + "\t JoiningGroup...");
+                       //            connection.InvokeAsync("JoinGroupCert2", xAgent.Signature).ContinueWith(task2 =>
+                       //            {
+                       //            });
 
-                                   Program.MinimizeFootprint();
-                               }
-                               catch { }
-                           }
-                       }
-                       catch { }
-
-
+                       //            Program.MinimizeFootprint();
+                       //        }
+                       //        catch { }
+                       //    }
+                       //}
+                       //catch { }
                    });
                 }
 
@@ -1849,6 +1866,8 @@ namespace DevCDRAgent
 
                 connection.StopAsync().Wait(3000);
                 connection.DisposeAsync().Wait(1000);
+
+                base.OnStop();
             }
             catch { }
         }
@@ -1857,6 +1876,10 @@ namespace DevCDRAgent
         {
             try
             {
+                isstopping = true;
+                tReCheck.Enabled = false;
+                tReInit.Enabled = false;
+
                 Trace.WriteLine(DateTime.Now.ToString() + "\t restarting Service..");
                 Trace.Flush();
                 //Trace.Close();
@@ -1870,6 +1893,14 @@ namespace DevCDRAgent
                     }
                     catch { }
                 }
+
+                Thread.Sleep(5000);
+
+                //In case of restart failed...
+                tReCheck.Enabled = true;
+                tReInit.Enabled = true;
+                Random rnd = new Random();
+                tReInit.Interval = rnd.Next(3000, Properties.Settings.Default.StatusDelay * 5); //wait max 5s to ReInit
             }
             catch (Exception ex)
             {
