@@ -85,13 +85,25 @@ namespace DevCDRServer
                     lClients.Add(name);
                     lClients.Remove("");
 
-                    //Request Status
-                    await Clients.Client(Context.ConnectionId).SendAsync("status", name);
-
                     if (!string.IsNullOrEmpty(name))
                     {
                         await JoinGroup("Devices");
                     }
+
+                    string groupName = oSig.IssuingCA;
+
+                    if (!string.IsNullOrEmpty(groupName))
+                    {
+                        if (!lGroups.Contains(groupName))
+                        {
+                            lGroups.Add(groupName);
+                        }
+                    }
+
+                    await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+
+                    //Request Status
+                    await Clients.Client(Context.ConnectionId).SendAsync("status", name);
                 }
                 else
                 {
