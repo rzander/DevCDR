@@ -342,7 +342,12 @@ function Test-Software {
     if ($updates.count -gt 0) {
         if ($null -eq $global:chk) { $global:chk = @{ } }
         if ($global:chk.ContainsKey("RZUpdates")) { $global:chk.Remove("RZUpdates") }
-        if ($updates) { $global:chk.Add("RZUpdates", $updates.PackageFilename -join ';') } else { $global:chk.Add("RZUpdates", 0) }
+        if ($updates) { $global:chk.Add("RZUpdates", $updates.PackageFilename -join ';') } else { $global:chk.Add("RZUpdates", "") }
+    }
+    else {
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("RZUpdates")) { $global:chk.Remove("RZUpdates") }
+        if ($updates) { $global:chk.Add("RZUpdates", "") } else { $global:chk.Add("RZUpdates", "") }   
     }
 }
 function Update-Software {
@@ -568,8 +573,8 @@ Function Test-Firewall {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjZk4NrdICqSoBj6N1loYtXVG
-# VPygggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5NLIlQ3jL50ZC3hBVqiLuVdg
+# 3V6gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -634,12 +639,12 @@ Function Test-Firewall {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRk
-# w73DumMIqZvL7uBSe4UZ93+MVTANBgkqhkiG9w0BAQEFAASCAQCHx8/wvHbVhbGC
-# aEup3nwK0xUEYCANyUSmq/bvmheAoSmIhXADcg/VtL3YIW/d9wTRzLFueGFvuXIe
-# b+lBOEf41hJT8V2BGNppaYRL+K0IwpLwH+sQEnCiwZAZdNa0lftlgVORZe6ivshD
-# 7d8MUOP/jJZGnrAvP4XVxVlmyWUruHtO9Zf4yEi1KRnTKD/4Nqo5mXBhbLTxvCZ5
-# jZ/DDXbzdTRFjik94eojkXNOLGPuhNE84hSqGAPts4N7alXdCqJ54GrN5+EdeYmO
-# km7nhtxFGZ+4wBz1+0GaUAH+RMS/vQ2LRhn9K9/6ef8wI5RtT5VeNYNqjkddviWQ
-# 7EMLoNBS
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS1
+# cR93EFIXc8HwCPTKyMkC8YDCIDANBgkqhkiG9w0BAQEFAASCAQAAF/79j/yVmuXO
+# ZU5QUmGzhbHlD61N/1frCR7CTB+J8SUUDqliXxFQzimRtbcmDPwxIVRefhFdYOa7
+# y1PBATBV27hoQ3RMxsVsGexQrGeyAq5wLZYm6LTSfAE4D63JgOQ+jYmPms8kjy3/
+# czlSFJd9YgY2trboXdfhOrFPBQyh3DnL998Sru8ceZpoX7FBhO8XivWBYKvMxHnW
+# tJYFjmnD0FdRiR8s6V692ykyPZR0qY6nDGZlQzGP7kTE60GQl/h8eNmPBirezEue
+# fdsbyTTm2GCoKfznLZGbQ6YLH6FyDnvs2IQxuDVTzQ+jgEUgJ4h3jtpices8WbPH
+# Q47aG3vp
 # SIG # End signature block

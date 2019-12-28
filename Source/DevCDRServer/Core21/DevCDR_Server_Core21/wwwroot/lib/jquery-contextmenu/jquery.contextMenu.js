@@ -1,7 +1,7 @@
 /**
- * jQuery contextMenu v2.8.0 - Plugin for simple contextMenu handling
+ * jQuery contextMenu v2.9.0 - Plugin for simple contextMenu handling
  *
- * Version: v2.8.0
+ * Version: v2.9.0
  *
  * Authors: Björn Brala (SWIS.nl), Rodney Rehm, Addy Osmani (patches for FF)
  * Web: http://swisnl.github.io/jQuery-contextMenu/
@@ -11,7 +11,7 @@
  * Licensed under
  *   MIT License http://www.opensource.org/licenses/mit-license
  *
- * Date: 2019-01-16T15:45:48.370Z
+ * Date: 2019-10-13T13:09:56.900Z
  */
 
 // jscs:disable
@@ -279,7 +279,7 @@
             // contextmenu show dispatcher
             contextmenu: function (e) {
                 var $this = $(this);
-                
+
                 //Show browser context-menu when preShow returns false
                 if (e.data.events.preShow($this,e) === false) {
                     return;
@@ -1121,6 +1121,11 @@
                     'contextMenu': opt,
                     'contextMenuRoot': root
                 });
+                if(opt.dataAttr){
+                    $.each(opt.dataAttr, function (key, item) {
+                        opt.$menu.attr('data-' + opt.key, item);
+                    });
+                }
 
                 $.each(['callbacks', 'commands', 'inputs'], function (i, k) {
                     opt[k] = {};
@@ -1337,6 +1342,7 @@
                                 if (typeof(item.icon) === 'string' && (
                                     item.icon.substring(0, 4) === 'fab '
                                     || item.icon.substring(0, 4) === 'fas '
+                                    || item.icon.substring(0, 4) === 'fad '
                                     || item.icon.substring(0, 4) === 'far '
                                     || item.icon.substring(0, 4) === 'fal ')
                                 ) {
