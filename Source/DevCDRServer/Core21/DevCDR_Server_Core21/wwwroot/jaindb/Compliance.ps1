@@ -2,12 +2,12 @@
 Test-OSVersion
 Test-Nuget
 Test-OneGetProvider("1.7.1.3")
-Test-DevCDRAgent("2.0.1.20")
+Test-DevCDRAgent("2.0.1.21")
 #Test-Administrators 
 Test-LocalAdmin
 Test-WOL
 Test-FastBoot
-Test-DeliverOptimization
+Test-DeliveryOptimization
 Test-Bitlocker
 Test-DiskSpace
 Test-TPM
@@ -15,6 +15,7 @@ Test-SecureBoot
 Test-Office
 Test-Firewall
 Test-Software
+Test-AppLocker
 
 if (Test-locked) {
     $ManagedSW = @("7-Zip", "7-Zip(MSI)", "FileZilla", "Google Chrome", "Firefox" , "Notepad++", "Notepad++(x64)", "Code", "AdobeReader DC MUI", "VSTO2010", "GIMP",
@@ -24,6 +25,7 @@ if (Test-locked) {
         "VLC", "JavaRuntime8", "JavaRuntime8x64", "FlashPlayerPlugin", "FlashPlayerPPAPI", "Microsoft Azure Information Protection", "KeePass" )
 
     Update-Software -SWList $ManagedSW -CheckMeteredNetwork $true
+    Test-WU
     Test-Temp
 
 	if((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVirusProduct" -ea SilentlyContinue).displayName.count -eq 1) {

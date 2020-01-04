@@ -74,7 +74,7 @@
                 { "data": "User", "visible": false },
                 { "data": "id", "visible": false }
             ],
-            rowId: 'Hostname',
+            rowId: 'id',
             select: true,
             colReorder: true,
             responsive: true,
@@ -92,8 +92,13 @@
     });
 
     $('#tabs').on('shown.bs.tab', function (e) {
-        var group = e.target.hash
-        $('#test').DataTable().search(e.target.hash.replace('#', '')).draw();
+        var group = e.target.hash.replace('#', '')
+        var table = $('#test').DataTable();
+        
+        table.ajax.url('/DevCDR/GetData?Group=' + group).load();
+        //console.log(table.ajax.url);
+        //table.ajax.reload();
+        //$('#test').DataTable().search(e.target.hash.replace('#', '')).draw();
         }
     )
 

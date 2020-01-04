@@ -376,7 +376,7 @@ namespace DevCDRServer.Controllers
         [AllowAnonymous]
 #endif
         [Authorize]
-        public ActionResult GetData(string Instance = "Default")
+        public ActionResult GetData(string Group = "", string Instance = "Default")
         {
             JArray jData = new JArray();
             try
@@ -386,6 +386,8 @@ namespace DevCDRServer.Controllers
                 MemberInfo[] memberInfos = xType.GetMember("jData", BindingFlags.Public | BindingFlags.Static);
 
                 jData = ((FieldInfo)memberInfos[0]).GetValue(new JArray()) as JArray;
+                if(!string.IsNullOrEmpty(Group))
+                    jData = new JArray(jData.SelectTokens($"$.[?(@.Groups=='{ Group }')]"));
             }
             catch { }
 

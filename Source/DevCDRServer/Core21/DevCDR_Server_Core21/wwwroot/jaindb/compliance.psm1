@@ -69,14 +69,14 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https
 
     if (Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) { } else {
         if ($bLogging) {
-            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Installing OneGet v1.7.1.2" }) -LogType "DevCDRCore" 
+            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Installing OneGet v1.7.1.3" }) -LogType "DevCDRCore" 
         }
         &msiexec -i $DownloadURL /qn REBOOT=REALLYSUPPRESS 
     }
 
     if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]($ProviderVersion)) {
         if ($bLogging) {
-            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Updating to OneGet v1.7.1.2" }) -LogType "DevCDRCore" 
+            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Updating to OneGet v1.7.1.3" }) -LogType "DevCDRCore" 
         }
         &msiexec -i $DownloadURL /qn REBOOT=REALLYSUPPRESS 
     }
@@ -86,7 +86,7 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https
     $global:chk.Add("OneGetProvider", (Get-PackageProvider -Name Ruckzuck).Version.ToString())
 }
 
-function Test-DevCDRAgent($AgentVersion = "2.0.1.18") {
+function Test-DevCDRAgent($AgentVersion = "2.0.1.21") {
     <#
         .Description
         Install or Update DevCDRAgentCore if required
@@ -298,7 +298,7 @@ function Test-FastBoot($Value = 0) {
     $global:chk.Add("FastBoot", $Value)
 }
 
-function Test-DeliverOptimization {
+function Test-DeliveryOptimization {
     <#
         .Description
         restrict Peer Selection on DeliveryOptimization
@@ -406,7 +406,7 @@ Function Test-Defender($Age = 7) {
     #>
     if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVirusProduct" -ea SilentlyContinue).displayName.count -eq 1) {
         $ScanAge = (Get-MpComputerStatus).QuickScanAge
-        if ($ScanAge -ge $Age) { Start-MpScan -ScanType QuickScan }
+        if ($ScanAge -ge $Age) { start-process "$($env:ProgramFiles)\Windows Defender\MpCmdRun.exe" -ArgumentList '-Scan -ScanType 1' }
 
         if ($null -eq $global:chk) { $global:chk = @{ } }
         if ($global:chk.ContainsKey("DefenderScanAge")) { $global:chk.Remove("DefenderScangAge") }
@@ -514,7 +514,7 @@ Function Test-DefenderThreats {
     #>
 
     if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVirusProduct" -ea SilentlyContinue).displayName.count -eq 1) {
-        $Threats = Get-MpThreatDetection
+        $Threats = Get-MpThreat
     }
     else { $Threats = $null }
     if ($null -eq $global:chk) { $global:chk = @{ } }
@@ -569,12 +569,63 @@ Function Test-Firewall {
     }
 }
 
+Function Test-WU {
+    <#
+        .Description
+        Check missing Windows Updates
+    #>
+
+    try {
+        if (Get-InstalledModule -Name PSWindowsUpdate -MinimumVersion "2.1.1.2" -ea SilentlyContinue) { } else {
+            set-executionpolicy bypass -Force
+            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.208 -Force
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted 
+            Install-Module PSWindowsUpdate -Force
+            $upd = Get-WUList -MicrosoftUpdate
+
+            if ($upd) {
+                if ($null -eq $global:chk) { $global:chk = @{ } }
+                if ($global:chk.ContainsKey("WU")) { $global:chk.Remove("WU") }
+                $global:chk.Add("WU", $upd.count)
+            }
+            else {
+                if ($null -eq $global:chk) { $global:chk = @{ } }
+                if ($global:chk.ContainsKey("WU")) { $global:chk.Remove("WU") }
+                $global:chk.Add("WU", 0) 
+            }
+        }
+    }
+    catch {
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("WU")) { $global:chk.Remove("WU") }
+        $global:chk.Add("WU", -1) 
+    }
+}
+
+Function Test-AppLocker {
+    <#
+        .Description
+        Check if AppLocker is configured
+    #>
+
+    try {
+        $AL = (Get-AppLockerPolicy -Effective).RuleCollections.count
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("AppLocker")) { $global:chk.Remove("AppLocker") }
+        $global:chk.Add("AppLocker", $AL) 
+    }
+    catch {
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("AppLocker")) { $global:chk.Remove("AppLocker") }
+        $global:chk.Add("AppLocker", -1) 
+    }
+}
 
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5NLIlQ3jL50ZC3hBVqiLuVdg
-# 3V6gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUfXeF2jeiobWHiffp5lB1rYKz
+# EWqgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -639,12 +690,12 @@ Function Test-Firewall {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS1
-# cR93EFIXc8HwCPTKyMkC8YDCIDANBgkqhkiG9w0BAQEFAASCAQAAF/79j/yVmuXO
-# ZU5QUmGzhbHlD61N/1frCR7CTB+J8SUUDqliXxFQzimRtbcmDPwxIVRefhFdYOa7
-# y1PBATBV27hoQ3RMxsVsGexQrGeyAq5wLZYm6LTSfAE4D63JgOQ+jYmPms8kjy3/
-# czlSFJd9YgY2trboXdfhOrFPBQyh3DnL998Sru8ceZpoX7FBhO8XivWBYKvMxHnW
-# tJYFjmnD0FdRiR8s6V692ykyPZR0qY6nDGZlQzGP7kTE60GQl/h8eNmPBirezEue
-# fdsbyTTm2GCoKfznLZGbQ6YLH6FyDnvs2IQxuDVTzQ+jgEUgJ4h3jtpices8WbPH
-# Q47aG3vp
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQf
+# NdihJJMlUL6ctV7c7IxC05kBtTANBgkqhkiG9w0BAQEFAASCAQAZz0F/a9iyhwXE
+# K5UF8e4ZCgY8r44IwPetJpjsLaJZuMPA2IavR6ls/F7Ec/Wd7hYxeOtKyq6yJCXk
+# vjFQOxUoxipbhZSJasX5kuZrD56t9qSJLOUvRgBsW+VMYV+eOlA9uJVNtJcnGXF2
+# b7xNLb8kpghXEsoyZvVxaRoxBeWqdKqMXA/fy8AVojlt8bKOY3ve7Yae3KDthyA+
+# 8HQCLLONNd67Ktpc7J7JSSLnEIkq896jPSOnv3JFYwCbu9qGLZh6ZHuaY466u7+0
+# lmJwZrG6DOfCXEX4PYFYm3frkcUHSBuuZJkeT0KeEfOh2o6HnMZPsuuRpA5/WWTG
+# WS8YwTXc
 # SIG # End signature block
