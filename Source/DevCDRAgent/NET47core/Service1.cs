@@ -1662,6 +1662,10 @@ namespace DevCDRAgent
                 {
                     Trace.WriteLine(DateTime.Now.ToString() + "\t AgentSignature and CustomerID missing... Starting legacy mode.");
                     Console.WriteLine("AgentSignature and CustomerID missing... Starting legacy mode.");
+
+                    System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
+                    System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
+
                     //Legacy Init
                     connection.InvokeAsync("Init", Hostname).ContinueWith(task1 =>
                     {
@@ -1745,11 +1749,18 @@ namespace DevCDRAgent
                         }
 
                         File.WriteAllText(Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\WindowsPowerShell\Modules\Compliance\compliance.psm1"), sModule, new UTF8Encoding(true));
+
+                        System.Environment.SetEnvironmentVariable("DevCDRSig", xAgent.Signature, EnvironmentVariableTarget.Machine);
+                        System.Environment.SetEnvironmentVariable("DevCDREP", sEndPoint, EnvironmentVariableTarget.Machine);
                     }
                     catch(Exception ex)
                     {
                         Trace.TraceError(DateTime.Now.ToString()  + "\t" + ex.Message);
                     }
+                } else
+                {
+                    System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
+                    System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
                 }
             }
             catch (Exception ex)
