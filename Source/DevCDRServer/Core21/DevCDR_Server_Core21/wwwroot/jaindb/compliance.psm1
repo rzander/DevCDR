@@ -514,12 +514,24 @@ Function Test-DefenderThreats {
     #>
 
     if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVirusProduct" -ea SilentlyContinue).displayName.count -eq 1) {
-        $Threats = Get-MpThreat
+        $Threats = Get-MpThreat -ea SilentlyContinue
+        if ($Threats) {
+            if ($null -eq $global:chk) { $global:chk = @{ } }
+            if ($global:chk.ContainsKey("AVThreats")) { $global:chk.Remove("AVThreats") }
+            if ($Threats.count) {
+                $global:chk.Add("AVThreats", $Threats.count)
+            }
+            else {
+                $global:chk.Add("AVThreats", 1) 
+            }
+        }
     }
-    else { $Threats = $null }
-    if ($null -eq $global:chk) { $global:chk = @{ } }
-    if ($global:chk.ContainsKey("AVThreats")) { $global:chk.Remove("AVThreats") }
-    $global:chk.Add("AVThreats", $Threats.count)
+    else {
+        $Threats = $null
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("AVThreats")) { $global:chk.Remove("AVThreats") }
+        $global:chk.Add("AVThreats", -1) 
+    }
 }
 
 Function Test-OSVersion {
@@ -624,8 +636,8 @@ Function Test-AppLocker {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUfXeF2jeiobWHiffp5lB1rYKz
-# EWqgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3vreGUriR0ka1dXBddr5+igR
+# szagggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -690,12 +702,12 @@ Function Test-AppLocker {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQf
-# NdihJJMlUL6ctV7c7IxC05kBtTANBgkqhkiG9w0BAQEFAASCAQAZz0F/a9iyhwXE
-# K5UF8e4ZCgY8r44IwPetJpjsLaJZuMPA2IavR6ls/F7Ec/Wd7hYxeOtKyq6yJCXk
-# vjFQOxUoxipbhZSJasX5kuZrD56t9qSJLOUvRgBsW+VMYV+eOlA9uJVNtJcnGXF2
-# b7xNLb8kpghXEsoyZvVxaRoxBeWqdKqMXA/fy8AVojlt8bKOY3ve7Yae3KDthyA+
-# 8HQCLLONNd67Ktpc7J7JSSLnEIkq896jPSOnv3JFYwCbu9qGLZh6ZHuaY466u7+0
-# lmJwZrG6DOfCXEX4PYFYm3frkcUHSBuuZJkeT0KeEfOh2o6HnMZPsuuRpA5/WWTG
-# WS8YwTXc
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTV
+# aXH75XtPxZ8xkMG4PBFfe9ncjDANBgkqhkiG9w0BAQEFAASCAQCl/f3OfD3dHI9/
+# itrpz1+HFmYN97HfCEj0a8Q2YgtTI2M2fMIZ9GKpjbgLO8XLZP7KJW2suHLfvMGe
+# GH+yMcPf8/6DnrSzdGPD7v9iEPwG7LhGevNCkwKUqFaY0Vk9Ye9DHCi/wTwSEkE6
+# T2Mk73UDl+8Hv5LoaDaqVDkDDfnO1MVk6hqessJ27uokRxv7kJ5xcvCEDj/bhQ++
+# CqRmwHzksdwS8CvDLDTrrmdkgmSYmJ5F/zpSPXGoqLuqHyBTcAtrAMe2U4cYOtTH
+# ZCWPfOQnW31gkI5xNor31AgvTXDEdLzqYORd3AHeM13lR1fxYSj/OvTDQI016BO0
+# MHWMtPQp
 # SIG # End signature block
