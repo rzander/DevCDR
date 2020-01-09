@@ -8,6 +8,7 @@ using RZUpdate;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
@@ -280,6 +281,15 @@ namespace DevCDRAgent
             tReInit.Elapsed += TReInit_Elapsed;
             tReInit.Enabled = true;
             tReInit.AutoReset = true;
+
+            try
+            {
+                //Register for Defender EventLogs
+                EventLogWatcher watcher = new EventLogWatcher("Microsoft-Windows-Windows Defender/Operational");
+                watcher.EventRecordWritten += EventLogEventRead;
+                watcher.Enabled = true;
+            }
+            catch { }
 
             if (connection != null)
             {
@@ -1857,6 +1867,50 @@ namespace DevCDRAgent
         public void Start(string[] args)
         {
             OnStart(args);
+        }
+
+
+        public void EventLogEventRead(object obj, EventRecordWrittenEventArgs arg)
+        {
+            // Make sure there was no error reading the event.
+            if (arg.EventRecord != null)
+            {
+                try
+                {
+                    bool bVirus = false;
+                    switch (arg.EventRecord.Id)
+                    {
+                        case 1006:
+                            bVirus = true;
+                            break;
+                        case 1015:
+                            bVirus = true;
+                            break;
+                        case 1116:
+                            bVirus = true;
+                            break;
+                        case 1117:
+                            bVirus = true;
+                            break;
+                        case 1118:
+                            bVirus = true;
+                            break;
+                        case 1119:
+                            bVirus = true;
+                            break;
+                    }
+
+                    if (bVirus)
+                    {
+                        Properties.Settings.Default.InventorySuccess = new DateTime();
+                        Properties.Settings.Default.HealthCheckSuccess = new DateTime();
+                        Random rnd2 = new Random();
+                        tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                    }
+
+                }
+                catch { }
+            }
         }
 
         protected override void OnStop()
