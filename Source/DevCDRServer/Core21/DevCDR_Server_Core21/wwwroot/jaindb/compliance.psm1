@@ -633,11 +633,180 @@ Function Test-AppLocker {
     }
 }
 
+#region Inventory
+function GetHash([string]$txt) {
+    return GetMD5($txt)
+}
+
+function GetMD5([string]$txt) {
+    $md5 = New-Object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
+    $utf8 = New-Object -TypeName System.Text.ASCIIEncoding
+    return Base58(@(0xd5, 0x10) + $md5.ComputeHash($utf8.GetBytes($txt))) #To store hash in Multihash format, we add a 0xD5 to make it an MD5 and an 0x10 means 10Bytes length
+}
+
+function GetSHA2_256([string]$txt) {
+    $sha = New-Object -TypeName System.Security.Cryptography.SHA256CryptoServiceProvider
+    $utf8 = New-Object -TypeName System.Text.ASCIIEncoding
+    return Base58(@(0x12, 0x20) + $sha.ComputeHash($utf8.GetBytes($txt))) #To store hash in Multihash format, we add a 0x12 to make it an SHA256 and an 0x20 means 32Bytes length
+}
+
+function Base58([byte[]]$data) {
+    $Digits = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+    [bigint]$intData = 0
+    for ($i = 0; $i -lt $data.Length; $i++) {
+        $intData = ($intData * 256) + $data[$i]; 
+    }
+    [string]$result = "";
+    while ($intData -gt 0) {
+        $remainder = ($intData % 58);
+        $intData /= 58;
+        $result = $Digits[$remainder] + $result;
+    }
+
+    for ($i = 0; ($i -lt $data.Length) -and ($data[$i] -eq 0); $i++) {
+        $result = '1' + $result;
+    }
+
+    return $result
+}
+
+function normalize([long]$number) {
+    if ($number) {
+        if ($number -gt 2000000000 ) { return ([math]::Truncate($number / 1000000000) * 1000000000) }
+        if ($number -gt 100000000 ) { return ([math]::Truncate($number / 1000000) * 1000000) }
+        if ($number -gt 1000000 ) { return ([math]::Truncate($number / 10000) * 10000) }
+    }
+    return $number
+}
+
+function GetInv {
+    Param(
+        [parameter(Mandatory = $true)]
+        [String]
+        $Name,
+        [String]
+        $Namespace,
+        [parameter(Mandatory = $true)]
+        [String]
+        $WMIClass,
+        [String[]]
+        $Properties,
+        [ref]
+        $AppendObject,
+        $AppendProperties
+    )
+
+    if ($Namespace) { } else { $Namespace = "root\cimv2" }
+    $obj = Get-CimInstance -Namespace $Namespace -ClassName $WMIClass
+
+    if ($null -eq $Properties) { $Properties = $obj.Properties.Name | Sort-Object }
+    if ($null -eq $Namespace) { $Namespace = "root\cimv2" }
+
+    $res = $obj | Select-Object $Properties -ea SilentlyContinue
+
+    #WMI Results can be an array of objects
+    if ($obj -is [array]) {
+        $Properties | ForEach-Object { $prop = $_; $i = 0; $res | ForEach-Object {
+                $val = $obj[$i].($prop.TrimStart('#@'));
+                try {
+                    if ($val.GetType() -eq [string]) {
+                        $val = $val.Trim();
+                        if (($val.Length -eq 25) -and ($val.IndexOf('.') -eq 14) -and ($val.IndexOf('+') -eq 21)) {
+                            $OS = Get-WmiObject -class Win32_OperatingSystem
+                            $val = $OS.ConvertToDateTime($val)
+                        }
+                    }
+                }
+                catch { }
+                if ($val) {
+                    $_ | Add-Member -MemberType NoteProperty -Name ($prop) -Value ($val) -Force;
+                }
+                else {
+                    $_.PSObject.Properties.Remove($prop);
+                }
+                $i++
+            }
+        } 
+    }
+    else {
+        $Properties | ForEach-Object { 
+            $prop = $_;
+            $val = $obj.($prop.TrimStart('#@'));
+            try {
+                if ($val.GetType() -eq [string]) {
+                    $val = $val.Trim();
+                    if (($val.Length -eq 25) -and ($val.IndexOf('.') -eq 14) -and ($val.IndexOf('+') -eq 21)) {
+                        $OS = Get-WmiObject -class Win32_OperatingSystem
+                        $val = $OS.ConvertToDateTime($val)
+                    }
+                }
+            }
+            catch { }
+            if ($val) {
+                $res | Add-Member -MemberType NoteProperty -Name ($prop) -Value ($val) -Force;
+            }
+            else {
+                $res.PSObject.Properties.Remove($prop);
+            }
+        }
+            
+    }
+        
+    
+    $res.psobject.TypeNames.Insert(0, $Name) 
+
+    if ($null -ne $AppendProperties) {
+        $AppendProperties.PSObject.Properties | ForEach-Object {
+            if ($_.Value) {
+                $res | Add-Member -MemberType NoteProperty -Name $_.Name -Value ($_.Value)
+            }
+        } 
+    }
+
+    if ($null -ne $AppendObject.Value) {
+        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name $Name -Value ($res)
+        return $null
+    }
+
+    return $res
+    
+}
+
+function GetMyID {
+    $uuid = getinv -Name "Computer" -WMIClass "win32_ComputerSystemProduct" -Properties @("#UUID")
+    $comp = getinv -Name "Computer" -WMIClass "win32_ComputerSystem" -Properties @("Domain", "#Name") -AppendProperties $uuid 
+    return GetHash($comp | ConvertTo-Json -Compress)
+}
+
+function SetID {
+    Param(
+        [ref]
+        $AppendObject )
+
+    if ($null -ne $AppendObject.Value) {
+        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#id" -Value (GetMyID) -ea SilentlyContinue
+        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#UUID" -Value (getinv -Name "Computer" -WMIClass "win32_ComputerSystemProduct" -Properties @("#UUID"))."#UUID" -ea SilentlyContinue
+        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#Name" -Value (getinv -Name "Computer" -WMIClass "win32_ComputerSystem" -Properties @("Name"))."Name" -ea SilentlyContinue
+        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#SerialNumber" -Value (getinv -Name "Computer" -WMIClass "win32_SystemEnclosure" -Properties @("SerialNumber"))."SerialNumber" -ea SilentlyContinue
+        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "@MAC" -Value (Get-WmiObject -class "Win32_NetworkAdapterConfiguration" | Where-Object { ($_.IpEnabled -Match "True") }).MACAddress.Replace(':', '-')
+		
+        [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+        $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+        $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
+        $devcdrgrp = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Groups' }).value
+        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDREndpoint" -Value $EP
+        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRGroups" -Value $devcdrgrp
+		$AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRCustomerID" -Value $customerId
+        return $null
+    }   
+}
+#endregion Inventory
+
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3vreGUriR0ka1dXBddr5+igR
-# szagggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUYwyvDdcrbHjtyCpneGqq6IeU
+# euqgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -702,12 +871,12 @@ Function Test-AppLocker {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTV
-# aXH75XtPxZ8xkMG4PBFfe9ncjDANBgkqhkiG9w0BAQEFAASCAQCl/f3OfD3dHI9/
-# itrpz1+HFmYN97HfCEj0a8Q2YgtTI2M2fMIZ9GKpjbgLO8XLZP7KJW2suHLfvMGe
-# GH+yMcPf8/6DnrSzdGPD7v9iEPwG7LhGevNCkwKUqFaY0Vk9Ye9DHCi/wTwSEkE6
-# T2Mk73UDl+8Hv5LoaDaqVDkDDfnO1MVk6hqessJ27uokRxv7kJ5xcvCEDj/bhQ++
-# CqRmwHzksdwS8CvDLDTrrmdkgmSYmJ5F/zpSPXGoqLuqHyBTcAtrAMe2U4cYOtTH
-# ZCWPfOQnW31gkI5xNor31AgvTXDEdLzqYORd3AHeM13lR1fxYSj/OvTDQI016BO0
-# MHWMtPQp
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS1
+# OoxqPTIlx3Ocdu8TCA65z1uBQzANBgkqhkiG9w0BAQEFAASCAQCly2DIn7TxBr2h
+# Qq5b1RPbju76z1VMwQUavvKXQngWCZGYMQlY+qhXfQRx2uyPSK5yCCbrswA70CDq
+# jPuXLK63KRYC0RBnrTO2Q85RSP0xJ+nG0csQujzGayUKdTUYSkzgZ5HWo9kNBY0W
+# WUSZPQiQ634NsxMydxTmA/sYvnrtFl6nG6LBVqD912VHwsuzPn1aK/wNrmCrhr/r
+# n+DZ+zBw5Va/6T9HiV9RrxyPYRliYrx8k7ji0NTxuRLgw1YYBXeqBeHHYZZiwVlk
+# kvSFMpQ7B9XvDLsg9iJKxd5YbWhlmxxvJZQiYTaPB4urDELNBFPqdUZhmiHjxRCs
+# fLmsyEDj
 # SIG # End signature block
