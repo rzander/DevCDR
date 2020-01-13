@@ -179,8 +179,7 @@ namespace DevCDRServer.Controllers
 
                 if (oSig.Exists && oSig.Valid)
                 {
-
-                    string sScript = GetScriptAsync(oSig.IssuingCA, filename).Result;
+                    string sScript = GetScriptAsync(oSig.CustomerID, filename).Result;
                     
                     if (string.IsNullOrEmpty(sScript))
                         sScript = GetScriptAsync("DEMO", filename).Result;

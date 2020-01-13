@@ -2,7 +2,7 @@
 Test-OSVersion
 Test-Nuget
 Test-OneGetProvider("1.7.1.3")
-Test-DevCDRAgent("2.0.1.21")
+Test-DevCDRAgent("2.0.1.24")
 #Test-Administrators 
 Test-LocalAdmin
 Test-WOL
