@@ -339,7 +339,7 @@ function Test-Software {
     #Find Software Updates
     $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename
 
-    if ($updates.count -gt 0) {
+    if ($updates) {
         if ($null -eq $global:chk) { $global:chk = @{ } }
         if ($global:chk.ContainsKey("RZUpdates")) { $global:chk.Remove("RZUpdates") }
         if ($updates) { $global:chk.Add("RZUpdates", $updates.PackageFilename -join ';') } else { $global:chk.Add("RZUpdates", "") }
@@ -805,8 +805,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUYwyvDdcrbHjtyCpneGqq6IeU
-# euqgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUfWzUOM60xj1O8t5HHHVwQMaU
+# rPqgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -871,12 +871,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS1
-# OoxqPTIlx3Ocdu8TCA65z1uBQzANBgkqhkiG9w0BAQEFAASCAQCly2DIn7TxBr2h
-# Qq5b1RPbju76z1VMwQUavvKXQngWCZGYMQlY+qhXfQRx2uyPSK5yCCbrswA70CDq
-# jPuXLK63KRYC0RBnrTO2Q85RSP0xJ+nG0csQujzGayUKdTUYSkzgZ5HWo9kNBY0W
-# WUSZPQiQ634NsxMydxTmA/sYvnrtFl6nG6LBVqD912VHwsuzPn1aK/wNrmCrhr/r
-# n+DZ+zBw5Va/6T9HiV9RrxyPYRliYrx8k7ji0NTxuRLgw1YYBXeqBeHHYZZiwVlk
-# kvSFMpQ7B9XvDLsg9iJKxd5YbWhlmxxvJZQiYTaPB4urDELNBFPqdUZhmiHjxRCs
-# fLmsyEDj
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQr
+# lgEE1vDYebExPJmqcs8VASTt9zANBgkqhkiG9w0BAQEFAASCAQCAg31Rwlt0YCO5
+# QpXRpUUzGqJiP996FhnHrp7LUdmJNJCOxIk90hxv82KAl2OL8IrHXO9ESwKbJ/YT
+# r/W46wu8I5O2RrtdYN5m/KhAm6QtFAs4yFmbZU6q2z++9uwXmqpV7KS0vG3z3zQZ
+# 2rleEwA5WSCXUdz4dthLO4dXqumN7jBL4aOUHNJrd6U4o+O9/qFZGwrAJE0oYBbA
+# dcw+e84iHSwKDfwLUeVaOYzczEWxEWPjc4QJ7BrVpEL6X9eEOvcKgGRcUPIfIc/0
+# GtYFqyBApjS72bKpZ1vLSIEduvArd0ghnEWj1Fu0spGQokav7tPc10cixC1orYGj
+# JS4v5J9K
 # SIG # End signature block
