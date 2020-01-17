@@ -14,7 +14,6 @@ Test-TPM
 Test-SecureBoot 
 Test-Office
 Test-Firewall
-Test-Software
 Test-AppLocker
 
 if (Test-locked) {
@@ -43,6 +42,8 @@ if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVir
     Test-ASR
     Test-DefenderThreats 
 }
+
+Test-Software
 
 $global:chk.Add("Computername", $env:computername)
 $global:chk | ConvertTo-Json
