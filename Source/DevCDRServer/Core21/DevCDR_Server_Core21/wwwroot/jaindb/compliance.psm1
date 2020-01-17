@@ -592,20 +592,21 @@ Function Test-WU {
             set-executionpolicy bypass -Force
             Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.208 -Force
             Set-PSRepository -Name PSGallery -InstallationPolicy Trusted 
-            Install-Module PSWindowsUpdate -Force
-            $upd = Get-WUList -MicrosoftUpdate
-
-            if ($upd) {
-                if ($null -eq $global:chk) { $global:chk = @{ } }
-                if ($global:chk.ContainsKey("WU")) { $global:chk.Remove("WU") }
-                $global:chk.Add("WU", $upd.count)
-            }
-            else {
-                if ($null -eq $global:chk) { $global:chk = @{ } }
-                if ($global:chk.ContainsKey("WU")) { $global:chk.Remove("WU") }
-                $global:chk.Add("WU", 0) 
-            }
         }
+        Install-Module PSWindowsUpdate -Force
+        $upd = Get-WUList -MicrosoftUpdate
+
+        if ($upd) {
+            if ($null -eq $global:chk) { $global:chk = @{ } }
+            if ($global:chk.ContainsKey("WU")) { $global:chk.Remove("WU") }
+            $global:chk.Add("WU", $upd.count)
+        }
+        else {
+            if ($null -eq $global:chk) { $global:chk = @{ } }
+            if ($global:chk.ContainsKey("WU")) { $global:chk.Remove("WU") }
+            $global:chk.Add("WU", 0) 
+        }
+        
     }
     catch {
         if ($null -eq $global:chk) { $global:chk = @{ } }
@@ -796,7 +797,7 @@ function SetID {
         $devcdrgrp = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Groups' }).value
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDREndpoint" -Value $EP
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRGroups" -Value $devcdrgrp
-		$AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRCustomerID" -Value $customerId
+        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRCustomerID" -Value $customerId
         return $null
     }   
 }
@@ -805,8 +806,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUfWzUOM60xj1O8t5HHHVwQMaU
-# rPqgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyQ+2jioI1Ez4uVIjSgORzWvC
+# tMqgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -871,12 +872,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQr
-# lgEE1vDYebExPJmqcs8VASTt9zANBgkqhkiG9w0BAQEFAASCAQCAg31Rwlt0YCO5
-# QpXRpUUzGqJiP996FhnHrp7LUdmJNJCOxIk90hxv82KAl2OL8IrHXO9ESwKbJ/YT
-# r/W46wu8I5O2RrtdYN5m/KhAm6QtFAs4yFmbZU6q2z++9uwXmqpV7KS0vG3z3zQZ
-# 2rleEwA5WSCXUdz4dthLO4dXqumN7jBL4aOUHNJrd6U4o+O9/qFZGwrAJE0oYBbA
-# dcw+e84iHSwKDfwLUeVaOYzczEWxEWPjc4QJ7BrVpEL6X9eEOvcKgGRcUPIfIc/0
-# GtYFqyBApjS72bKpZ1vLSIEduvArd0ghnEWj1Fu0spGQokav7tPc10cixC1orYGj
-# JS4v5J9K
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRj
+# rW+K20qzkAVDp3p5JxeZvZjTmDANBgkqhkiG9w0BAQEFAASCAQC1TMovpkMGtjyh
+# rU/CpqEhJbVFta0V3ZiesIf91knrHe+vykYTgT4iIXK4XcjwrnCqpR4KB8u58tJS
+# WCdXwP6/rnDevSfyjWU36UzvMvj4Np7rDe/CKIbAFB7/beS9ECQWq85fvEEdVv8M
+# ageDmtbQPf+w75Z0eh3bDA65hsKKSCqiT5rgTlXztJXrpPS6hHYl0JNNmkDSCoOo
+# wAQZtQY3lyD2BFygLnPatmSIrLMzKuJTEgwkTFvOrddrL6/D3c8Ma+Lyi+c0fBfT
+# ON1hBcH+fz2TvigC3L6qT1mqrGhx6jK3eRpdUzT681eqAdjrilXW8fnndoZHR9N8
+# MBzs/s1O
 # SIG # End signature block
