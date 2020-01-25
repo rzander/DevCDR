@@ -1,4 +1,13 @@
-﻿function Test-Nuget {
+﻿function Test-Logging {
+    <#
+        .Description
+        test if logging is enabled
+    #>
+
+    if(Get-Module -ListAvailable -Name WriteAnalyticsLog) { return $true } else { return $false }
+}
+
+function Test-Nuget {
     <#
         .Description
         Check if Nuget PackageProvider is installed
@@ -370,8 +379,8 @@ function Update-Software {
     #Update only managed Software
     $SWList | ForEach-Object { 
         if ($updates.PackageFilename -contains $_) { 
-            if ($bLogging) {
-                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 2000; Description = "RuckZuck updating: $($_)" }) -LogType "DevCDR" 
+            if (Test-Logging) {
+                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 2000; Description = "RuckZuck updating: $($_)"; CustomerID = $env:DevCDRId }) -LogType "DevCDR" 
             }
             "Updating: " + $_ ;
             Install-Package -ProviderName RuckZuck "$($_)" -ea SilentlyContinue
@@ -806,8 +815,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyQ+2jioI1Ez4uVIjSgORzWvC
-# tMqgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUs8q4d9QPhEZeUp89TV3L1SJH
+# Vc6gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -872,12 +881,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRj
-# rW+K20qzkAVDp3p5JxeZvZjTmDANBgkqhkiG9w0BAQEFAASCAQC1TMovpkMGtjyh
-# rU/CpqEhJbVFta0V3ZiesIf91knrHe+vykYTgT4iIXK4XcjwrnCqpR4KB8u58tJS
-# WCdXwP6/rnDevSfyjWU36UzvMvj4Np7rDe/CKIbAFB7/beS9ECQWq85fvEEdVv8M
-# ageDmtbQPf+w75Z0eh3bDA65hsKKSCqiT5rgTlXztJXrpPS6hHYl0JNNmkDSCoOo
-# wAQZtQY3lyD2BFygLnPatmSIrLMzKuJTEgwkTFvOrddrL6/D3c8Ma+Lyi+c0fBfT
-# ON1hBcH+fz2TvigC3L6qT1mqrGhx6jK3eRpdUzT681eqAdjrilXW8fnndoZHR9N8
-# MBzs/s1O
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSY
+# YPVW52GcHWf6LV9yp6FLrBwQnzANBgkqhkiG9w0BAQEFAASCAQBrO682kSAKtkuG
+# UfKsPPpUPk0LexUMiadEV55ARuIhwnKETRbwDzrEPRUB9t9oj+fgi04BF7xMJIcV
+# Ujj5lLapM+G3J1zRw1Jot3VvHX94cOSkoT05wCfRoU/DD7jqNP78arGeUfFJ9rSt
+# CK6w7DfgV4lMiWibdn02eDxr7fYTpj9eTaEPKnhH5WjUhF64CS1CWgh39VnC9WP9
+# f/9cPLeLvEJ/W+TYKh9rurv8K4w7YEzqz9C4XIGrwrqdLkU+IW46yan03tzjYOZu
+# iyYvSKPHFmh8x+8peWykpmT5SNbyI/2HGuyC8zYwsYlvka6B/lE2zcy/ofS/HdNF
+# Rh7vSp9M
 # SIG # End signature block
