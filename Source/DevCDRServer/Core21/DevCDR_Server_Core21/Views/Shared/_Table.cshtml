@@ -72,11 +72,13 @@
                 { "data": "ScriptResult" },
                 { "data": "Groups", "visible": false },
                 { "data": "User", "visible": false },
-                { "data": "id", "visible": false }
+                { "data": "id", "visible": false },
+                { "data": "Customer", "visible": false }
             ],
-            rowId: 'Hostname',
+            rowId: 'id',
             select: true,
             colReorder: true,
+            responsive: true,
             dom: '<"top"Bi>frt<"bottom"lp><"clear">'
         });
 
@@ -91,8 +93,13 @@
     });
 
     $('#tabs').on('shown.bs.tab', function (e) {
-        var group = e.target.hash
-        $('#test').DataTable().search(e.target.hash.replace('#', '')).draw();
+        var group = e.target.hash.replace('#', '')
+        var table = $('#test').DataTable();
+        
+        table.ajax.url('/DevCDR/GetData?Group=' + group).load();
+        //console.log(table.ajax.url);
+        //table.ajax.reload();
+        //$('#test').DataTable().search(e.target.hash.replace('#', '')).draw();
         }
     )
 
@@ -107,12 +114,11 @@
         var lastReload = new Date();
 
         connection.on("newData", (Name, Status) => {
-            console.log("TEST");
-            //2s queue but 10s max
+            //1s queue but 10s max
             if ((new Date() - lastReload) < 10000) { clearTimeout(tTimer); } else { lastReload = new Date(); iCount = 0 };
             //load first request
             if (iCount > 1) {
-                tTimer = setTimeout(reloadData, 2000); //2s queue
+                tTimer = setTimeout(reloadData, 1000); //1s queue
                 //console.log("set Timer");
             } else {
                 reloadData();

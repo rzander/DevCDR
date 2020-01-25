@@ -1,8 +1,10 @@
 ﻿using DevCDR.Extensions;
+using jaindb;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
@@ -93,7 +95,7 @@ namespace DevCDRServer.Controllers
             ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default";
             ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             ViewBag.Endpoint = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat";
-            ViewBag.Customer = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "DEMO";
+            ViewBag.Customer = Environment.GetEnvironmentVariable("CUSTOMERID") ?? "DEMO";
 
 
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
@@ -156,11 +158,11 @@ namespace DevCDRServer.Controllers
 
         //Get a File and authenticate with signature
         [AllowAnonymous]
-        public ActionResult GetFile(string filename, string signature, string customerid = "")
+        public ActionResult GetFile(string filename, string signature)
         {
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
             {
-                X509AgentCert oSig = new X509AgentCert("", signature);
+                X509AgentCert oSig = new X509AgentCert(signature);
 
                 try
                 {
@@ -177,8 +179,7 @@ namespace DevCDRServer.Controllers
 
                 if (oSig.Exists && oSig.Valid)
                 {
-
-                    string sScript = GetScriptAsync(oSig.IssuingCA, filename).Result;
+                    string sScript = GetScriptAsync(oSig.CustomerID, filename).Result;
                     
                     if (string.IsNullOrEmpty(sScript))
                         sScript = GetScriptAsync("DEMO", filename).Result;
@@ -197,6 +198,7 @@ namespace DevCDRServer.Controllers
             }
             return null;
         }
+
 
         private async Task<string> GetPublicCertAsync(string CertName, bool useKey = true)
         {
@@ -299,11 +301,81 @@ namespace DevCDRServer.Controllers
             return Res;
         }
 
+        [AllowAnonymous]
+        [HttpPost]
+        public async Task<string> PutFileAsync(string signature, string data = "")
+        {
+            X509AgentCert oSig = new X509AgentCert(signature);
+
+            try
+            {
+                if (X509AgentCert.publicCertificates.Count == 0)
+                    X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+
+                var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
+                if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+                    X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+                oSig.ValidateChain(X509AgentCert.publicCertificates);
+            }
+            catch { }
+
+            if (oSig.Exists && oSig.Valid)
+            {
+                try
+                {
+                    if (string.IsNullOrEmpty(data))
+                    {
+                        using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
+                            data = reader.ReadToEnd();
+                    }
+
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                    {
+                        string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                        sURL = sURL.Replace("{fn}", "fnUploadFile");
+
+                        string sNewData = data;
+                        try
+                        {
+                            if (data.StartsWith("{"))
+                            {
+                                var jObj = JObject.Parse(data);
+
+                                jObj.Remove("OptionalFeature");
+                                if (jObj.Remove("Services"))
+                                {
+                                    sNewData = jObj.ToString(Formatting.None);
+                                }
+                            }
+                        }
+                        catch { }
+
+                        using (HttpClient client = new HttpClient())
+                        {
+                            StringContent oData = new StringContent(sNewData, Encoding.UTF8, "application/json");
+                            await client.PostAsync($"{sURL}&deviceid={oSig.DeviceID}.json&customerid={oSig.CustomerID}", oData);
+                        }
+
+                        return jDB.UploadFull(data, oSig.DeviceID, "INV");
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ex.Message.ToString();
+                    return null;
+                }
+            }
+
+            return null;
+        }
+
 #if DEBUG
         [AllowAnonymous]
 #endif
         [Authorize]
-        public ActionResult GetData(string Instance = "Default")
+        public ActionResult GetData(string Group = "", string Instance = "Default")
         {
             JArray jData = new JArray();
             try
@@ -313,6 +385,8 @@ namespace DevCDRServer.Controllers
                 MemberInfo[] memberInfos = xType.GetMember("jData", BindingFlags.Public | BindingFlags.Static);
 
                 jData = ((FieldInfo)memberInfos[0]).GetValue(new JArray()) as JArray;
+                if(!string.IsNullOrEmpty(Group))
+                    jData = new JArray(jData.SelectTokens($"$.[?(@.Groups=='{ Group }')]"));
             }
             catch { }
 
@@ -500,9 +574,16 @@ namespace DevCDRServer.Controllers
                     AgentVersion(lHostnames, sInstance);
                     break;
                 case "Inv":
-                    string sEndPoint = Environment.GetEnvironmentVariable("DevCDRUrl") ?? Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
-                    string inventoryFile = Environment.GetEnvironmentVariable("ScriptInventory") ?? "inventory.ps1";
-                    RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=" + inventoryFile +"' | IEX;'Inventory complete..'", sInstance, sCommand);
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                    {
+                        CheckInventory(lHostnames);
+                    }
+                    else
+                    {
+                        string sEndPoint = Environment.GetEnvironmentVariable("DevCDRUrl") ?? Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
+                        string inventoryFile = Environment.GetEnvironmentVariable("ScriptInventory") ?? "inventory.ps1";
+                        RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=" + inventoryFile + "' | IEX;'Inventory complete..'", sInstance, sCommand);
+                    }
                     break;
                 case "Restart":
                     RunCommand(lHostnames, "restart-computer -force", sInstance, sCommand);
@@ -553,9 +634,16 @@ namespace DevCDRServer.Controllers
                     sendWOL(lHostnames, sInstance, GetAllMACAddresses());
                     break;
                 case "Compliance":
-                    string sEndPoint2 = Environment.GetEnvironmentVariable("DevCDRUrl") ?? Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
-                    string complianceFile = Environment.GetEnvironmentVariable("ScriptCompliance") ?? "compliance.ps1";
-                    RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint2 + "/jaindb/getps?filename=" + complianceFile + "' | IEX;'Compliance check complete..'", sInstance, sCommand);
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                    {
+                        CheckCompliance(lHostnames);
+                    }
+                    else
+                    {
+                        string sEndPoint2 = Environment.GetEnvironmentVariable("DevCDRUrl") ?? Request.GetEncodedUrl().ToLower().Split("/devcdr/")[0];
+                        string complianceFile = Environment.GetEnvironmentVariable("ScriptCompliance") ?? "compliance.ps1";
+                        RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint2 + "/jaindb/getps?filename=" + complianceFile + "' | IEX;'Compliance check complete..'", sInstance, sCommand);
+                    }
                     break;
             }
 
@@ -672,6 +760,54 @@ namespace DevCDRServer.Controllers
                 {
                     AzureLog.PostAsync(new { Computer = sHost, EventID = 2008, Description = $"get Agent version" });
                     _hubContext.Clients.Client(sID).SendAsync("version", "HUB");
+                }
+            }
+        }
+
+        internal void CheckInventory(List<string> Hostnames, string sInstance = "Default")
+        {
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "Get Inventory..."); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "AgentVersion"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2011, Description = $"get Inventory" });
+                    _hubContext.Clients.Client(sID).SendAsync("checkInventoryAsync", "HUB");
+                }
+            }
+        }
+
+        internal void CheckCompliance(List<string> Hostnames, string sInstance = "Default")
+        {
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "Get Compliance..."); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "AgentVersion"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2012, Description = $"get Compliance data" });
+                    _hubContext.Clients.Client(sID).SendAsync("checkComplianceAsync", "HUB");
                 }
             }
         }

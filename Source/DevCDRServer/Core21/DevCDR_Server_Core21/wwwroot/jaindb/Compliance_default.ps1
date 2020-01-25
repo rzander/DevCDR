@@ -61,7 +61,7 @@ function Test-NetMetered {
     return $res
 }
 
-function Test-OneGetProvider($ProviderVersion = "1.7.1.2", $DownloadURL = "https://github.com/rzander/ruckzuck/releases/download/$($ProviderVersion)/RuckZuck.provider.for.OneGet_x64.msi" ) {
+function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https://github.com/rzander/ruckzuck/releases/download/$($ProviderVersion)/RuckZuck.provider.for.OneGet_x64.msi" ) {
     <#
         .Description
         If missing, install latest RuckZuck Provider for OneGet...
@@ -70,14 +70,14 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.2", $DownloadURL = "https
 
     if (Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) { } else {
         if ($bLogging) {
-            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Installing OneGet v1.7.1.2" }) -LogType "DevCDRCore" 
+            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Installing OneGet v1.7.1.3" }) -LogType "DevCDRCore" 
         }
         &msiexec -i $DownloadURL /qn REBOOT=REALLYSUPPRESS 
     }
 
     if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]($ProviderVersion)) {
         if ($bLogging) {
-            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Updating to OneGet v1.7.1.2" }) -LogType "DevCDRCore" 
+            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Updating to OneGet v1.7.1.3" }) -LogType "DevCDRCore" 
         }
         &msiexec -i $DownloadURL /qn REBOOT=REALLYSUPPRESS 
     }
@@ -87,7 +87,7 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.2", $DownloadURL = "https
     $global:chk.Add("OneGetProvider", (Get-PackageProvider -Name Ruckzuck).Version.ToString())
 }
 
-function Test-DevCDRAgent($AgentVersion = "1.0.0.33") {
+function Test-DevCDRAgent($AgentVersion = "2.0.1.24") {
     <#
         .Description
         Install or Update DevCDRAgentCore if required
@@ -276,7 +276,7 @@ function Test-FastBoot($Value = 0) {
     $global:chk.Add("FastBoot", $Value)
 }
 
-function Test-DeliverOptimization {
+function Test-DeliveryOptimization {
     <#
         .Description
         restrict Peer Selection on DeliveryOptimization
@@ -395,13 +395,13 @@ Function Test-Bitlocker {
 
 #Import-Module Compliance
 Test-Nuget
-Test-OneGetProvider("1.7.1.2")
-Test-DevCDRAgent("1.0.0.33")
-Test-Administrators 
+Test-OneGetProvider("1.7.1.3")
+Test-DevCDRAgent("2.0.1.24")
+#Test-Administrators 
 Test-LocalAdmin
 Test-WOL
 Test-FastBoot
-Test-DeliverOptimization
+Test-DeliveryOptimization
 Test-Bitlocker
 
 if (Test-locked) {
@@ -426,8 +426,8 @@ if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVir
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhc6ogoTIhHkQLoO3vlSZC2Ly
-# 2r2gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAEFrbIA1J/FZi59u7t3HgdvU
+# 1g6gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -492,12 +492,12 @@ if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVir
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTL
-# 9RtLhr+/WiRhoSIWWu9+1f1FFDANBgkqhkiG9w0BAQEFAASCAQCI4s5XALQQUCKD
-# IazYbzcza1sgKxFxMQPAJUcMaKS05uNjGeF0ZqDhg781NvJN0GFzXeBFN18TsZrd
-# ovbULKskUejiYQuwWCzlLUf3lHRa7vS9FqozbBenZkK6hVZSohgR5scxQRZmSBjj
-# 6L/fDMeUgYbIqm6Avtu/u6aCHdRWk34ADeF8+8vBxZtzWmBsRLk+sMb16bLdFMBe
-# 2Hdl8HCj2X6fL7hUNGv9qZZDFlwtczls72t/HElJotHUTgZHATqfP/XBnOc0QjK0
-# b22i0PtLBiXlvdBDAFgcl2uua/G68xEykVHFcXzN0VlbBK/4SHmxB/EMWniRbE2h
-# 2DoLcLqg
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR2
+# jPouEzV2VF0bRuSlcNbeBDM9PjANBgkqhkiG9w0BAQEFAASCAQBvJ7HBXEN4v5FM
+# v6N5zK7vbdjKZY3R35eVsQzrl/xnAi/1/xE3W3iAnuygCIsPaIIM5WWLXHFtGYRa
+# 3SLW3LZw/QojD/VveAEUATsjIsEfAGh5CjyN2ylRrcFPYWRXV7Y5z8088kAWW4c2
+# jmU9pFczgdvFuzLIZhiEU+U20CLyIXhTbMcEv9iKWcRxDx6Sgfw9uGpVxnxuqVVr
+# 93r9Fn1wyYY/MyUEmqUypK7zLgyHXPypuGBGsNk9bS3YBhW8ydl9H+LkXmCiQWEY
+# NiktG0U6RmInqYf2KpysJDz6AvJP8nvTQKBtLOwiNcyqMddGZZ01pvSFZqSAuBAd
+# u106GA1q
 # SIG # End signature block

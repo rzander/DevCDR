@@ -19,6 +19,7 @@ ENV ScriptInventory inventory.ps1
 ENV ScriptCompliance compliance_default.ps1
 ENV _DevCDRUrl "in case of Azure SignalR place your DevCDR URL here and remove the _ from the variable Name"
 ENV fnDevCDR ""
+ENV CUSTOMERID ""
 
 FROM microsoft/dotnet:2.2-sdk AS build
 WORKDIR /src

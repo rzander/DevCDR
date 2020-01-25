@@ -245,10 +245,10 @@ namespace DevCDR.Extensions
     public class X509AgentCert
     {
         public static X509Certificate2Collection publicCertificates = new X509Certificate2Collection();
-        public X509AgentCert(string deviceID)
+        public X509AgentCert(string deviceID, string customerID)
         {
             DeviceID = deviceID;
-            // Access Personal (MY) certificate store of current user
+            CustomerID = customerID;
             X509Store my = new X509Store(StoreName.My, StoreLocation.LocalMachine);
             my.Open(OpenFlags.ReadOnly);
 
@@ -260,35 +260,46 @@ namespace DevCDR.Extensions
             // Find the certificate we'll use to sign
             foreach (X509Certificate2 cert in my.Certificates.Find(X509FindType.FindBySubjectName, DeviceID, true))
             {
-                Expired = false;
-                Exists = true;
-                Certificate = cert;
-                if (publicCertificates.Count > 0)
-                    ValidateChain(publicCertificates);
-                else
-                    ValidateChain();
-                HasPrivateKey = cert.HasPrivateKey;
-                Signature.ToString(); //generate Signature
+                try
+                {
+                    Expired = false;
+                    Exists = true;
+                    Certificate = cert;
+                    if (publicCertificates.Count > 0)
+                        ValidateChain(publicCertificates);
+                    else
+                        ValidateChain();
+                    HasPrivateKey = cert.HasPrivateKey;
+                    Signature.ToString(); //generate Signature
+                    break;
+                }
+                catch { }
             }
 
             if (!Exists)
             {
                 foreach (X509Certificate2 cert in my.Certificates.Find(X509FindType.FindBySubjectName, DeviceID, false))
                 {
-                    if (cert.NotAfter < DateTime.UtcNow)
+                    if (cert.NotAfter <= DateTime.UtcNow)
                     {
                         Expired = true;
                         Exists = true;
                         Certificate = cert;
                         HasPrivateKey = cert.HasPrivateKey;
                     }
+                    else
+                    {
+                        Exists = true;
+                        Certificate = cert;
+                        HasPrivateKey = cert.HasPrivateKey;
+                        break;
+                    }
                 }
             }
         }
 
-        public X509AgentCert(string deviceID, string signature)
+        public X509AgentCert(string signature , bool noCheck = false)
         {
-            DeviceID = deviceID;
             Exists = false;
             Expired = false;
             Valid = false;
@@ -297,26 +308,32 @@ namespace DevCDR.Extensions
             try
             {
                 JObject jObj = JObject.Parse(Encoding.Default.GetString(Convert.FromBase64String(signature)));
+                try
+                {
+                    DeviceID = jObj["MSG"].Value<string>().Split(';')[0] ?? "";
+                    CustomerID = jObj["MSG"].Value<string>().Split(';')[1] ?? "";
+                }
+                catch { }
 
                 Certificate = new X509Certificate2(Convert.FromBase64String(jObj["CER"].Value<string>()));
                 IssuingCA = Certificate.Issuer.Split('=')[1];
                 Exists = true;
-                if (publicCertificates.Count > 0)
-                    ValidateChain(publicCertificates);
-                else
-                    ValidateChain();
+                
+                if (!noCheck)
+                {
+                    if (publicCertificates.Count > 0)
+                        ValidateChain(publicCertificates);
+                    else
+                        ValidateChain();
+                    
+                    Signature.ToString(); //generate Signature
+                }
                 HasPrivateKey = Certificate.HasPrivateKey;
-                Signature.ToString(); //generate Signature
 
                 if (Certificate.NotAfter < DateTime.UtcNow)
                 {
                     Expired = true;
                 }
-
-                //if (deviceID == jObj["MSG"].Value<string>())
-                //{
-
-                //}
             }
             catch { }
         }
@@ -329,11 +346,21 @@ namespace DevCDR.Extensions
             {
                 X509Chain ch = new X509Chain(true);
                 ch.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                ch.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+                foreach (X509Certificate2 xPub in publicCertificates)
+                {
+                    ch.ChainPolicy.ExtraStore.Add(xPub);
+                }
+
                 bool bChain = ch.Build(Certificate);
                 Chain = ch;
                 Status = ch.ChainStatus;
-                IssuingCA = ch.ChainElements[1].Certificate.Subject.Split('=')[1];
-                RootCA = ch.ChainElements[2].Certificate.Subject.Split('=')[1];
+                try
+                {
+                    IssuingCA = ch.ChainElements[1].Certificate.Subject.Split('=')[1];
+                    RootCA = ch.ChainElements[2].Certificate.Subject.Split('=')[1];
+                }
+                catch { }
                 Valid = bChain;
                 return bChain;
             }
@@ -352,7 +379,7 @@ namespace DevCDR.Extensions
                 X509Chain ch = new X509Chain(true);
                 ch.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
                 ch.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
-                foreach (X509Certificate2 xPub in publicCertificates)
+                foreach (X509Certificate2 xPub in publicCert)
                 {
                     ch.ChainPolicy.ExtraStore.Add(xPub);
                 }
@@ -360,8 +387,13 @@ namespace DevCDR.Extensions
                 bool bChain = ch.Build(Certificate);
                 Chain = ch;
                 Status = ch.ChainStatus;
-                IssuingCA = ch.ChainElements[1].Certificate.Subject.Split('=')[1];
-                RootCA = ch.ChainElements[2].Certificate.Subject.Split('=')[1];
+                try
+                {
+                    IssuingCA = ch.ChainElements[1].Certificate.Subject.Split('=')[1];
+                    RootCA = ch.ChainElements[2].Certificate.Subject.Split('=')[1];
+                }
+                catch { }
+
                 Valid = bChain;
                 return bChain;
             }
@@ -420,6 +452,8 @@ namespace DevCDR.Extensions
         }
 
         public string DeviceID { get; set; }
+
+        public string CustomerID { get; set; }
 
         public string Signature
         {
