@@ -590,6 +590,9 @@ namespace DevCDRServer
                     {
                         J1.Add("ConnectionId", Context.ConnectionId);
 
+                        if (J1["Customer"] == null)
+                            J1.Add("Customer", "");
+
                         if (!string.IsNullOrEmpty(oSig.CustomerID))
                             await setStatusAsync(oSig.CustomerID, oSig.DeviceID, J1.ToString());
                         else
