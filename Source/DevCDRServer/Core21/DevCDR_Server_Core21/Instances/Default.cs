@@ -477,6 +477,9 @@ namespace DevCDRServer
                 catch { }
             }
 
+            if (J1["Customer"] == null)
+                J1.Add("Customer", "");
+
             bool bChange = false;
             try
             {
@@ -572,6 +575,9 @@ namespace DevCDRServer
                 catch { }
             }
 
+            if (J1["Customer"] == null)
+                J1.Add("Customer", "");
+
             bool bChange = false;
             try
             {
@@ -589,9 +595,6 @@ namespace DevCDRServer
                     if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
                     {
                         J1.Add("ConnectionId", Context.ConnectionId);
-
-                        if (J1["Customer"] == null)
-                            J1.Add("Customer", "");
 
                         if (!string.IsNullOrEmpty(oSig.CustomerID))
                             await setStatusAsync(oSig.CustomerID, oSig.DeviceID, J1.ToString());
