@@ -635,7 +635,11 @@ namespace DevCDRAgent
                                         if (string.IsNullOrEmpty(xAgent.Signature))
                                             jRes.Add("Groups", Properties.Settings.Default.Groups);
                                         else
+                                        {
                                             jRes.Add("Groups", xAgent.IssuingCA);
+                                            jRes.Add("Customer", xAgent.CustomerID);
+                                        }
+                                        
                                         sResult = jRes.ToString();
                                     }
                                 }
@@ -848,6 +852,10 @@ namespace DevCDRAgent
                                         tReCheck.Enabled = false;
                                         tReInit.Enabled = false;
 
+                                        System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
+                                        System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
+                                        System.Environment.SetEnvironmentVariable("DevCDRId", "", EnvironmentVariableTarget.Machine);
+
                                         Trace.WriteLine(DateTime.Now.ToString() + "\t Set Customer: " + s1);
                                         //set Customer
                                         string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
@@ -917,8 +925,12 @@ namespace DevCDRAgent
                                         store.Open(OpenFlags.ReadWrite);
                                         foreach (X509Certificate2 cert in store.Certificates.Find(X509FindType.FindBySubjectName, xAgent.IssuingCA, false))
                                         {
-                                            if(cert.Issuer.Split('=')[1] == "DeviceCommander")
-                                                store.Remove(cert);
+                                            try
+                                            {
+                                                if (cert.Issuer.Split('=')[1] == "DeviceCommander")
+                                                    store.Remove(cert);
+                                            }
+                                            catch { }
                                         }
                                     }
                                     catch(Exception ex)
@@ -1619,21 +1631,15 @@ namespace DevCDRAgent
                             {
                                 try
                                 {
-                                    if (string.IsNullOrEmpty(xAgent.RootCA))
-                                    {
-                                        Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + Properties.Settings.Default.RootCA);
-                                        connection.InvokeAsync("GetCert", Properties.Settings.Default.RootCA, false).Wait(1000); //request root cert
-                                        Thread.Sleep(1500);
-                                    }
+                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + Properties.Settings.Default.RootCA);
+                                    connection.InvokeAsync("GetCert", Properties.Settings.Default.RootCA, false).Wait(1000); //request root cert
+                                    Thread.Sleep(1500);
 
-                                    if (string.IsNullOrEmpty(xAgent.IssuingCA))
-                                    {
-                                        Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + xAgent.Certificate.Issuer.Split('=')[1]);
-                                        connection.InvokeAsync("GetCert", xAgent.Certificate.Issuer.Split('=')[1], false).Wait(1000); //request issuer cert
-                                        Thread.Sleep(1500);
-                                    }
+                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + xAgent.Certificate.Issuer.Split('=')[1]);
+                                    connection.InvokeAsync("GetCert", xAgent.Certificate.Issuer.Split('=')[1], false).Wait(1000); //request issuer cert
+                                    Thread.Sleep(1500);
                                 }
-                                catch(Exception ex)
+                                catch (Exception ex)
                                 {
                                     Trace.TraceError(DateTime.Now.ToString() + "\t Error: " + ex.Message);
                                 }
@@ -1675,6 +1681,7 @@ namespace DevCDRAgent
 
                     System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
                     System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
+                    System.Environment.SetEnvironmentVariable("DevCDRId", "", EnvironmentVariableTarget.Machine);
 
                     //Legacy Init
                     connection.InvokeAsync("Init", Hostname).ContinueWith(task1 =>
@@ -1762,6 +1769,7 @@ namespace DevCDRAgent
 
                         System.Environment.SetEnvironmentVariable("DevCDRSig", xAgent.Signature, EnvironmentVariableTarget.Machine);
                         System.Environment.SetEnvironmentVariable("DevCDREP", sEndPoint, EnvironmentVariableTarget.Machine);
+                        System.Environment.SetEnvironmentVariable("DevCDRId", xAgent.CustomerID, EnvironmentVariableTarget.Machine);
                     }
                     catch(Exception ex)
                     {
@@ -1771,6 +1779,7 @@ namespace DevCDRAgent
                 {
                     System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
                     System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
+                    System.Environment.SetEnvironmentVariable("DevCDRId", "", EnvironmentVariableTarget.Machine);
                 }
             }
             catch (Exception ex)
