@@ -364,6 +364,11 @@ namespace DevCDRServer
 
         public Task JoinGroup(string groupName)
         {
+            if (groupName != "web" && groupName != "Devices" && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+            {
+                return Groups.AddToGroupAsync(Context.ConnectionId, "unknown");
+            }
+            
             if (!lGroups.Contains(groupName))
             {
                 lGroups.Add(groupName);
