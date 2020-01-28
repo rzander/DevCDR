@@ -42,6 +42,7 @@ namespace DevCDRAgent
         private bool isconnected = false;
         private bool isstopping = false;
         public string Uri { get; set; } = Properties.Settings.Default.Endpoint;
+        public static AzureLogAnalytics AzureLog = new AzureLogAnalytics();
 
         static readonly object _locker = new object();
 
@@ -281,6 +282,15 @@ namespace DevCDRAgent
             tReInit.Elapsed += TReInit_Elapsed;
             tReInit.Enabled = true;
             tReInit.AutoReset = true;
+
+            try
+            {
+                if (string.IsNullOrEmpty(AzureLog.WorkspaceId))
+                {
+                    AzureLog = new DevCDRAgent.Modules.AzureLogAnalytics("DevCDR");
+                }
+            }
+            catch { }
 
             try
             {
@@ -1312,12 +1322,34 @@ namespace DevCDRAgent
                                 }
                             }
 
+                            if (!string.IsNullOrEmpty(AzureLog.WorkspaceId))
+                            {
+                                JObject jLog = new JObject();
+                                jLog.Add(new JProperty("Computer", Environment.MachineName));
+                                jLog.Add(new JProperty("EventID", 0100));
+                                jLog.Add(new JProperty("Description", "EndpointURL:" + xAgent.EndpointURL));
+                                jLog.Add(new JProperty("CustomerID", xAgent.CustomerID));
+
+                                AzureLog.Post(jLog.ToString());
+                            }
+
                             Random rnd = new Random();
                             tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
                         }
                         catch(Exception ex)
                         {
                             Trace.TraceError(DateTime.Now.ToString() + "\t ERROR 1296: " + ex.Message);
+
+                            if (!string.IsNullOrEmpty(AzureLog.WorkspaceId))
+                            {
+                                JObject jLog = new JObject();
+                                jLog.Add(new JProperty("Computer", Environment.MachineName));
+                                jLog.Add(new JProperty("EventID", 9100));
+                                jLog.Add(new JProperty("Description", "setAgentSignature Error:" + ex.Message));
+                                jLog.Add(new JProperty("CustomerID", xAgent.CustomerID ?? ""));
+
+                                AzureLog.Post(jLog.ToString());
+                            }
                         }
                     }
                 });
@@ -1828,7 +1860,16 @@ namespace DevCDRAgent
 
                             if (oRZSWPreReq.SoftwareUpdate.Install(false, true).Result)
                             {
+                                if (!string.IsNullOrEmpty(AzureLog.WorkspaceId))
+                                {
+                                    JObject jLog = new JObject();
+                                    jLog.Add(new JProperty("Computer", Environment.MachineName));
+                                    jLog.Add(new JProperty("EventID", 2000));
+                                    jLog.Add(new JProperty("Description", "RuckZuck updating:" + oRZSWPreReq.SoftwareUpdate.SW.ShortName));
+                                    jLog.Add(new JProperty("CustomerID", xAgent.CustomerID));
 
+                                    AzureLog.Post(jLog.ToString());
+                                }
                             }
                             else
                             {
@@ -1854,6 +1895,18 @@ namespace DevCDRAgent
                     if (oRZSW.SoftwareUpdate.Install(false, true).Result)
                     {
                         sScriptResult = "Installed: " + oRZSW.SoftwareUpdate.SW.ShortName;
+                        
+                        if (!string.IsNullOrEmpty(AzureLog.WorkspaceId))
+                        {
+                            JObject jLog = new JObject();
+                            jLog.Add(new JProperty("Computer", Environment.MachineName));
+                            jLog.Add(new JProperty("EventID", 2000));
+                            jLog.Add(new JProperty("Description", "RuckZuck updating:" + oRZSW.SoftwareUpdate.SW.ShortName));
+                            jLog.Add(new JProperty("CustomerID", xAgent.CustomerID));
+
+                            AzureLog.Post(jLog.ToString());
+                        }
+
                         rnd = new Random();
                         tReInit.Interval = rnd.Next(3000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
                     }
@@ -1911,6 +1964,17 @@ namespace DevCDRAgent
 
                     if (bVirus)
                     {
+                        if (!string.IsNullOrEmpty(AzureLog.WorkspaceId))
+                        {
+                            JObject jLog = new JObject();
+                            jLog.Add(new JProperty("Computer", Environment.MachineName));
+                            jLog.Add(new JProperty("EventID", 1000));
+                            jLog.Add(new JProperty("Description", "Virus:" + arg.EventRecord.TaskDisplayName));
+                            jLog.Add(new JProperty("CustomerID", xAgent.CustomerID));
+
+                            AzureLog.Post(jLog.ToString());
+                        }
+
                         Properties.Settings.Default.InventorySuccess = new DateTime();
                         Properties.Settings.Default.HealthCheckSuccess = new DateTime();
                         Random rnd2 = new Random();

@@ -199,6 +199,7 @@
     <Compile Include="..\..\..\..\ruckzuck\RZ.Base\RZUpdate.cs">
       <Link>RuckZuck\RZUpdate.cs</Link>
     </Compile>
+    <Compile Include="Modules\AzureLogAnalytics.cs" />
     <Compile Include="Modules\InvokeAsUser.cs" />
     <Compile Include="Modules\RunCode.cs" />
     <Compile Include="Modules\SignatureVerification.cs" />
