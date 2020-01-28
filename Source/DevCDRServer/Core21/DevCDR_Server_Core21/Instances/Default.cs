@@ -366,7 +366,10 @@ namespace DevCDRServer
         {
             if (groupName != "web" && groupName != "Devices" && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
             {
-                lGroups.Add("unknown");
+                if (!lGroups.Contains("unknown"))
+                {
+                    lGroups.Add("unknown");
+                }
                 return Groups.AddToGroupAsync(Context.ConnectionId, "unknown");
             }
             
