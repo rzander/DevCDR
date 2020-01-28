@@ -475,6 +475,11 @@ namespace DevCDRServer
 
             var J1 = JObject.Parse(Status);
 
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+            {
+                J1["Groups"] = "unknown";
+            }
+
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
             {
                 string ClientIP = Context.GetHttpContext().Connection.RemoteIpAddress.ToString();
