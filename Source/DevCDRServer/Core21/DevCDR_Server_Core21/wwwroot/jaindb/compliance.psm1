@@ -4,7 +4,7 @@
         test if logging is enabled
     #>
 
-    if(Get-Module -ListAvailable -Name WriteAnalyticsLog) { return $true } else { return $false }
+    if (Get-Module -ListAvailable -Name WriteAnalyticsLog) { return $true } else { return $false }
 }
 
 function Test-Nuget {
@@ -95,7 +95,7 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https
     $global:chk.Add("OneGetProvider", (Get-PackageProvider -Name Ruckzuck).Version.ToString())
 }
 
-function Test-DevCDRAgent($AgentVersion = "2.0.1.21") {
+function Test-DevCDRAgent($AgentVersion = "2.0.1.25") {
     <#
         .Description
         Install or Update DevCDRAgentCore if required
@@ -196,7 +196,7 @@ function Test-Administrators {
     } 
 }
 
-function Test-LocalAdmin {
+function Test-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
     <#
         .Description
          disable local Admin account if PW is older than 4 hours
@@ -207,17 +207,22 @@ function Test-LocalAdmin {
         if ((Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Enabled) {
             #Disable if local Admin PW is older than 4 Hours
             if (((get-date) - (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).PasswordLastSet).TotalHours -gt 4) {
-                #Disable local Admin
-                (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Disable-LocalUser
+                
+                if ($disableAdmin) {
+                    #Disable local Admin
+                    (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Disable-LocalUser
+                }
 
-                #generate new random PW
-                $pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | ForEach-Object -begin { $aa = $null } -process { $aa += [char]$_ } -end { $aa }; (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
-                $pw = "";
+                if ($randomizeAdmin) {
+                    #generate new random PW
+                    $pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | ForEach-Object -begin { $aa = $null } -process { $aa += [char]$_ } -end { $aa }; (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
+                    $pw = "";
 
-                $Admins = (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Name
+                    #$Admins = (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Name
 
-                if ($bLogging) {
-                    Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1005; Description = "local Admin account disabled and new random passwort generated" }) -LogType "DevCDRCore" 
+                    if (Test-Logging) {
+                        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "AdminPW:" + $pw; CustomerID = $env:DevCDRId }) -LogType "DevCDR" -TennantID "DevCDR"
+                    }
                 }
             }
         }
@@ -380,7 +385,7 @@ function Update-Software {
     $SWList | ForEach-Object { 
         if ($updates.PackageFilename -contains $_) { 
             if (Test-Logging) {
-                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 2000; Description = "RuckZuck updating: $($_)"; CustomerID = $env:DevCDRId }) -LogType "DevCDR" 
+                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 2000; Description = "RuckZuck updating: $($_)"; CustomerID = $env:DevCDRId }) -LogType "DevCDR" -TennantID "DevCDR"
             }
             "Updating: " + $_ ;
             Install-Package -ProviderName RuckZuck "$($_)" -ea SilentlyContinue
@@ -815,8 +820,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUs8q4d9QPhEZeUp89TV3L1SJH
-# Vc6gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUm2yD/+kB1g2s86/ftFubcWk7
+# B5SgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -881,12 +886,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSY
-# YPVW52GcHWf6LV9yp6FLrBwQnzANBgkqhkiG9w0BAQEFAASCAQBrO682kSAKtkuG
-# UfKsPPpUPk0LexUMiadEV55ARuIhwnKETRbwDzrEPRUB9t9oj+fgi04BF7xMJIcV
-# Ujj5lLapM+G3J1zRw1Jot3VvHX94cOSkoT05wCfRoU/DD7jqNP78arGeUfFJ9rSt
-# CK6w7DfgV4lMiWibdn02eDxr7fYTpj9eTaEPKnhH5WjUhF64CS1CWgh39VnC9WP9
-# f/9cPLeLvEJ/W+TYKh9rurv8K4w7YEzqz9C4XIGrwrqdLkU+IW46yan03tzjYOZu
-# iyYvSKPHFmh8x+8peWykpmT5SNbyI/2HGuyC8zYwsYlvka6B/lE2zcy/ofS/HdNF
-# Rh7vSp9M
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQG
+# 8uXMM5h/XemY/RTILpfyfLb7izANBgkqhkiG9w0BAQEFAASCAQAhzZ0S7yNtA93I
+# TUPTUjPyCdM9LkAGz43ypq+9cZcbGROWPjAX5e9EDbb5ZNp27RCc4dwuiFh49Bmu
+# tdJWjD7QwuKXyXiw7FzqbHgYMMvEur1WKoLb+tKiip2gS2oNssiVyugVd8CzIjDh
+# 6dCkPi49jIzfM4Ecv4Yct/+R4pyFGIk6IcK8mo4LHd63jMKJkRuBmtHzalGR70xP
+# I/l84bYgXIn68mMTBFVCWSB86Yn+Terb0uM3+g0Osh5i2f3+PL9lIBskFUT2GT/e
+# 435vxLd84duTy8Utj4CqUFO1nD9+q/e+Au8V3wFC8h559l7+gDBB1zzwlH2yYDAR
+# 2It02uzi
 # SIG # End signature block
