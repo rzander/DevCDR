@@ -649,7 +649,7 @@ namespace DevCDRAgent
                                             jRes.Add("Groups", xAgent.IssuingCA);
                                             jRes.Add("Customer", xAgent.CustomerID);
                                         }
-                                        
+
                                         sResult = jRes.ToString();
                                     }
                                 }
@@ -660,7 +660,7 @@ namespace DevCDRAgent
                                 }
                             }
 
-                            if(string.IsNullOrEmpty(xAgent.Signature))
+                            if (string.IsNullOrEmpty(xAgent.Signature))
                                 connection.InvokeAsync("Status", Hostname, sResult).Wait(1000);
                             else
                                 connection.InvokeAsync("Status2", Hostname, sResult, xAgent.Signature).Wait(1000);
@@ -831,7 +831,7 @@ namespace DevCDRAgent
 
                 connection.On<string>("setendpoint", (s1) =>
                 {
-                    
+
                     try
                     {
                         lock (_locker)
@@ -856,7 +856,7 @@ namespace DevCDRAgent
                                 }
                                 else
                                 {
-                                    if (s1 == "OFF") //switch to legacy mode
+                                    if (s1.ToUpper() == "OFF") //switch to legacy mode
                                     {
                                         //Stop status
                                         tReCheck.Enabled = false;
@@ -943,7 +943,7 @@ namespace DevCDRAgent
                                             catch { }
                                         }
                                     }
-                                    catch(Exception ex)
+                                    catch (Exception ex)
                                     {
                                         Trace.TraceError(DateTime.Now.ToString() + "\t Error: " + ex.Message);
                                     }
@@ -1315,7 +1315,8 @@ namespace DevCDRAgent
                                                 Properties.Settings.Default.Save();
                                             }
                                         }
-                                    } else
+                                    }
+                                    else
                                     {
                                         Properties.Settings.Default.AgentSignature = "";
                                     }
@@ -1336,7 +1337,7 @@ namespace DevCDRAgent
                             Random rnd = new Random();
                             tReInit.Interval = rnd.Next(2000, Properties.Settings.Default.StatusDelay); //wait max 5s to ReInit
                         }
-                        catch(Exception ex)
+                        catch (Exception ex)
                         {
                             Trace.TraceError(DateTime.Now.ToString() + "\t ERROR 1296: " + ex.Message);
 
@@ -1363,7 +1364,7 @@ namespace DevCDRAgent
                         {
                             cert = new X509Certificate2(Convert.FromBase64String(s1));
                         }
-                        catch 
+                        catch
                         {
                             try
                             {
@@ -1437,7 +1438,7 @@ namespace DevCDRAgent
                             sCommand = oWebClient.GetStringAsync(sEndPoint + "/devcdr/getfile?filename=inventory2.ps1&signature=" + xAgent.Signature).Result;
                         }
                         //alternative way
-                        if(string.IsNullOrEmpty(sCommand))
+                        if (string.IsNullOrEmpty(sCommand))
                             sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=inventory2.ps1&signature=" + xAgent.Signature + "' | IEX";
 
                         var tSWScan = Task.Run(() =>
@@ -1587,7 +1588,7 @@ namespace DevCDRAgent
 
                 if (string.IsNullOrEmpty(Properties.Settings.Default.CustomerID.Trim()))
                 {
-                    if(xAgent.Exists && xAgent.Valid && !string.IsNullOrEmpty(xAgent.Signature))
+                    if (xAgent.Exists && xAgent.Valid && !string.IsNullOrEmpty(xAgent.Signature))
                     {
                         Properties.Settings.Default.AgentSignature = xAgent.Signature;
                         Hostname = Environment.MachineName + "_ORPHANED";
@@ -1608,7 +1609,7 @@ namespace DevCDRAgent
                             connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(5000); //MachineCert
                             Thread.Sleep(5000);
                             xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID.Trim());
-                            
+
                             if (xAgent.Exists && xAgent.Valid)
                             {
                                 if (!string.IsNullOrEmpty(xAgent.Signature))
@@ -1623,7 +1624,7 @@ namespace DevCDRAgent
                             }
                         }
 
-                        if (xAgent.Certificate != null)
+                        if (xAgent.Certificate != null && !xAgent.Expired)
                         {
                             if (xAgent.Exists && xAgent.Valid && xAgent.HasPrivateKey && !string.IsNullOrEmpty(xAgent.Signature))
                             {
@@ -1690,11 +1691,11 @@ namespace DevCDRAgent
                             Thread.Sleep(5000);
                             xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID.Trim());
 
-                            if(xAgent.Exists && xAgent.Valid)
+                            if (xAgent.Exists && xAgent.Valid)
                             {
-                                if(!string.IsNullOrEmpty(xAgent.Signature))
+                                if (!string.IsNullOrEmpty(xAgent.Signature))
                                 {
-                                    if(Properties.Settings.Default.AgentSignature != xAgent.Signature)
+                                    if (Properties.Settings.Default.AgentSignature != xAgent.Signature)
                                     {
                                         Properties.Settings.Default.AgentSignature = xAgent.Signature;
                                         Properties.Settings.Default.Endpoint = xAgent.EndpointURL;
@@ -1711,9 +1712,13 @@ namespace DevCDRAgent
                     Trace.WriteLine(DateTime.Now.ToString() + "\t AgentSignature and CustomerID missing... Starting legacy mode.");
                     Console.WriteLine("AgentSignature and CustomerID missing... Starting legacy mode.");
 
-                    System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
-                    System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
-                    System.Environment.SetEnvironmentVariable("DevCDRId", "", EnvironmentVariableTarget.Machine);
+                    try
+                    {
+                        System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
+                        System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
+                        System.Environment.SetEnvironmentVariable("DevCDRId", "", EnvironmentVariableTarget.Machine);
+                    }
+                    catch { }
 
                     //Legacy Init
                     connection.InvokeAsync("Init", Hostname).ContinueWith(task1 =>
@@ -1757,29 +1762,29 @@ namespace DevCDRAgent
                     Trace.WriteLine(DateTime.Now.ToString() + "\t AgentSignature exists... Starting Signature verification.");
                     connection.InvokeAsync("InitCert", Hostname, xAgent.Signature).ContinueWith(task1 =>
                     {
-                       //try
-                       //{
-                       //    if (task1.IsFaulted)
-                       //    {
-                       //        Trace.WriteLine($"There was an error calling send: {task1.Exception.GetBaseException()}");
-                       //        Console.WriteLine("There was an error calling send: {0}", task1.Exception.GetBaseException());
-                       //    }
-                       //    else
-                       //    {
-                       //        try
-                       //        {
-                       //            Trace.WriteLine(DateTime.Now.ToString() + "\t JoiningGroup...");
-                       //            connection.InvokeAsync("JoinGroupCert2", xAgent.Signature).ContinueWith(task2 =>
-                       //            {
-                       //            });
+                        //try
+                        //{
+                        //    if (task1.IsFaulted)
+                        //    {
+                        //        Trace.WriteLine($"There was an error calling send: {task1.Exception.GetBaseException()}");
+                        //        Console.WriteLine("There was an error calling send: {0}", task1.Exception.GetBaseException());
+                        //    }
+                        //    else
+                        //    {
+                        //        try
+                        //        {
+                        //            Trace.WriteLine(DateTime.Now.ToString() + "\t JoiningGroup...");
+                        //            connection.InvokeAsync("JoinGroupCert2", xAgent.Signature).ContinueWith(task2 =>
+                        //            {
+                        //            });
 
-                       //            Program.MinimizeFootprint();
-                       //        }
-                       //        catch { }
-                       //    }
-                       //}
-                       //catch { }
-                   });
+                        //            Program.MinimizeFootprint();
+                        //        }
+                        //        catch { }
+                        //    }
+                        //}
+                        //catch { }
+                    });
                 }
 
                 //Update PowerShell Module
@@ -1798,20 +1803,28 @@ namespace DevCDRAgent
                         }
 
                         File.WriteAllText(Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\WindowsPowerShell\Modules\Compliance\compliance.psm1"), sModule, new UTF8Encoding(true));
-
-                        System.Environment.SetEnvironmentVariable("DevCDRSig", xAgent.Signature, EnvironmentVariableTarget.Machine);
-                        System.Environment.SetEnvironmentVariable("DevCDREP", sEndPoint, EnvironmentVariableTarget.Machine);
-                        System.Environment.SetEnvironmentVariable("DevCDRId", xAgent.CustomerID, EnvironmentVariableTarget.Machine);
+                        try
+                        {
+                            System.Environment.SetEnvironmentVariable("DevCDRSig", xAgent.Signature, EnvironmentVariableTarget.Machine);
+                            System.Environment.SetEnvironmentVariable("DevCDREP", sEndPoint, EnvironmentVariableTarget.Machine);
+                            System.Environment.SetEnvironmentVariable("DevCDRId", xAgent.CustomerID, EnvironmentVariableTarget.Machine);
+                        }
+                        catch { }
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
-                        Trace.TraceError(DateTime.Now.ToString()  + "\t" + ex.Message);
+                        Trace.TraceError(DateTime.Now.ToString() + "\t" + ex.Message);
                     }
-                } else
+                }
+                else
                 {
-                    System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
-                    System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
-                    System.Environment.SetEnvironmentVariable("DevCDRId", "", EnvironmentVariableTarget.Machine);
+                    try
+                    {
+                        System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
+                        System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
+                        System.Environment.SetEnvironmentVariable("DevCDRId", "", EnvironmentVariableTarget.Machine);
+                    }
+                    catch { }
                 }
             }
             catch (Exception ex)
@@ -1994,13 +2007,14 @@ namespace DevCDRAgent
                 tReCheck.Enabled = false;
                 tReInit.Enabled = false;
 
+                tReCheck.Stop();
+                tReInit.Stop();
+
                 Trace.WriteLine(DateTime.Now.ToString() + "\t stopping DevCDRAgent...");
                 Trace.Flush();
                 Trace.Close();
-                //Trace.Listeners.Clear();
 
-                tReCheck.Stop();
-                tReInit.Stop();
+                Thread.Sleep(500);
 
                 connection.StopAsync().Wait(3000);
                 connection.DisposeAsync().Wait(1000);
