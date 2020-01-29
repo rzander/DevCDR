@@ -216,7 +216,6 @@ function Test-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
                 if ($randomizeAdmin) {
                     #generate new random PW
                     $pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | ForEach-Object -begin { $aa = $null } -process { $aa += [char]$_ } -end { $aa }; (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
-                    $pw = "";
 
                     #$Admins = (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Name
 
@@ -820,8 +819,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUm2yD/+kB1g2s86/ftFubcWk7
-# B5SgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUUKSD4MGtgkTKmkRag5s5AHG5
+# vamgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -886,12 +885,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQG
-# 8uXMM5h/XemY/RTILpfyfLb7izANBgkqhkiG9w0BAQEFAASCAQAhzZ0S7yNtA93I
-# TUPTUjPyCdM9LkAGz43ypq+9cZcbGROWPjAX5e9EDbb5ZNp27RCc4dwuiFh49Bmu
-# tdJWjD7QwuKXyXiw7FzqbHgYMMvEur1WKoLb+tKiip2gS2oNssiVyugVd8CzIjDh
-# 6dCkPi49jIzfM4Ecv4Yct/+R4pyFGIk6IcK8mo4LHd63jMKJkRuBmtHzalGR70xP
-# I/l84bYgXIn68mMTBFVCWSB86Yn+Terb0uM3+g0Osh5i2f3+PL9lIBskFUT2GT/e
-# 435vxLd84duTy8Utj4CqUFO1nD9+q/e+Au8V3wFC8h559l7+gDBB1zzwlH2yYDAR
-# 2It02uzi
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBT3
+# bnZyVjWyU5cLydxm+bcedTOsCjANBgkqhkiG9w0BAQEFAASCAQDFK74zcgg5pgsr
+# nX26TjOSkkN478DFMe6x2iWgEJ9ILV+jUY3bXwwF3jhuyxPrb0cjedN+68QP4Par
+# CH9oOOMME1mHnS8nR1ybFqOa/CBbAr679+OvyK0LanKoQhC5pY70IJ4Gwp7AE+jQ
+# 0/X8OeNthqPuGecTagz07Y3f6HlXQVwSdYgBJojluLSnpDU3ll+bWdKyk6gmdmo0
+# mk77T3maJKctF2i0kr28mGp7AWnvmKoDE/85eTmVm+0S7zO1iaL4bYevsnk+g/Kh
+# DblDM+0sAbSp6s2RIge5CcdmlrKtWB9zgAcZCzjEfgaUfieli8X0JFHjsJ1cx6A7
+# HykYs1Ec
 # SIG # End signature block
