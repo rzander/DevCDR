@@ -538,6 +538,11 @@ Function Test-DefenderThreats {
                 $global:chk.Add("AVThreats", 1) 
             }
         }
+        else {
+            if ($null -eq $global:chk) { $global:chk = @{ } }
+            if ($global:chk.ContainsKey("AVThreats")) { $global:chk.Remove("AVThreats") }
+            $global:chk.Add("AVThreats", 0)     
+        }
     }
     else {
         $Threats = $null
@@ -819,8 +824,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUUKSD4MGtgkTKmkRag5s5AHG5
-# vamgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURsCLGL01M/8Liq2C6ET22aOn
+# CWWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -885,12 +890,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBT3
-# bnZyVjWyU5cLydxm+bcedTOsCjANBgkqhkiG9w0BAQEFAASCAQDFK74zcgg5pgsr
-# nX26TjOSkkN478DFMe6x2iWgEJ9ILV+jUY3bXwwF3jhuyxPrb0cjedN+68QP4Par
-# CH9oOOMME1mHnS8nR1ybFqOa/CBbAr679+OvyK0LanKoQhC5pY70IJ4Gwp7AE+jQ
-# 0/X8OeNthqPuGecTagz07Y3f6HlXQVwSdYgBJojluLSnpDU3ll+bWdKyk6gmdmo0
-# mk77T3maJKctF2i0kr28mGp7AWnvmKoDE/85eTmVm+0S7zO1iaL4bYevsnk+g/Kh
-# DblDM+0sAbSp6s2RIge5CcdmlrKtWB9zgAcZCzjEfgaUfieli8X0JFHjsJ1cx6A7
-# HykYs1Ec
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQE
+# wqCkK2JtL8+ARjLaDAMFPla6pjANBgkqhkiG9w0BAQEFAASCAQAM35NbfK6HYju0
+# SS4f9W4uPiVFvFybtI7HAqdZBvOzGH7xFimL4gmtYRbKCOAUsgwS/1DCeKzKUMUu
+# 2dwFWUssq+zR32o40XbysnQGJ5ovWIMrFiK0AUe45DOZ1VByltCBBWKg/6y/B7Zp
+# TkhBhU/A+k3AKyDl2AjzhKF3UoljXraJOc+5b8Zs25WY/MND3k7ZvnZouiRabBtt
+# V0OvlN/Jjd+o8u3JJrbclhheB2WqGZPbKyPSs3jYbPh0jNunkR6uoG/G03dEYMcg
+# bYreoK+2ggtYipv9/RJY2cCXDsZz7I3RgOUVB+x7iHUMJRakZnEcQUX+1cQCk/CW
+# x+HMixE6
 # SIG # End signature block
