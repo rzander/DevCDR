@@ -2,9 +2,9 @@
 Test-OSVersion
 Test-Nuget
 Test-OneGetProvider("1.7.1.3")
-Test-DevCDRAgent("2.0.1.28")
+Test-DevCDRAgent("2.0.1.29")
 #Test-Administrators 
-Test-LocalAdmin
+Test-LocalAdmin($false, $true)
 Test-WOL
 Test-FastBoot
 Test-DeliveryOptimization

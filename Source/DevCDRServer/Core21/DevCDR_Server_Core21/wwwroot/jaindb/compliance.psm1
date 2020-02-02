@@ -199,29 +199,32 @@ function Test-Administrators {
 function Test-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
     <#
         .Description
-         disable local Admin account if PW is older than 4 hours
+         disable local Admin account or randomize PW if older than 4 hours
     #>
 
     #Skip fix if running on a DC
     if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) {
-        if ((Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Enabled) {
-            #Disable if local Admin PW is older than 4 Hours
-            if (((get-date) - (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).PasswordLastSet).TotalHours -gt 4) {
+        #if ((Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Enabled) 
+        #Disable if local Admin PW is older than 4 Hours
+        if (((get-date) - (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).PasswordLastSet).TotalHours -gt 4) {
                 
-                if ($disableAdmin) {
-                    #Disable local Admin
-                    (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Disable-LocalUser
-                }
+            if ($disableAdmin) {
+                #Disable local Admin
+                (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Disable-LocalUser
+            }
+            else {
+                (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Enable-LocalUser 
+            }
 
-                if ($randomizeAdmin) {
-                    #generate new random PW
-                    $pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | ForEach-Object -begin { $aa = $null } -process { $aa += [char]$_ } -end { $aa }; (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
+            if ($randomizeAdmin) {
+                #generate new random PW
+                $pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | ForEach-Object -begin { $aa = $null } -process { $aa += [char]$_ } -end { $aa }; 
+                (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
 
-                    #$Admins = (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Name
+                #$Admins = (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Name
 
-                    if (Test-Logging) {
-                        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "AdminPW:" + $pw; CustomerID = $env:DevCDRId }) -LogType "DevCDR" -TennantID "DevCDR"
-                    }
+                if (Test-Logging) {
+                    Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "AdminPW:" + $pw; CustomerID = $env:DevCDRId }) -LogType "DevCDR" -TennantID "DevCDR"
                 }
             }
         }
@@ -824,8 +827,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURsCLGL01M/8Liq2C6ET22aOn
-# CWWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURn1Z3XPvohFGaj/ZlH+v9uxC
+# 4R+gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -890,12 +893,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQE
-# wqCkK2JtL8+ARjLaDAMFPla6pjANBgkqhkiG9w0BAQEFAASCAQAM35NbfK6HYju0
-# SS4f9W4uPiVFvFybtI7HAqdZBvOzGH7xFimL4gmtYRbKCOAUsgwS/1DCeKzKUMUu
-# 2dwFWUssq+zR32o40XbysnQGJ5ovWIMrFiK0AUe45DOZ1VByltCBBWKg/6y/B7Zp
-# TkhBhU/A+k3AKyDl2AjzhKF3UoljXraJOc+5b8Zs25WY/MND3k7ZvnZouiRabBtt
-# V0OvlN/Jjd+o8u3JJrbclhheB2WqGZPbKyPSs3jYbPh0jNunkR6uoG/G03dEYMcg
-# bYreoK+2ggtYipv9/RJY2cCXDsZz7I3RgOUVB+x7iHUMJRakZnEcQUX+1cQCk/CW
-# x+HMixE6
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRV
+# eXU2Ol0BMvqZkPzYiRDCYvRq6DANBgkqhkiG9w0BAQEFAASCAQDEB9C+d0QgjrxR
+# PkFjvgEC4zI23l26pV77RuvRfefMtjBEgKvtZe/38DVtdHZhe3ucTu7a/LXa2oxD
+# 625SlUsGfrs2r9AMCKq1drWAUzI8vJZqeyUhMI3MqbIgsNFgJ36A6cGq/TEiYfsB
+# D19KCYYV99k1vK624RFwDhjfp5znFl8tJqv8pQwRFc4ZBJMc6LafEkCm2myNzG2m
+# Kterb9vubm3IKrgw/fPFfRg2kZf5Lk2IERS566ZDL8/luHco8LwLiojY6oNqkqlq
+# dv2sR+ZbFcAuehMDnGLMGd0twQQ+e9kb5fd274p5zdpHF4DeCcdeVQ4eng8NLZMI
+# njpKFT44
 # SIG # End signature block
