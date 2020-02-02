@@ -2020,8 +2020,8 @@ namespace DevCDRAgent
                                 jLog.Add(new JProperty("EventID", 1000));
                                 jLog.Add(new JProperty("DefenderEventID", arg.EventRecord.Id));
                                 jLog.Add(new JProperty("Description", "Virus:" + arg.EventRecord.Properties[7].Value));
-                                //jLog.Add(new JProperty("DetectionID", arg.EventRecord.Properties[2].Value));
-                                //jLog.Add(new JProperty("DetectionTime", arg.EventRecord.Properties[3].Value));
+                                jLog.Add(new JProperty("DetectionID", arg.EventRecord.Properties[2].Value));
+                                jLog.Add(new JProperty("DetectionTime", arg.EventRecord.Properties[3].Value));
                                 jLog.Add(new JProperty("CustomerID", xAgent.CustomerID));
                                 jLog.Add(new JProperty("ThreatID", arg.EventRecord.Properties[6].Value));
                                 jLog.Add(new JProperty("ThreatName", arg.EventRecord.Properties[7].Value));
@@ -2038,7 +2038,7 @@ namespace DevCDRAgent
                             }
                             catch { }
 
-                            AzureLog.Post(jLog.ToString());
+                            AzureLog.Post(jLog.ToString(), "Defender");
                         }
 
                         Properties.Settings.Default.InventorySuccess = new DateTime();

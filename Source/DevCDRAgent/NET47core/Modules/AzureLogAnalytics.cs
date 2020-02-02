@@ -45,7 +45,13 @@ namespace DevCDRAgent.Modules
             this.LogType = logType;
             this.ApiVersion = apiVersion;
         }
+
         public void Post(string json)
+        {
+            Post(json, LogType);
+        }
+
+        public void Post(string json, string LogName)
         {
             try
             {
@@ -59,7 +65,7 @@ namespace DevCDRAgent.Modules
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(requestUriString);
                 request.ContentType = "application/json";
                 request.Method = "POST";
-                request.Headers["Log-Type"] = LogType;
+                request.Headers["Log-Type"] = LogName;
                 request.Headers["x-ms-date"] = dateString;
                 request.Headers["Authorization"] = signature;
                 byte[] content = Encoding.UTF8.GetBytes(json);
