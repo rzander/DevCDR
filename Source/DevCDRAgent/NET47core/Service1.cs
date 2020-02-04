@@ -1201,10 +1201,10 @@ namespace DevCDRAgent
                                         if ((DateTime.Now - tLastCertReq).TotalMinutes >= 5)
                                         {
                                             Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
-                                            connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(5000); //MachineCert
+                                            connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(30000); //MachineCert
                                             tLastCertReq = DateTime.Now;
-                                            Thread.Sleep(30000);
-                                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
+                                            return;
+                                            //xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
                                         }
                                         else
                                         {
@@ -1271,10 +1271,11 @@ namespace DevCDRAgent
                                                 if ((DateTime.Now - tLastCertReq).TotalMinutes >= 5)
                                                 {
                                                     Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
-                                                    connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(5000); //MachineCert
+                                                    connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(30000); //MachineCert
                                                     tLastCertReq = DateTime.Now;
-                                                    Thread.Sleep(30000);
-                                                    xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
+                                                    //xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
+                                                    return;
+                                                    
                                                 }
 
                                                 if (!string.IsNullOrEmpty(xAgent.Signature))
@@ -1316,9 +1317,9 @@ namespace DevCDRAgent
                                         if ((DateTime.Now - tLastCertReq).TotalMinutes >= 5)
                                         {
                                             Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
-                                            connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(5000); //MachineCert
+                                            connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(30000); //MachineCert
                                             tLastCertReq = DateTime.Now;
-                                            Thread.Sleep(30000);
+                                            return;
                                         }
                                     }
 
@@ -1377,6 +1378,7 @@ namespace DevCDRAgent
 
                 connection.On<string>("setCert", (s1) =>
                 {
+                    Trace.WriteLine(DateTime.Now.ToString() + "\t Certificate received... ");
                     if (!string.IsNullOrEmpty(s1))
                     {
                         X509Certificate2 cert = new X509Certificate2();
@@ -1396,6 +1398,7 @@ namespace DevCDRAgent
                         if (cert.HasPrivateKey)
                         {
                             SignatureVerification.addCertToStore(cert, StoreName.My, StoreLocation.LocalMachine);
+                            Trace.WriteLine(DateTime.Now.ToString() + "\t Machine Certificate Installed... ");
                         }
                         else
                         {
@@ -1410,6 +1413,7 @@ namespace DevCDRAgent
                             {
                                 if (Properties.Settings.Default.AgentSignature != xAgent.Signature)
                                 {
+                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Updating Agent Signature and URL... ");
                                     Properties.Settings.Default.AgentSignature = xAgent.Signature;
                                     Properties.Settings.Default.HealthCheckSuccess = new DateTime(); //reset Health check
                                     Properties.Settings.Default.Endpoint = xAgent.EndpointURL;
@@ -1427,6 +1431,7 @@ namespace DevCDRAgent
                                     catch { }
 
                                     Properties.Settings.Default.Save();
+                                    Thread.Sleep(1000);
                                     RestartService();
                                 }
                             }
@@ -1434,6 +1439,40 @@ namespace DevCDRAgent
 
                         Random rnd = new Random();
                         tReInit.Interval = rnd.Next(5000, Properties.Settings.Default.StatusDelay * 2); //wait max 10s to ReInit
+                    } else
+                    {
+                        //no valid cert received
+                        Hostname = Environment.MachineName + "_NOCERT";
+                        Trace.WriteLine(DateTime.Now.ToString() + "\t Certificate missing... Starting legacy mode.");
+                        Properties.Settings.Default.AgentSignature = xAgent.Signature;
+                        Properties.Settings.Default.Save();
+                        //Legacy Init
+                        connection.InvokeAsync("Init", Hostname).ContinueWith(task1 =>
+                        {
+                            try
+                            {
+                                if (task1.IsFaulted)
+                                {
+                                    Console.WriteLine("There was an error calling send: {0}", task1.Exception.GetBaseException());
+                                }
+                                else
+                                {
+                                    try
+                                    {
+                                        foreach (string sGroup in Properties.Settings.Default.Groups.Split(';'))
+                                        {
+                                            connection.InvokeAsync("JoinGroup", sGroup).ContinueWith(task2 =>
+                                            {
+                                            });
+                                        }
+                                        Program.MinimizeFootprint();
+                                    }
+                                    catch { }
+                                }
+                            }
+                            catch { }
+                        });
+
                     }
                 });
 
@@ -1628,7 +1667,7 @@ namespace DevCDRAgent
                             Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
                             if ((DateTime.Now - tLastCertReq).TotalMinutes >= 5)
                             {
-                                connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(5000); //MachineCert
+                                connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(30000); //MachineCert
                                 tLastCertReq = DateTime.Now;
                                 Thread.Sleep(30000);
                             }
@@ -1710,17 +1749,13 @@ namespace DevCDRAgent
                         else
                         {
                             //request machine cert...
-                            Thread.Sleep(5000);
+                            //Thread.Sleep(5000);
                             if ((DateTime.Now - tLastCertReq).TotalMinutes >= 5)
                             {
                                 Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
-                                connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(5000); //MachineCert
+                                connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(30000); //MachineCert
                                 tLastCertReq = DateTime.Now;
-                                Thread.Sleep(60000);
-                            }
-                            else
-                            {
-                                Thread.Sleep(60000);
+                                return;
                             }
 
                             xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID.Trim());
@@ -2016,10 +2051,11 @@ namespace DevCDRAgent
                             JObject jLog = new JObject();
                             try
                             {
+                                Trace.WriteLine(DateTime.Now.ToString() + "\t Virus detected (" + arg.EventRecord.Properties[7].Value + ")... !!!");
                                 jLog.Add(new JProperty("Computer", Environment.MachineName));
                                 jLog.Add(new JProperty("EventID", 1000));
                                 jLog.Add(new JProperty("DefenderEventID", arg.EventRecord.Id));
-                                jLog.Add(new JProperty("Description", "Virus:" + arg.EventRecord.Properties[7].Value));
+                                jLog.Add(new JProperty("Description", arg.EventRecord.Properties[7].Value));
                                 jLog.Add(new JProperty("DetectionID", arg.EventRecord.Properties[2].Value));
                                 jLog.Add(new JProperty("DetectionTime", arg.EventRecord.Properties[3].Value));
                                 jLog.Add(new JProperty("CustomerID", xAgent.CustomerID));
@@ -2039,6 +2075,8 @@ namespace DevCDRAgent
                             catch { }
 
                             AzureLog.Post(jLog.ToString(), "Defender");
+
+                            Trace.WriteLine(DateTime.Now.ToString() + "\t Threat Alert send to Azure Logs...");
                         }
 
                         Properties.Settings.Default.InventorySuccess = new DateTime();
@@ -2048,7 +2086,10 @@ namespace DevCDRAgent
                     }
 
                 }
-                catch { }
+                catch(Exception ex)
+                {
+                    Trace.WriteLine(DateTime.Now.ToString() + "\t Error on AV detection: " + ex.Message);
+                }
             }
         }
 
