@@ -95,7 +95,7 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https
     $global:chk.Add("OneGetProvider", (Get-PackageProvider -Name Ruckzuck).Version.ToString())
 }
 
-function Test-DevCDRAgent($AgentVersion = "2.0.1.25") {
+function Test-DevCDRAgent($AgentVersion = "2.0.1.30") {
     <#
         .Description
         Install or Update DevCDRAgentCore if required
@@ -217,14 +217,16 @@ function Test-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
             }
 
             if ($randomizeAdmin) {
-                #generate new random PW
-                $pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | ForEach-Object -begin { $aa = $null } -process { $aa += [char]$_ } -end { $aa }; 
-                (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
+                if (((get-date) - (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).PasswordLastSet).TotalHours -gt 12) {
+                    #generate new random PW
+                    $pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | ForEach-Object -begin { $aa = $null } -process { $aa += [char]$_ } -end { $aa }; 
+                    (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
 
-                #$Admins = (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Name
+                    #$Admins = (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Name
 
-                if (Test-Logging) {
-                    Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "AdminPW:" + $pw; CustomerID = $env:DevCDRId }) -LogType "DevCDR" -TennantID "DevCDR"
+                    if (Test-Logging) {
+                        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "AdminPW:" + $pw; CustomerID = $env:DevCDRId }) -LogType "DevCDR" -TennantID "DevCDR"
+                    }
                 }
             }
         }
@@ -827,8 +829,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURn1Z3XPvohFGaj/ZlH+v9uxC
-# 4R+gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUbcSoBi8kDG7y17aPfyi9Z7p/
+# WNmgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -893,12 +895,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRV
-# eXU2Ol0BMvqZkPzYiRDCYvRq6DANBgkqhkiG9w0BAQEFAASCAQDEB9C+d0QgjrxR
-# PkFjvgEC4zI23l26pV77RuvRfefMtjBEgKvtZe/38DVtdHZhe3ucTu7a/LXa2oxD
-# 625SlUsGfrs2r9AMCKq1drWAUzI8vJZqeyUhMI3MqbIgsNFgJ36A6cGq/TEiYfsB
-# D19KCYYV99k1vK624RFwDhjfp5znFl8tJqv8pQwRFc4ZBJMc6LafEkCm2myNzG2m
-# Kterb9vubm3IKrgw/fPFfRg2kZf5Lk2IERS566ZDL8/luHco8LwLiojY6oNqkqlq
-# dv2sR+ZbFcAuehMDnGLMGd0twQQ+e9kb5fd274p5zdpHF4DeCcdeVQ4eng8NLZMI
-# njpKFT44
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTV
+# hDi2bW9LBFgFGRT/9xCfupwS3jANBgkqhkiG9w0BAQEFAASCAQCd/k28UaEbhAaq
+# pRKTyNMC75goiLol7RdoWFCkJJEpda98Sd5bmu0ATVooN54RWbusiDWGhb0R/o0i
+# osQH0HA6es3SmjorrQ9sojhgCi32Xx+2Y2srdaMzYlOuZgtPLR8EVYi6QX4awEmh
+# U5Zd/Tu6bVphSrEpvXB+CtsZ9SUL8vtDDWYL0/nqJIYOdO6XWdBbxKP4K2iFf1Xp
+# Nsyxb2eW1AnuJBRHpe1XiKU+AQhgHkHe0Fn7Hdw5PCcdt3X3eLXNpUM3ahfsUsSM
+# VCGXwA8zu/N5nlc+/BGZ3xmNsYxXmN/+hiutVJHuWaNBl1CgrtKXC2XG7MXmgfB+
+# hH+1h8HT
 # SIG # End signature block
