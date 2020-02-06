@@ -297,6 +297,7 @@ namespace DevCDRAgent
             {
                 //Register for Defender EventLogs
                 EventLogWatcher watcher = new EventLogWatcher("Microsoft-Windows-Windows Defender/Operational");
+                watcher.EventRecordWritten -= EventLogEventRead;
                 watcher.EventRecordWritten += EventLogEventRead;
                 watcher.Enabled = true;
             }
