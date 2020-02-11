@@ -200,7 +200,7 @@ namespace DevCDRServer.Controllers
         }
 
         [AllowAnonymous]
-        public ActionResult GetOSDFiles(string signature)
+        public ActionResult GetOSDFiles(string signature, string OS = "")
         {
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
             {
@@ -221,7 +221,7 @@ namespace DevCDRServer.Controllers
 
                 if (oSig.Exists && oSig.Valid)
                 {
-                    string sScript = GetOSDAsync(oSig.CustomerID).Result;
+                    string sScript = GetOSDAsync(oSig.CustomerID, OS).Result;
 
                     //if (string.IsNullOrEmpty(sScript))
                     //    sScript = GetOSDAsync("DEMO").Result;
@@ -241,10 +241,66 @@ namespace DevCDRServer.Controllers
                     {
                         if((DateTime.UtcNow - oSig.Certificate.NotAfter).TotalDays < 7)
                         {
-                            string sScript = GetOSDAsync(oSig.CustomerID).Result;
+                            string sScript = GetOSDAsync(oSig.CustomerID, OS).Result;
 
                             //if (string.IsNullOrEmpty(sScript))
                             //    sScript = GetOSDAsync("DEMO").Result;
+
+                            if (!string.IsNullOrEmpty(sScript))
+                            {
+                                return new ContentResult()
+                                {
+                                    Content = sScript,
+                                    ContentType = "text/plain"
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            return BadRequest();
+        }
+
+        [AllowAnonymous]
+        public ActionResult GetOS(string signature)
+        {
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+            {
+                X509AgentCert oSig = new X509AgentCert(signature);
+
+                try
+                {
+                    if (X509AgentCert.publicCertificates.Count == 0)
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+
+                    var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
+                    if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+                        X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+                    oSig.ValidateChain(X509AgentCert.publicCertificates);
+                }
+                catch { }
+
+                if (oSig.Exists && oSig.Valid)
+                {
+                    string sScript = GetOSAsync(oSig.CustomerID).Result;
+
+                    if (!string.IsNullOrEmpty(sScript))
+                    {
+                        return new ContentResult()
+                        {
+                            Content = sScript,
+                            ContentType = "text/plain"
+                        };
+                    }
+                }
+                else
+                {
+                    if (oSig.Expired) //allow if cert is expired in the last 7 days
+                    {
+                        if ((DateTime.UtcNow - oSig.Certificate.NotAfter).TotalDays < 7)
+                        {
+                            string sScript = GetOSAsync(oSig.CustomerID).Result;
 
                             if (!string.IsNullOrEmpty(sScript))
                             {
@@ -407,6 +463,59 @@ namespace DevCDRServer.Controllers
 
 
             return Res;
+        }
+
+        private async Task<string> GetOSAsync(string customerid)
+        {
+            string Res = "";
+            if (string.IsNullOrEmpty(customerid))
+                return null;
+
+            if (_cache == null)
+                _cache = new MemoryCache(new MemoryCacheOptions());
+
+            _cache.TryGetValue("os" + customerid, out Res);
+
+            if (!string.IsNullOrEmpty(Res))
+            {
+                return Res;
+            }
+
+            try
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                {
+                    string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                    sURL = sURL.Replace("{fn}", "fnGetSumData");
+
+                    using (HttpClient client = new HttpClient())
+                    {
+                        Res = await client.GetStringAsync($"{sURL}&secretname=AzureDevCDRCustomersTable&customerid={customerid}");
+
+                        if (!string.IsNullOrEmpty(Res))
+                        {
+                            try
+                            {
+                                JArray jRes = JArray.Parse(Res);
+                                string sOS = jRes[0]["OS"].Value<string>();
+                                var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(15));
+                                _cache.Set("os" + customerid, sOS, cacheEntryOptions);
+
+                                return sOS;
+                            }
+                            catch { }
+                        }
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                return "";
+            }
+
+
+            return "";
         }
 
         [AllowAnonymous]

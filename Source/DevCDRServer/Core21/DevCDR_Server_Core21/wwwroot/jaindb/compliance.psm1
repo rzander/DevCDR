@@ -196,6 +196,38 @@ function Test-Administrators {
     } 
 }
 
+function Set-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
+    <#
+        .Description
+         disable local Admin account or randomize PW if older than 4 hours
+    #>
+
+    #Skip fix if running on a DC
+    if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) {
+        $pwlastset = (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).PasswordLastSet
+        if (!$pwlastset) { $pwlastset = Get-Date -Date "1970-01-01 00:00:00Z" }
+        if (((get-date) - $pwlastset).TotalHours -gt 4) {
+            if ($disableAdmin) {
+                (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Disable-LocalUser
+            }
+            else {
+                (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Enable-LocalUser 
+            }
+
+            if ($randomizeAdmin) {
+                if (((get-date) - $pwlastset).TotalHours -gt 12) {
+                    $pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | ForEach-Object -begin { $aa = $null } -process { $aa += [char]$_ } -end { $aa }; 
+                    (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
+
+                    if (Test-Logging) {
+                        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "AdminPW:" + $pw; CustomerID = $env:DevCDRId }) -LogType "DevCDR" -TennantID "DevCDR"
+                    }
+                }
+            }
+        }
+    }
+}
+
 function Test-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
     <#
         .Description
@@ -204,10 +236,9 @@ function Test-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
 
     #Skip fix if running on a DC
     if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) {
-        #if ((Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Enabled) 
-        #Disable if local Admin PW is older than 4 Hours
-        if (((get-date) - (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).PasswordLastSet).TotalHours -gt 4) {
-                
+        $pwlastset = (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).PasswordLastSet
+        if (!$pwlastset) { $pwlastset = Get-Date -Date "1970-01-01 00:00:00Z" }
+        if (((get-date) - $pwlastset).TotalHours -gt 4) {
             if ($disableAdmin) {
                 #Disable local Admin
                 (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Disable-LocalUser
@@ -217,12 +248,10 @@ function Test-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
             }
 
             if ($randomizeAdmin) {
-                if (((get-date) - (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).PasswordLastSet).TotalHours -gt 12) {
+                if (((get-date) - $pwlastset).TotalHours -gt 12) {
                     #generate new random PW
                     $pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | ForEach-Object -begin { $aa = $null } -process { $aa += [char]$_ } -end { $aa }; 
                     (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
-
-                    #$Admins = (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Name
 
                     if (Test-Logging) {
                         Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "AdminPW:" + $pw; CustomerID = $env:DevCDRId }) -LogType "DevCDR" -TennantID "DevCDR"
@@ -829,8 +858,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUbcSoBi8kDG7y17aPfyi9Z7p/
-# WNmgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSXmuUoTCCrYlOuuskM+h1mvt
+# vzSgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -895,12 +924,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTV
-# hDi2bW9LBFgFGRT/9xCfupwS3jANBgkqhkiG9w0BAQEFAASCAQCd/k28UaEbhAaq
-# pRKTyNMC75goiLol7RdoWFCkJJEpda98Sd5bmu0ATVooN54RWbusiDWGhb0R/o0i
-# osQH0HA6es3SmjorrQ9sojhgCi32Xx+2Y2srdaMzYlOuZgtPLR8EVYi6QX4awEmh
-# U5Zd/Tu6bVphSrEpvXB+CtsZ9SUL8vtDDWYL0/nqJIYOdO6XWdBbxKP4K2iFf1Xp
-# Nsyxb2eW1AnuJBRHpe1XiKU+AQhgHkHe0Fn7Hdw5PCcdt3X3eLXNpUM3ahfsUsSM
-# VCGXwA8zu/N5nlc+/BGZ3xmNsYxXmN/+hiutVJHuWaNBl1CgrtKXC2XG7MXmgfB+
-# hH+1h8HT
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS0
+# ha9AJ8+4sifWn/0lOSrT3LUh6jANBgkqhkiG9w0BAQEFAASCAQA5w0NCEuiUFFp9
+# 0z4ijpr6zbsVFt8HiTvhXbcddfxGSTtlA+3e9S4Rr/PMVRD1+NWTgHYm3IV4JqKW
+# AgCpXBiHh7cw77Iclph2X/P5fKQZReV2GBUwn5wliyaYRDxIVBgerFcRrIAvXRr+
+# GoGXnZJ7UhPPaB7+lveW7CWNAxA2TmkjJvChpHLVAmrgZb5aRcigJBI9hjsDtBAj
+# ShZRutm86CSNGNmFZ6V1FB5p4c0B1ORm2jtFBJC75dH2ey1yYSgC7IZoowPDEWh+
+# K2PhvLzcayBMEYD0CLfkjTVcAUJYWQLPx+vWkhgB38iFsG8ZdT6TpwKMCB5fabOa
+# J2El3g4O
 # SIG # End signature block
