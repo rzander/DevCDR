@@ -686,6 +686,66 @@ Function Test-AppLocker {
     }
 }
 
+#region DevCDR
+
+Function Get-DevcdrEP {
+    <#
+        .Description
+        Get DeviceCommander Endpoint URL from NamedPipe
+    #>
+    try {
+        $pipe = new-object System.IO.Pipes.NamedPipeClientStream '.', 'devcdrep', 'In'
+        $pipe.Connect(5000)
+        $sr = new-object System.IO.StreamReader $pipe
+        while ($null -ne ($data = $sr.ReadLine())) { $sig = $data }
+        $sr.Dispose()
+        $pipe.Dispose()
+        return $sig
+    }
+    catch { }
+
+    return ""
+}
+
+Function Get-DevcdrSIG {
+    <#
+        .Description
+        Get DeviceCommander Signature from NamedPipe
+    #>
+    try {
+        $pipe = new-object System.IO.Pipes.NamedPipeClientStream '.', 'devcdrsig', 'In'
+        $pipe.Connect(5000)
+        $sr = new-object System.IO.StreamReader $pipe
+        while ($null -ne ($data = $sr.ReadLine())) { $sig = $data }
+        $sr.Dispose()
+        $pipe.Dispose()
+        return $sig
+    }
+    catch { }
+
+    return ""
+}
+
+Function Get-DevcdrID {
+    <#
+        .Description
+        Get DeviceCommander CustomerID from NamedPipe
+    #>
+    try {
+        $pipe = new-object System.IO.Pipes.NamedPipeClientStream '.', 'devcdrid', 'In'
+        $pipe.Connect(5000)
+        $sr = new-object System.IO.StreamReader $pipe
+        while ($null -ne ($data = $sr.ReadLine())) { $sig = $data }
+        $sr.Dispose()
+        $pipe.Dispose()
+        return $sig
+    }
+    catch { }
+
+    return ""
+}
+#endregion
+
 #region Inventory
 function GetHash([string]$txt) {
     return GetMD5($txt)
@@ -858,8 +918,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSXmuUoTCCrYlOuuskM+h1mvt
-# vzSgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUt4625tJxsgILEVpwRy5ZaxuB
+# nNSgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -924,12 +984,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS0
-# ha9AJ8+4sifWn/0lOSrT3LUh6jANBgkqhkiG9w0BAQEFAASCAQA5w0NCEuiUFFp9
-# 0z4ijpr6zbsVFt8HiTvhXbcddfxGSTtlA+3e9S4Rr/PMVRD1+NWTgHYm3IV4JqKW
-# AgCpXBiHh7cw77Iclph2X/P5fKQZReV2GBUwn5wliyaYRDxIVBgerFcRrIAvXRr+
-# GoGXnZJ7UhPPaB7+lveW7CWNAxA2TmkjJvChpHLVAmrgZb5aRcigJBI9hjsDtBAj
-# ShZRutm86CSNGNmFZ6V1FB5p4c0B1ORm2jtFBJC75dH2ey1yYSgC7IZoowPDEWh+
-# K2PhvLzcayBMEYD0CLfkjTVcAUJYWQLPx+vWkhgB38iFsG8ZdT6TpwKMCB5fabOa
-# J2El3g4O
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR1
+# qkR5WSXm+13OcyjM3WjvbKiyRjANBgkqhkiG9w0BAQEFAASCAQCOBD1BEo3jwrJf
+# rUCBXNgOH5ILZT4OkR+S7KF3MNn8qV+Y3xkEOWdTvPSTFH2YpFIl2pU4/JpEqbLL
+# Ss8xH7ek01q43nf3DWdktlVcomcwTDJtGhgpBHLZjTumhG9UynYlPFhKO9fONEmk
+# RrJQ665JmM971vuWJj6JJhYgHmmTiv2XNGSrPUwDorxAtIWaJJyP6IQfnxF28iLI
+# M6F8Aarr+qkPD4EdLgyNdcKxjQknUKuifE/pecTYCOXEGuI207Kf4OrkrnrPWZ86
+# 2f27Fmku2a5t1TlucqTFZU3xRSE+F7TY46qpPjkvXXrOO+1Y2HdiXO/PKSOz46iv
+# QZcbuCBL
 # SIG # End signature block
