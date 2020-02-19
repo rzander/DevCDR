@@ -104,10 +104,14 @@ namespace DevCDRAgent
 
         static public void MinimizeFootprint()
         {
-            GC.Collect(GC.MaxGeneration);
-            GC.WaitForPendingFinalizers();
-            //SetProcessWorkingSetSize(Process.GetCurrentProcess().Handle,(UIntPtr)0xFFFFFFFF, (UIntPtr)0xFFFFFFFF);
-            EmptyWorkingSet(Process.GetCurrentProcess().Handle);
+            try
+            {
+                GC.Collect(GC.MaxGeneration);
+                GC.WaitForPendingFinalizers();
+                //SetProcessWorkingSetSize(Process.GetCurrentProcess().Handle,(UIntPtr)0xFFFFFFFF, (UIntPtr)0xFFFFFFFF);
+                EmptyWorkingSet(Process.GetCurrentProcess().Handle);
+            }
+            catch { }
         }
 
         [DllImport("kernel32.dll")]

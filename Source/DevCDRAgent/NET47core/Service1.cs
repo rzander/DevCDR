@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
 using System.IO;
+using System.IO.Pipes;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
@@ -440,6 +441,10 @@ namespace DevCDRAgent
                 tReInit.Interval = 120000 + rnd.Next(1, 30000); //randomize ReInit intervall
                 Program.MinimizeFootprint();
             }
+
+            Task.Run(() => NamedPipeServer("devcdrsig"));
+            Task.Run(() => NamedPipeServer("devcdrep"));
+            Task.Run(() => NamedPipeServer("devcdrid"));
 
             base.OnStart(args);
         }
@@ -1379,7 +1384,15 @@ namespace DevCDRAgent
 
                 connection.On<string>("setCert", (s1) =>
                 {
-                    Trace.WriteLine(DateTime.Now.ToString() + "\t Certificate received... ");
+                    if (s1.Length > 64)
+                    {
+                        Trace.WriteLine(DateTime.Now.ToString() + "\t Certificate received... ");
+                    }
+                    else
+                    {
+                        Trace.WriteLine(DateTime.Now.ToString() + "\t invalid Certificate: " + s1);
+                    }
+                    //Trace.WriteLine(DateTime.Now.ToString() + "\t Cert:" + s1);
                     if (!string.IsNullOrEmpty(s1))
                     {
                         X509Certificate2 cert = new X509Certificate2();
@@ -1665,12 +1678,20 @@ namespace DevCDRAgent
                         if (xAgent.Certificate == null)
                         {
                             //request machine cert...
-                            Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
-                            if ((DateTime.Now - tLastCertReq).TotalMinutes >= 5)
+                            if ((DateTime.Now - tLastCertReq).TotalMinutes >= 2)
                             {
+                                Thread.Sleep(2000);
+                                Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate.... ");
+                                Trace.WriteLine(DateTime.Now.ToString() + "\t CustomerID: " + Properties.Settings.Default.CustomerID.Trim());
+                                Trace.WriteLine(DateTime.Now.ToString() + "\t DeviceID: " + Properties.Settings.Default.HardwareID);
                                 connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(30000); //MachineCert
                                 tLastCertReq = DateTime.Now;
+                                Trace.WriteLine(DateTime.Now.ToString() + "\t Machine Certificate requested.... ");
                                 Thread.Sleep(30000);
+                            }
+                            else
+                            {
+                                Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate skipped.... ");
                             }
                             Thread.Sleep(5000);
                             xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID.Trim());
@@ -1878,6 +1899,11 @@ namespace DevCDRAgent
                             System.Environment.SetEnvironmentVariable("DevCDRSig", xAgent.Signature, EnvironmentVariableTarget.Machine);
                             System.Environment.SetEnvironmentVariable("DevCDREP", sEndPoint, EnvironmentVariableTarget.Machine);
                             System.Environment.SetEnvironmentVariable("DevCDRId", xAgent.CustomerID, EnvironmentVariableTarget.Machine);
+
+                            //Remove Environmnet Variable when all Agents are updated (>= 2.0.1.32)
+                            //System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
+                            //System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
+                            //System.Environment.SetEnvironmentVariable("DevCDRId", "", EnvironmentVariableTarget.Machine);
                         }
                         catch { }
                     }
@@ -2011,86 +2037,156 @@ namespace DevCDRAgent
 
         public void Start(string[] args)
         {
-            OnStart(args);
+            Task.Run(() => OnStart(args));
         }
 
-
-        public void EventLogEventRead(object obj, EventRecordWrittenEventArgs arg)
+        public void NamedPipeServer(string name)
         {
-            // Make sure there was no error reading the event.
-            if (arg.EventRecord != null)
+            //$pipe = new- object System.IO.Pipes.NamedPipeClientStream '.','devcdrsig','In'
+            //$pipe.Connect()
+            //$sr = new- object System.IO.StreamReader $pipe
+            //while (($data = $sr.ReadLine()) -ne $null) { $sig = $data }
+            //$sr.Dispose()
+            //$pipe.Dispose()
+            //$sig
+
+            Trace.WriteLine("Starting NamedPipeServer " + name + " ... " + DateTime.Now.ToString());
+            while (true)
             {
                 try
                 {
-                    bool bVirus = false;
-                    switch (arg.EventRecord.Id)
+                    using (NamedPipeServerStream pipeServer =
+                    new NamedPipeServerStream(name, PipeDirection.Out))
                     {
-                        case 1006:
-                            bVirus = true;
-                            break;
-                        case 1015:
-                            bVirus = true;
-                            break;
-                        case 1116:
-                            bVirus = true;
-                            break;
-                        case 1117:
-                            bVirus = true;
-                            break;
-                        case 1118:
-                            bVirus = true;
-                            break;
-                        case 1119:
-                            bVirus = true;
-                            break;
-                    }
+                        pipeServer.WaitForConnection();
 
-                    if (bVirus)
-                    {
-                        if (!string.IsNullOrEmpty(AzureLog.WorkspaceId))
+                        Trace.WriteLine("NamedPipe client connected on " + name + "... "   + DateTime.Now.ToString());
+                        try
                         {
-                            JObject jLog = new JObject();
-                            try
+                            using (StreamWriter sw = new StreamWriter(pipeServer))
                             {
-                                Trace.WriteLine(DateTime.Now.ToString() + "\t Virus detected (" + arg.EventRecord.Properties[7].Value + ")... !!!");
-                                jLog.Add(new JProperty("Computer", Environment.MachineName));
-                                jLog.Add(new JProperty("EventID", 1000));
-                                jLog.Add(new JProperty("DefenderEventID", arg.EventRecord.Id));
-                                jLog.Add(new JProperty("Description", arg.EventRecord.Properties[7].Value));
-                                jLog.Add(new JProperty("DetectionID", arg.EventRecord.Properties[2].Value));
-                                jLog.Add(new JProperty("DetectionTime", arg.EventRecord.Properties[3].Value));
-                                jLog.Add(new JProperty("CustomerID", xAgent.CustomerID));
-                                jLog.Add(new JProperty("ThreatID", arg.EventRecord.Properties[6].Value));
-                                jLog.Add(new JProperty("ThreatName", arg.EventRecord.Properties[7].Value));
-                                jLog.Add(new JProperty("SeverityID", arg.EventRecord.Properties[8].Value));
-                                jLog.Add(new JProperty("CategoryID", arg.EventRecord.Properties[10].Value));
-                                jLog.Add(new JProperty("FWLink", arg.EventRecord.Properties[12].Value));
-                                jLog.Add(new JProperty("SourceID", arg.EventRecord.Properties[16].Value));
-                                jLog.Add(new JProperty("Process", arg.EventRecord.Properties[18].Value));
-                                jLog.Add(new JProperty("User", arg.EventRecord.Properties[19].Value));
-                                jLog.Add(new JProperty("Resource", arg.EventRecord.Properties[21].Value));
-                                jLog.Add(new JProperty("ActionID", arg.EventRecord.Properties[29].Value));
-                                jLog.Add(new JProperty("ErrorDescription", arg.EventRecord.Properties[33].Value));
-                                jLog.Add(new JProperty("ActionString", arg.EventRecord.Properties[37].Value));
+                                sw.AutoFlush = true;
+                                if (xAgent != null)
+                                {
+                                    if (name == "devcdrsig")
+                                    {
+                                        sw.WriteLine(xAgent.Signature);
+                                    }
+                                    if (name == "devcdrep")
+                                    {
+                                        sw.WriteLine(xAgent.EndpointURL.Replace("/chat", ""));
+                                    }
+                                    if (name == "devcdrid")
+                                    {
+                                        sw.WriteLine(xAgent.CustomerID);
+                                    }
+                                }
+                                else
+                                {
+                                    sw.WriteLine("");
+                                }
                             }
-                            catch { }
-
-                            AzureLog.Post(jLog.ToString(), "Defender");
-
-                            Trace.WriteLine(DateTime.Now.ToString() + "\t Threat Alert send to Azure Logs...");
                         }
 
-                        Properties.Settings.Default.InventorySuccess = new DateTime();
-                        Properties.Settings.Default.HealthCheckSuccess = new DateTime();
-                        Random rnd2 = new Random();
-                        tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
-                    }
+                        // Catch the IOException that is raised if the pipe is broken
+                        // or disconnected.
+                        catch (IOException e)
+                        {
+                            Console.WriteLine("NP ERROR: {0}", e.Message);
+                        }
 
+                    }
                 }
-                catch(Exception ex)
+                catch
                 {
-                    Trace.WriteLine(DateTime.Now.ToString() + "\t Error on AV detection: " + ex.Message);
+                    Thread.Sleep(5000);
                 }
+            }
+        }
+
+        public void EventLogEventRead(object obj, EventRecordWrittenEventArgs arg)
+        {
+            try
+            {
+                // Make sure there was no error reading the event.
+                if (arg.EventRecord != null)
+                {
+                    try
+                    {
+                        bool bVirus = false;
+                        switch (arg.EventRecord.Id)
+                        {
+                            case 1006:
+                                bVirus = true;
+                                break;
+                            case 1015:
+                                bVirus = true;
+                                break;
+                            case 1116:
+                                bVirus = true;
+                                break;
+                            case 1117:
+                                bVirus = true;
+                                break;
+                            case 1118:
+                                bVirus = true;
+                                break;
+                            case 1119:
+                                bVirus = true;
+                                break;
+                        }
+
+                        if (bVirus)
+                        {
+                            if (!string.IsNullOrEmpty(AzureLog.WorkspaceId))
+                            {
+                                JObject jLog = new JObject();
+                                try
+                                {
+                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Virus detected (" + arg.EventRecord.Properties[7].Value + ")... !!!");
+                                    jLog.Add(new JProperty("Computer", Environment.MachineName));
+                                    jLog.Add(new JProperty("EventID", 1000));
+                                    jLog.Add(new JProperty("DefenderEventID", arg.EventRecord.Id));
+                                    jLog.Add(new JProperty("Description", arg.EventRecord.Properties[7].Value));
+                                    jLog.Add(new JProperty("DetectionID", arg.EventRecord.Properties[2].Value));
+                                    jLog.Add(new JProperty("DetectionTime", arg.EventRecord.Properties[3].Value));
+                                    jLog.Add(new JProperty("CustomerID", xAgent.CustomerID));
+                                    jLog.Add(new JProperty("ThreatID", arg.EventRecord.Properties[6].Value));
+                                    jLog.Add(new JProperty("ThreatName", arg.EventRecord.Properties[7].Value));
+                                    jLog.Add(new JProperty("SeverityID", arg.EventRecord.Properties[8].Value));
+                                    jLog.Add(new JProperty("CategoryID", arg.EventRecord.Properties[10].Value));
+                                    jLog.Add(new JProperty("FWLink", arg.EventRecord.Properties[12].Value));
+                                    jLog.Add(new JProperty("SourceID", arg.EventRecord.Properties[16].Value));
+                                    jLog.Add(new JProperty("Process", arg.EventRecord.Properties[18].Value));
+                                    jLog.Add(new JProperty("User", arg.EventRecord.Properties[19].Value));
+                                    jLog.Add(new JProperty("Resource", arg.EventRecord.Properties[21].Value));
+                                    jLog.Add(new JProperty("ActionID", arg.EventRecord.Properties[29].Value));
+                                    jLog.Add(new JProperty("ErrorDescription", arg.EventRecord.Properties[33].Value));
+                                    jLog.Add(new JProperty("ActionString", arg.EventRecord.Properties[37].Value));
+                                }
+                                catch { }
+
+                                AzureLog.Post(jLog.ToString(), "Defender");
+
+                                Trace.WriteLine(DateTime.Now.ToString() + "\t Threat Alert send to Azure Logs...");
+                            }
+
+                            Properties.Settings.Default.InventorySuccess = new DateTime();
+                            Properties.Settings.Default.HealthCheckSuccess = new DateTime();
+                            Random rnd2 = new Random();
+                            tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                        }
+
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine(DateTime.Now.ToString() + "\t Error on AV detection: " + ex.Message);
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine("E2181: " + ex.Message);
             }
         }
 
@@ -2109,14 +2205,14 @@ namespace DevCDRAgent
                 Trace.Flush();
                 Trace.Close();
 
-                Thread.Sleep(500);
+                Thread.Sleep(1000);
 
                 connection.StopAsync().Wait(3000);
                 connection.DisposeAsync().Wait(1000);
-
-                base.OnStop();
             }
             catch { }
+
+            base.OnStop();
         }
 
         public void RestartService()
