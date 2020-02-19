@@ -888,8 +888,7 @@ namespace DevCDRServer
             }
             catch(Exception ex)
             {
-                ex.Message.ToString();
-                return Cert; 
+                return ex.Message; 
             }
 
 
