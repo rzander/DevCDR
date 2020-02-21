@@ -92,6 +92,15 @@ namespace DevCDRAgent.Modules
             }
             catch(Exception ex)
             {
+                try
+                {
+                    //Store Alert as JSON File...
+                    if (!Directory.Exists(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection")))
+                        Directory.CreateDirectory(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection"));
+
+                    File.WriteAllText(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection", Path.GetRandomFileName() + ".json"), json);
+                }
+                catch { }
                 Console.WriteLine(ex.Message);
             }
         }

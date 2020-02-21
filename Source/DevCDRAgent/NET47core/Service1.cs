@@ -330,6 +330,24 @@ namespace DevCDRAgent
                         Properties.Settings.Default.Reload();
                         Connect();
 
+                        //Send cached AV Threats
+                        string sDir = Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection");
+                        if(Directory.Exists(sDir))
+                        {
+                            foreach(string sFile in Directory.GetFiles(sDir, "*.json"))
+                            {
+                                try
+                                {
+                                    if (isconnected)
+                                    {
+                                        string sThreat = File.ReadAllText(sFile);
+                                        AzureLog.Post(sThreat, "Defender");
+                                        File.Delete(sFile);
+                                    }
+                                }
+                                catch { }
+                            }
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -355,7 +373,25 @@ namespace DevCDRAgent
                 Properties.Settings.Default.Reload();
 
                 Task.Run(() => Connect());
-                
+
+                //Send cached AV Threats
+                string sDir = Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection");
+                if (Directory.Exists(sDir))
+                {
+                    foreach (string sFile in Directory.GetFiles(sDir, "*.json"))
+                    {
+                        try
+                        {
+                            if (isconnected)
+                            {
+                                string sThreat = File.ReadAllText(sFile);
+                                AzureLog.Post(sThreat, "Defender");
+                                File.Delete(sFile);
+                            }
+                        }
+                        catch { }
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -370,7 +406,7 @@ namespace DevCDRAgent
                 //Only fallback if we have internet...
                 if (IsConnectedToInternet())
                 {
-                    if(Properties.Settings.Default.ConnectionErrors > 5)
+                    if (Properties.Settings.Default.ConnectionErrors > 5)
                     {
                         string sDeviceID = Properties.Settings.Default.HardwareID;
                         if (string.IsNullOrEmpty(sDeviceID))
@@ -425,7 +461,7 @@ namespace DevCDRAgent
                             Uri = xAgent.FallbackURL;
                         else
                             Uri = Properties.Settings.Default.FallbackEndpoint;
-                        
+
                         Hostname = Environment.MachineName + "_BAD";
                     }
                 }
@@ -2114,6 +2150,7 @@ namespace DevCDRAgent
                     try
                     {
                         bool bVirus = false;
+                        bool bConfig = false;
                         switch (arg.EventRecord.Id)
                         {
                             case 1006:
@@ -2134,6 +2171,9 @@ namespace DevCDRAgent
                             case 1119:
                                 bVirus = true;
                                 break;
+                            case 5007:
+                                bConfig = true;
+                                break;
                         }
 
                         if (bVirus)
@@ -2141,16 +2181,26 @@ namespace DevCDRAgent
                             if (!string.IsNullOrEmpty(AzureLog.WorkspaceId))
                             {
                                 JObject jLog = new JObject();
+
+                                string sCustomerID = "";
+                                try
+                                {
+                                    sCustomerID = xAgent.CustomerID;
+                                }
+                                catch { }
+
                                 try
                                 {
                                     Trace.WriteLine(DateTime.Now.ToString() + "\t Virus detected (" + arg.EventRecord.Properties[7].Value + ")... !!!");
                                     jLog.Add(new JProperty("Computer", Environment.MachineName));
+                                    jLog.Add(new JProperty("DeviceID", Properties.Settings.Default.HardwareID));
                                     jLog.Add(new JProperty("EventID", 1000));
                                     jLog.Add(new JProperty("DefenderEventID", arg.EventRecord.Id));
+                                    jLog.Add(new JProperty("EventRecordID", arg.EventRecord.RecordId));
                                     jLog.Add(new JProperty("Description", arg.EventRecord.Properties[7].Value));
                                     jLog.Add(new JProperty("DetectionID", arg.EventRecord.Properties[2].Value));
                                     jLog.Add(new JProperty("DetectionTime", arg.EventRecord.Properties[3].Value));
-                                    jLog.Add(new JProperty("CustomerID", xAgent.CustomerID));
+                                    jLog.Add(new JProperty("CustomerID", sCustomerID));
                                     jLog.Add(new JProperty("ThreatID", arg.EventRecord.Properties[6].Value));
                                     jLog.Add(new JProperty("ThreatName", arg.EventRecord.Properties[7].Value));
                                     jLog.Add(new JProperty("SeverityID", arg.EventRecord.Properties[8].Value));
@@ -2166,7 +2216,67 @@ namespace DevCDRAgent
                                 }
                                 catch { }
 
-                                AzureLog.Post(jLog.ToString(), "Defender");
+                                if (isconnected)
+                                {
+                                    AzureLog.Post(jLog.ToString(), "Defender");
+                                }
+                                else
+                                {
+                                    //Store Alert as JSON File...
+                                    if (!Directory.Exists(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection")))
+                                        Directory.CreateDirectory(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection"));
+
+                                    File.WriteAllText(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection", Path.GetRandomFileName() + ".json"), jLog.ToString());
+                                }
+
+                                Trace.WriteLine(DateTime.Now.ToString() + "\t Threat Alert send to Azure Logs...");
+                            }
+
+                            Properties.Settings.Default.InventorySuccess = new DateTime();
+                            Properties.Settings.Default.HealthCheckSuccess = new DateTime();
+                            Random rnd2 = new Random();
+                            tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                        }
+
+                        if (bConfig)
+                        {
+                            if (!string.IsNullOrEmpty(AzureLog.WorkspaceId))
+                            {
+                                JObject jLog = new JObject();
+
+                                string sCustomerID = "";
+                                try
+                                {
+                                    sCustomerID = xAgent.CustomerID;
+                                }
+                                catch { }
+
+                                try
+                                {
+                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Configuration change detected... !!!");
+                                    jLog.Add(new JProperty("Computer", Environment.MachineName));
+                                    jLog.Add(new JProperty("DeviceID", Properties.Settings.Default.HardwareID));
+                                    jLog.Add(new JProperty("CustomerID", sCustomerID));
+                                    jLog.Add(new JProperty("EventID", 1001));
+                                    jLog.Add(new JProperty("DefenderEventID", arg.EventRecord.Id));
+                                    jLog.Add(new JProperty("EventRecordID", arg.EventRecord.RecordId));
+                                    jLog.Add(new JProperty("Description", arg.EventRecord.Properties[2].Value));
+                                    jLog.Add(new JProperty("ActionString", arg.EventRecord.Properties[3].Value));
+                                }
+                                catch { }
+
+                                if (isconnected)
+                                {
+                                    AzureLog.Post(jLog.ToString(), "Defender");
+                                }
+                                else
+                                {
+                                    //Store Alert as JSON File...
+                                    if (!Directory.Exists(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection")))
+                                        Directory.CreateDirectory(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection"));
+
+                                    File.WriteAllText(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection", Path.GetRandomFileName() + ".json"), jLog.ToString());
+                                }
 
                                 Trace.WriteLine(DateTime.Now.ToString() + "\t Threat Alert send to Azure Logs...");
                             }
