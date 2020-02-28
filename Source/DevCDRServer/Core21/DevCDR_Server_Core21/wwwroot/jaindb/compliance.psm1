@@ -78,14 +78,14 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https
 
     if (Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) { } else {
         if ($bLogging) {
-            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Installing OneGet v1.7.1.3" }) -LogType "DevCDRCore" 
+            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Installing OneGet v1.7.1.3"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDRCore" 
         }
         &msiexec -i $DownloadURL /qn REBOOT=REALLYSUPPRESS 
     }
 
     if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]($ProviderVersion)) {
         if ($bLogging) {
-            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Updating to OneGet v1.7.1.3" }) -LogType "DevCDRCore" 
+            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Updating to OneGet v1.7.1.3"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDRCore" 
         }
         &msiexec -i $DownloadURL /qn REBOOT=REALLYSUPPRESS 
     }
@@ -95,7 +95,7 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https
     $global:chk.Add("OneGetProvider", (Get-PackageProvider -Name Ruckzuck).Version.ToString())
 }
 
-function Test-DevCDRAgent($AgentVersion = "2.0.1.30") {
+function Test-DevCDRAgent($AgentVersion = "2.0.1.34") {
     <#
         .Description
         Install or Update DevCDRAgentCore if required
@@ -110,7 +110,7 @@ function Test-DevCDRAgent($AgentVersion = "2.0.1.30") {
             if ($customerId) { 
                 $customerId > $env:temp\customer.log
                 if ($bLogging) {
-                    Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "Updating DevCDRAgent to v$($AgentVersion)" }) -LogType "DevCDRCore" 
+                    Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1002; Description = "Updating DevCDRAgent to v$($AgentVersion)"; DeviceID = $( GetMyID ); CustomerID = $( Get-DevcdrID ) }) -LogType "DevCDRCore" 
                 }
                 &msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER="$($customerId)" /qn REBOOT=REALLYSUPPRESS  
             }
@@ -127,7 +127,7 @@ function Test-DevCDRAgent($AgentVersion = "2.0.1.30") {
     #Add Scheduled-Task to repair Agent 
     if ((Get-ScheduledTask DevCDR -ea SilentlyContinue).Description -ne "DeviceCommander fix $($fix)") {
         if ($bLogging) {
-            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1004; Description = "Registering Scheduled-Task for DevCDR fix $($fix)" }) -LogType "DevCDRCore" 
+            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1004; Description = "Registering Scheduled-Task for DevCDR fix $($fix)"; DeviceID = $( GetMyID ); CustomerID = $( Get-DevcdrID ) }) -LogType "DevCDRCore" 
         }
         try {
             $scheduleObject = New-Object -ComObject schedule.service
@@ -220,7 +220,7 @@ function Set-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
                     (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
 
                     if (Test-Logging) {
-                        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "AdminPW:" + $pw; CustomerID = $env:DevCDRId }) -LogType "DevCDR" -TennantID "DevCDR"
+                        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "AdminPW:" + $pw; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDR" -TennantID "DevCDR"
                     }
                 }
             }
@@ -228,55 +228,33 @@ function Set-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
     }
 }
 
-function Test-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
+function Test-LocalAdmin {
     <#
         .Description
          disable local Admin account or randomize PW if older than 4 hours
     #>
 
+    $locAdmin = @()  
     #Skip fix if running on a DC
     if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) {
-        $pwlastset = (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).PasswordLastSet
-        if (!$pwlastset) { $pwlastset = Get-Date -Date "1970-01-01 00:00:00Z" }
-        if (((get-date) - $pwlastset).TotalHours -gt 4) {
-            if ($disableAdmin) {
-                #Disable local Admin
-                (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Disable-LocalUser
+        
+        $admingroup = (Get-WmiObject -Class Win32_Group -Filter "LocalAccount='True' AND SID='S-1-5-32-544'").Name
+       
+        $groupconnection = [ADSI]("WinNT://localhost/$admingroup,group")
+        $members = $groupconnection.Members()
+        ForEach ($member in $members) {
+            $name = $member.GetType().InvokeMember("Name", "GetProperty", $NULL, $member, $NULL)
+            $class = $member.GetType().InvokeMember("Class", "GetProperty", $NULL, $member, $NULL)
+            $bytes = $member.GetType().InvokeMember("objectsid", "GetProperty", $NULL, $member, $NULL)
+            $sid = New-Object Security.Principal.SecurityIdentifier ($bytes, 0)
+            $result = New-Object -TypeName psobject
+            $result | Add-Member -MemberType NoteProperty -Name Name -Value $name
+            $result | Add-Member -MemberType NoteProperty -Name ObjectClass -Value $class
+            $result | Add-Member -MemberType NoteProperty -Name id -Value $sid.Value.ToString()
+            #Exclude locaAdmin and DomainAdmins
+            if (($result.id -notlike "S-1-5-21-*-500" ) -and ($result.id -notlike "S-1-5-21-*-512" )) {
+                $locAdmin = $locAdmin + $result;
             }
-            else {
-                (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Enable-LocalUser 
-            }
-
-            if ($randomizeAdmin) {
-                if (((get-date) - $pwlastset).TotalHours -gt 12) {
-                    #generate new random PW
-                    $pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | ForEach-Object -begin { $aa = $null } -process { $aa += [char]$_ } -end { $aa }; 
-                    (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
-
-                    if (Test-Logging) {
-                        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "AdminPW:" + $pw; CustomerID = $env:DevCDRId }) -LogType "DevCDR" -TennantID "DevCDR"
-                    }
-                }
-            }
-        }
-    }
-
-    $admingroup = (Get-WmiObject -Class Win32_Group -Filter "LocalAccount='True' AND SID='S-1-5-32-544'").Name
-    $locAdmin = @()     
-    $groupconnection = [ADSI]("WinNT://localhost/$admingroup,group")
-    $members = $groupconnection.Members()
-    ForEach ($member in $members) {
-        $name = $member.GetType().InvokeMember("Name", "GetProperty", $NULL, $member, $NULL)
-        $class = $member.GetType().InvokeMember("Class", "GetProperty", $NULL, $member, $NULL)
-        $bytes = $member.GetType().InvokeMember("objectsid", "GetProperty", $NULL, $member, $NULL)
-        $sid = New-Object Security.Principal.SecurityIdentifier ($bytes, 0)
-        $result = New-Object -TypeName psobject
-        $result | Add-Member -MemberType NoteProperty -Name Name -Value $name
-        $result | Add-Member -MemberType NoteProperty -Name ObjectClass -Value $class
-        $result | Add-Member -MemberType NoteProperty -Name id -Value $sid.Value.ToString()
-        #Exclude locaAdmin and DomainAdmins
-        if (($result.id -notlike "S-1-5-21-*-500" ) -and ($result.id -notlike "S-1-5-21-*-512" )) {
-            $locAdmin = $locAdmin + $result;
         }
     }
 
@@ -418,7 +396,7 @@ function Update-Software {
     $SWList | ForEach-Object { 
         if ($updates.PackageFilename -contains $_) { 
             if (Test-Logging) {
-                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 2000; Description = "RuckZuck updating: $($_)"; CustomerID = $env:DevCDRId }) -LogType "DevCDR" -TennantID "DevCDR"
+                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 2000; Description = "RuckZuck updating: $($_)"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDR" -TennantID "DevCDR"
             }
             "Updating: " + $_ ;
             Install-Package -ProviderName RuckZuck "$($_)" -ea SilentlyContinue
@@ -918,8 +896,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUt4625tJxsgILEVpwRy5ZaxuB
-# nNSgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUPwqb2uoR45GMaBJjWQbPh3vh
+# yESgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -984,12 +962,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR1
-# qkR5WSXm+13OcyjM3WjvbKiyRjANBgkqhkiG9w0BAQEFAASCAQCOBD1BEo3jwrJf
-# rUCBXNgOH5ILZT4OkR+S7KF3MNn8qV+Y3xkEOWdTvPSTFH2YpFIl2pU4/JpEqbLL
-# Ss8xH7ek01q43nf3DWdktlVcomcwTDJtGhgpBHLZjTumhG9UynYlPFhKO9fONEmk
-# RrJQ665JmM971vuWJj6JJhYgHmmTiv2XNGSrPUwDorxAtIWaJJyP6IQfnxF28iLI
-# M6F8Aarr+qkPD4EdLgyNdcKxjQknUKuifE/pecTYCOXEGuI207Kf4OrkrnrPWZ86
-# 2f27Fmku2a5t1TlucqTFZU3xRSE+F7TY46qpPjkvXXrOO+1Y2HdiXO/PKSOz46iv
-# QZcbuCBL
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRi
+# A4ioQHC9C0J5bj6xExsvIUX9DTANBgkqhkiG9w0BAQEFAASCAQA66RdWQgjKmt90
+# JqA+GxsYl4sgfhElqS1b4ElCAcjHdkIrn1NUQ3Vq2YLY7b4xz2C/6BR6V8hp6vmt
+# bb+fAZ3FrzSR3/en4LoaClshNXJeYKKzZjguWYTlzwobgW92ce+Jb6WGqnf4boor
+# CttvV5BkddDauGIJ0mLgj0e8O6iAepGjKThwZYWa6Nquj/tB8Urrpe8+iIUk76nE
+# 1fF2hs2DXrPZudCisIBYuYRpbyv4ZFVh0iDB8IP9DP72b5dzy5GI+wNjszgFsLWx
+# Wnc7O/Ea4OyEQce8+p0O3+5jt8QhvSk+drPtzYNNHKwuZopTieah4ulM2isNilXz
+# q43NndUa
 # SIG # End signature block

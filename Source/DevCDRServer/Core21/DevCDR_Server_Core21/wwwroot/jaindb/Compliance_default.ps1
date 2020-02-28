@@ -87,7 +87,7 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https
     $global:chk.Add("OneGetProvider", (Get-PackageProvider -Name Ruckzuck).Version.ToString())
 }
 
-function Test-DevCDRAgent($AgentVersion = "2.0.1.31") {
+function Test-DevCDRAgent($AgentVersion = "2.0.1.34") {
     <#
         .Description
         Install or Update DevCDRAgentCore if required
@@ -396,7 +396,7 @@ Function Test-Bitlocker {
 #Import-Module Compliance
 Test-Nuget
 Test-OneGetProvider("1.7.1.3")
-Test-DevCDRAgent("2.0.1.31")
+Test-DevCDRAgent("2.0.1.34")
 #Test-Administrators 
 Test-LocalAdmin
 Test-WOL
@@ -426,8 +426,8 @@ if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVir
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5Br0Q+f3T6P9R+O/lJKq39Lq
-# +PegggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqLc88pWNQSk1Ee3rQma29gOd
+# 9EOgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -492,12 +492,12 @@ if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVir
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRK
-# e0KObA0ThGvar69Kc7QUiXxyVDANBgkqhkiG9w0BAQEFAASCAQCgNH/zJVqKZ/7M
-# tXJUbFRZPTirCaZtra4Yc44jDlF/4tB5YefMv/d2ZSY+TuRJc67EoUMdFHqysp0v
-# NUy4OrJMab87FKgwCXmVzECgZ8tjtkn7O7Bmj95QjqCUodht9iudr2XRbNESpzbC
-# If7Fn2GBmzQD6UWVAB8hdyHlvrq7OmTt9BhiM0Y8IgOVJ5ed3EGkIYP4GEMlc78H
-# TFdkhUc9q9spWv0n9CUK5vn3K/qaw60MfiAv1vcCoeQV5nqKmXlgMYri3DYVz0qp
-# kOp+ilI5GnKjbsnuj+9GoMXvGGIl6a/fBV8vtD4gN5T4RT2oDxPaaoD52bQHXhLj
-# WcScwbFI
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSP
+# gLPRQkGaposz+Gwee1T6EXt8JzANBgkqhkiG9w0BAQEFAASCAQAGPXh32tLXtU3i
+# 4HgrOeYtDybtH5Ww26nM/Pzi7/B47pEUzADnE3rEYExTxhuEV8zv0nmzw4Dnxc8K
+# 5AiYJ/AJtGGSDvXVAM+yyWbMWKFFKGl6iZSjo6hQn8bsnvtWnWfT5C6DSLonZCZy
+# ElyFF8nYXgZ0hO+56ayI1V1GRMuVxFVENZcKhP5TGeFNh26UbK6nwIYDyMQu+QDA
+# eB4eZijwRog6jCcxMRDYgsIJ4O2l5WQIjJnQAjvDL+irmjWejSIihjGSm57awK3+
+# FcqVK8Oivx8qQ+vuoGpEjv3B9evM/8i++tTZF8yP002kRZDGjdnkchXHBJz8ZzbF
+# DAoeI0ss
 # SIG # End signature block
