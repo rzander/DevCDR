@@ -45,6 +45,7 @@ namespace DevCDRAgent
         private bool isstopping = false;
         public string Uri { get; set; } = Properties.Settings.Default.Endpoint;
         public static AzureLogAnalytics AzureLog = new AzureLogAnalytics();
+        public static long iLastEventId = 0;
 
         static readonly object _locker = new object();
 
@@ -273,6 +274,12 @@ namespace DevCDRAgent
 
         protected override void OnStart(string[] args)
         {
+            if (Properties.Settings.Default.CustomerID == "DEMO" && File.Exists("c:\\remove-me.txt"))
+            {
+                OFF(true);
+                return;
+            }
+
             isstopping = false;
             sScriptResult = DateTime.Now.ToString();
             tReCheck.Elapsed -= TReCheck_Elapsed;
@@ -483,6 +490,124 @@ namespace DevCDRAgent
             Task.Run(() => NamedPipeServer("devcdrid"));
 
             base.OnStart(args);
+        }
+
+        protected void OFF(bool uninstall = false)
+        {
+            //Stop status
+            tReCheck.Enabled = false;
+            tReInit.Enabled = false;
+            isstopping = true;
+
+            try
+            {
+                System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
+                System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
+                System.Environment.SetEnvironmentVariable("DevCDRId", "", EnvironmentVariableTarget.Machine);
+            }
+            catch { }
+
+            try
+            {
+                //Trace.WriteLine(DateTime.Now.ToString() + "\t Set Customer: " + s1);
+                //set Customer
+                string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
+                XmlDocument doc = new XmlDocument();
+                doc.Load(sConfig);
+                doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='CustomerID']/value").InnerText = "";
+                doc.Save(sConfig);
+            }
+            catch { }
+
+            //Update Advanced Installer Persistent Properties
+            try
+            {
+                RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
+                if (myKey != null)
+                {
+                    myKey.DeleteValue("CUSTOMER");
+                    myKey.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError(DateTime.Now.ToString() + "\t Error: " + ex.Message);
+            }
+
+            if(uninstall)
+            {
+                //Delete existing Settings
+                try
+                {
+                    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools", true);
+                    myKey.DeleteSubKey("{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}");
+                }
+                catch { }
+
+                //Delete Scheduled Task
+                try
+                {
+                    TimeSpan timeout = new TimeSpan(0, 5, 0); //default timeout = 5min
+                    DateTime dStart = DateTime.Now;
+                    TimeSpan dDuration = DateTime.Now - dStart;
+
+                    using (PowerShell PowerShellInstance = PowerShell.Create())
+                    {
+
+                        Trace.WriteLine(DateTime.Now.ToString() + "\t remove Agent... ");
+                        try
+                        {
+                            PowerShellInstance.AddScript("Get-ScheduledTask DevCDR | Unregister-ScheduledTask -Confirm:$False");
+                            PSDataCollection <PSObject> outputCollection = new PSDataCollection<PSObject>();
+
+                            outputCollection.DataAdding += ConsoleOutput;
+                            PowerShellInstance.Streams.Error.DataAdding += ConsoleError;
+
+                            IAsyncResult async = PowerShellInstance.BeginInvoke<PSObject, PSObject>(null, outputCollection);
+                            while (async.IsCompleted == false && dDuration < timeout)
+                            {
+                                Thread.Sleep(200);
+                                dDuration = DateTime.Now - dStart;
+                            }
+
+                            if (tReInit.Interval > 5000)
+                                tReInit.Interval = 2000;
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("There was an error: {0}", ex.Message);
+                        }
+                    }
+                }
+                catch { }
+
+                //Stop and Uninstall
+                try
+                {
+                    //string sParam = "sleep 3; iex (((Get-ItemProperty HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | ? { $_.DisplayName -eq 'DevCDRAgentCore'}).UninstallString).Replace('/X{', '/x ''{') + ' /qb'); remove-item c:\\remove-me.txt -force"; string sParam = "sleep 3; iex (((Get-ItemProperty HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | ? { $_.DisplayName -eq 'DevCDRAgentCore'}).UninstallString).Replace('/X{', '/x ''{') + ' /qb'); remove-item c:\\remove-me.txt -force";
+                    File.Delete(@"c:\remove-me.txt");
+                    //Process.Start(Environment.ExpandEnvironmentVariables(@"%SystemRoot%\system32\WindowsPowerShell\v1.0\powershell.exe"), "-noexit -command sleep 5; &'c:\\Program Files\\DevCDRAgentCore\\DevCDRAgentCore.exe' --uninstall");
+
+                    RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall", false);
+                    foreach (var subkey in myKey.GetSubKeyNames())
+                    {
+                        try
+                        {
+                            var oSub = myKey.OpenSubKey(subkey);
+                            if (oSub.GetValue("DisplayName", "", RegistryValueOptions.None) as string == "DevCDRAgentCore")
+                            {
+                                string uninst = oSub.GetValue("UninstallString", "", RegistryValueOptions.None) as string;
+                                Process.Start("msiexec", uninst.Split(' ')[1].Replace("/X{", "/x \"{") + "\" /qn");
+                                break;
+                            }
+                        }
+                        catch { }
+                    }
+
+                    Stop();
+                }
+                catch { }
+            }
         }
 
         private void Connect()
@@ -901,36 +1026,7 @@ namespace DevCDRAgent
                                 {
                                     if (s1.ToUpper() == "OFF") //switch to legacy mode
                                     {
-                                        //Stop status
-                                        tReCheck.Enabled = false;
-                                        tReInit.Enabled = false;
-
-                                        System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
-                                        System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
-                                        System.Environment.SetEnvironmentVariable("DevCDRId", "", EnvironmentVariableTarget.Machine);
-
-                                        Trace.WriteLine(DateTime.Now.ToString() + "\t Set Customer: " + s1);
-                                        //set Customer
-                                        string sConfig = Assembly.GetExecutingAssembly().Location + ".config";
-                                        XmlDocument doc = new XmlDocument();
-                                        doc.Load(sConfig);
-                                        doc.SelectSingleNode("/configuration/applicationSettings/DevCDRAgent.Properties.Settings/setting[@name='CustomerID']/value").InnerText = "";
-                                        doc.Save(sConfig);
-
-                                        //Update Advanced Installer Persistent Properties
-                                        try
-                                        {
-                                            RegistryKey myKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Zander Tools\\{54F5CC06-300A-4DD4-94D9-0E18B2BE8DF1}", true);
-                                            if (myKey != null)
-                                            {
-                                                myKey.DeleteValue("CUSTOMER");
-                                                myKey.Close();
-                                            }
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            Trace.TraceError(DateTime.Now.ToString() + "\t Error: " + ex.Message);
-                                        }
+                                        OFF(false);
                                     }
                                     else
                                     {
@@ -2145,12 +2241,13 @@ namespace DevCDRAgent
             try
             {
                 // Make sure there was no error reading the event.
-                if (arg.EventRecord != null)
+                if (arg.EventRecord != null && arg.EventRecord.RecordId != iLastEventId)
                 {
                     try
                     {
                         bool bVirus = false;
                         bool bConfig = false;
+                        iLastEventId = arg.EventRecord.RecordId ?? 0; //prevent duplicate reports
                         switch (arg.EventRecord.Id)
                         {
                             case 1006:
