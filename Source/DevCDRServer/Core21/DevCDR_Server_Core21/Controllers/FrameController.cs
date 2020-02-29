@@ -1121,7 +1121,7 @@ namespace DevCDRServer.Controllers
                     return true;
                 }
 
-                if (validationresult == jaindb.Hash.CalculateMD5HashString("adm" + CustomerID + Exp + Token))
+                if (validationresult == jaindb.Hash.CalculateMD5HashString("adm" + Exp + Token))
                 {
                     controller.ViewBag.SecKey = false;
                     controller.ViewBag.AdminKey = true;
@@ -1144,9 +1144,12 @@ namespace DevCDRServer.Controllers
             _cache = controller.HttpContext.RequestServices.GetService(typeof(IMemoryCache)) as IMemoryCache;
 
             string CustomerID = controller.Request.Query["customerid"];
+            CustomerID = CustomerID ?? controller.Request.Query["amp;customerid"];
             string exp = controller.Request.Query["exp"];
+            exp = exp ?? controller.Request.Query["amp;exp"];
             string token = controller.Request.Query["token"];
-            
+            token = token ?? controller.Request.Query["amp;token"];
+
             //if (string.IsNullOrEmpty(CustomerID))
             //{
             //    string sCust = controller.Request.Cookies["DEVCDRCUST"] ?? "";
