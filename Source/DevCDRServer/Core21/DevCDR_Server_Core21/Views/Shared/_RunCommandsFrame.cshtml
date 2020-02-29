@@ -44,7 +44,7 @@
         var table = $('#test').DataTable();
         if (table.rows({ selected: true }).count() > 0) {
             var id = table.rows({ selected: true }).data()[0]["id"];
-            var jUrl = "../JainDB/Inv?id=" + id + "&exp=" + @ViewData["exp"] + "&token=" + @ViewData["token"] ;
+            var jUrl = "../JainDB/Inv?id=" + id + "&customerid=@(ViewData["customerid"] as string)&exp=@(ViewData["exp"] as string)&token=@(ViewData["token"] as string)";
             window.open(jUrl); //to open a new tab
             //window.location.href = jUrl;
         };
