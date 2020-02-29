@@ -2,6 +2,7 @@
 using jaindb;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -13,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
@@ -22,15 +24,15 @@ using System.Threading.Tasks;
 
 namespace DevCDRServer.Controllers
 {
-    [Authorize]
-    public class DevCDRController : Controller
+    [TokenAuthentication]
+    public class FrameController : Controller
     {
         private readonly IHubContext<Default> _hubContext;
         private readonly IHostingEnvironment _env;
         private IMemoryCache _cache;
         public DevCDR.Extensions.AzureLogAnalytics AzureLog = new DevCDR.Extensions.AzureLogAnalytics("","","");
 
-        public DevCDRController(IHubContext<Default> hubContext, IHostingEnvironment env, IMemoryCache memoryCache)
+        public FrameController(IHubContext<Default> hubContext, IHostingEnvironment env, IMemoryCache memoryCache)
         {
             _hubContext = hubContext;
             _env = env;
@@ -56,91 +58,14 @@ namespace DevCDRServer.Controllers
             }
         }
 
-        [AllowAnonymous]
-        public ActionResult Dashboard()
-        {
-            ViewBag.Title = "Dashboard " + Environment.GetEnvironmentVariable("INSTANCETITLE");
-            ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME");
-            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
-            ViewBag.Route = "/chat";
-
-            int itotalDeviceCount = -1;
-
-            itotalDeviceCount = new JainDBController(_env, _cache).totalDeviceCount(Path.Combine(_env.WebRootPath, "jaindb\\_Chain"));
-
-            int iDefault = ClientCount("Default");
-            int iOnlineCount = iDefault;
-            int iOfflineCount = itotalDeviceCount - iOnlineCount;
-
-            if (iOfflineCount < 0)
-                iOfflineCount = 0;
-
-            if (iOnlineCount > itotalDeviceCount)
-                itotalDeviceCount = iOnlineCount;
-
-            ViewBag.TotalDeviceCount = itotalDeviceCount;
-            ViewBag.OnlineDeviceCount = iOnlineCount;
-            ViewBag.OfflineDeviceCount = iOfflineCount;
-            ViewBag.TotalDefault = iDefault;
-            return View();
-        }
-
-#if DEBUG
-        [AllowAnonymous]
-#endif
-        [Authorize]
-        public ActionResult Default()
+        [TokenAuthentication]
+        public ActionResult Index()
         {
             ViewBag.Title = Environment.GetEnvironmentVariable("INSTANCETITLE") ?? "Default Environment";
             ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default";
-            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
+            ViewBag.appVersion = typeof(FrameController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             ViewBag.Endpoint = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat";
             ViewBag.Customer = Environment.GetEnvironmentVariable("CUSTOMERID") ?? "DEMO";
-
-
-            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-            {
-                if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
-                    ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"}  /qn REBOOT=REALLYSUPPRESS";
-                else
-                    ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
-            }
-            else
-            {
-                if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
-                    ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
-                else
-                    ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
-            }
-            ViewBag.Route = "/chat";
-
-            var sRoot = Directory.GetCurrentDirectory();
-            if (System.IO.File.Exists(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml")))
-            {
-                ViewBag.Menu = System.IO.File.ReadAllText(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml"));
-                ViewBag.ExtMenu = true;
-            }
-
-            if(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
-            {
-                ViewBag.Location = "Internal IP";
-            }
-            else
-            {
-                ViewBag.Location = "Location";
-            }
-            return View();
-        }
-
-        [AllowAnonymous]
-        public ActionResult Frame()
-        {
-            ViewBag.Title = Environment.GetEnvironmentVariable("INSTANCETITLE") ?? "Default Environment";
-            ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default";
-            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
-            ViewBag.Endpoint = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat";
-            ViewBag.Customer = Environment.GetEnvironmentVariable("CUSTOMERID") ?? "DEMO";
-
 
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
             {
@@ -177,466 +102,14 @@ namespace DevCDRServer.Controllers
         }
 
         [AllowAnonymous]
-        public ActionResult About()
-        {
-            ViewBag.Message = "Device Commander details...";
-            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
-
-            return View();
-        }
-
-        [AllowAnonymous]
         public ActionResult GetVersion()
         {
-            return Content(typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version);
+            return Content(typeof(FrameController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version);
         }
 
-        [AllowAnonymous]
-        public ActionResult Contact()
-        {
-            ViewBag.Message = "Device Commander Contact....";
-            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
-
-            return View();
-        }
-
-        //Get a File and authenticate with signature
-        [AllowAnonymous]
-        public ActionResult GetFile(string filename, string signature)
-        {
-            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-            {
-                X509AgentCert oSig = new X509AgentCert(signature);
-
-                try
-                {
-                    if (X509AgentCert.publicCertificates.Count == 0)
-                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
-
-                    var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
-                    if (!X509AgentCert.publicCertificates.Contains(xIssuing))
-                        X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
-
-                    oSig.ValidateChain(X509AgentCert.publicCertificates);
-                }
-                catch { }
-
-                if (oSig.Exists && oSig.Valid)
-                {
-                    string sScript = GetScriptAsync(oSig.CustomerID, filename).Result;
-                    
-                    if (string.IsNullOrEmpty(sScript))
-                        sScript = GetScriptAsync("DEMO", filename).Result;
-
-                    if (!string.IsNullOrEmpty(sScript))
-                    {
-                        //replace %ENDPOINTURL% with real Endpoint from Certificate...
-                        sScript = sScript.Replace("%ENDPOINTURL%", oSig.EndpointURL.Replace("/chat", ""));
-                        return new ContentResult()
-                        {
-                            Content = sScript,
-                            ContentType = "text/plain"
-                        };
-                    }
-                }
-            }
-            return null;
-        }
-
-        [AllowAnonymous]
-        public ActionResult GetOSDFiles(string signature, string OS = "")
-        {
-            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-            {
-                X509AgentCert oSig = new X509AgentCert(signature);
-
-                try
-                {
-                    if (X509AgentCert.publicCertificates.Count == 0)
-                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
-
-                    var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
-                    if (!X509AgentCert.publicCertificates.Contains(xIssuing))
-                        X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
-
-                    oSig.ValidateChain(X509AgentCert.publicCertificates);
-                }
-                catch { }
-
-                if (oSig.Exists && oSig.Valid)
-                {
-                    string sScript = GetOSDAsync(oSig.CustomerID, OS).Result;
-
-                    //if (string.IsNullOrEmpty(sScript))
-                    //    sScript = GetOSDAsync("DEMO").Result;
-
-                    if (!string.IsNullOrEmpty(sScript))
-                    {
-                        return new ContentResult()
-                        {
-                            Content = sScript,
-                            ContentType = "text/plain"
-                        };
-                    }
-                }
-                else
-                {
-                    if(oSig.Expired) //allow if cert is expired in the last 7 days
-                    {
-                        if((DateTime.UtcNow - oSig.Certificate.NotAfter).TotalDays < 7)
-                        {
-                            string sScript = GetOSDAsync(oSig.CustomerID, OS).Result;
-
-                            //if (string.IsNullOrEmpty(sScript))
-                            //    sScript = GetOSDAsync("DEMO").Result;
-
-                            if (!string.IsNullOrEmpty(sScript))
-                            {
-                                return new ContentResult()
-                                {
-                                    Content = sScript,
-                                    ContentType = "text/plain"
-                                };
-                            }
-                        }
-                    }
-                }
-            }
-            return BadRequest();
-        }
-
-        [AllowAnonymous]
-        public ActionResult GetOS(string signature)
-        {
-            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-            {
-                X509AgentCert oSig = new X509AgentCert(signature);
-
-                try
-                {
-                    if (X509AgentCert.publicCertificates.Count == 0)
-                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
-
-                    var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
-                    if (!X509AgentCert.publicCertificates.Contains(xIssuing))
-                        X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
-
-                    oSig.ValidateChain(X509AgentCert.publicCertificates);
-                }
-                catch { }
-
-                if (oSig.Exists && oSig.Valid)
-                {
-                    string sScript = GetOSAsync(oSig.CustomerID).Result;
-
-                    if (!string.IsNullOrEmpty(sScript))
-                    {
-                        return new ContentResult()
-                        {
-                            Content = sScript,
-                            ContentType = "text/plain"
-                        };
-                    }
-                }
-                else
-                {
-                    if (oSig.Expired) //allow if cert is expired in the last 7 days
-                    {
-                        if ((DateTime.UtcNow - oSig.Certificate.NotAfter).TotalDays < 7)
-                        {
-                            string sScript = GetOSAsync(oSig.CustomerID).Result;
-
-                            if (!string.IsNullOrEmpty(sScript))
-                            {
-                                return new ContentResult()
-                                {
-                                    Content = sScript,
-                                    ContentType = "text/plain"
-                                };
-                            }
-                        }
-                    }
-                }
-            }
-            return BadRequest();
-        }
-
-
-        private async Task<string> GetPublicCertAsync(string CertName, bool useKey = true)
-        {
-            if (string.IsNullOrEmpty(CertName))
-                return "";
-
-            if (_cache == null)
-                _cache = new MemoryCache(new MemoryCacheOptions());
-
-            bool bCached = false;
-            _cache.TryGetValue(CertName, out string Cert);
-            if (string.IsNullOrEmpty(Cert))
-            {
-                try
-                {
-                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-                    {
-                        using (HttpClient client = new HttpClient())
-                        {
-                            string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
-                            sURL = sURL.Replace("{fn}", "fnGetPublicCert");
-
-                            if (useKey)
-                            {
-                                var stringTask = client.GetStringAsync($"{sURL}&key={CertName}");
-                                Cert = await stringTask;
-                            }
-                            else
-                            {
-                                var stringTask = client.GetStringAsync($"{sURL}&name={CertName}");
-                                Cert = await stringTask;
-                            }
-                        }
-                    }
-                }
-                catch { return Cert; }
-            }
-            else
-            {
-                bCached = true;
-            }
-
-            if (!string.IsNullOrEmpty(Cert))
-            {
-                if (!bCached)
-                {
-                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(15)); //cache hash for x Seconds
-                    _cache.Set(CertName, Cert, cacheEntryOptions);
-                }
-            }
-
-            return Cert;
-        }
-
-        private async Task<string> GetScriptAsync(string customerid, string filename)
-        {
-            string Res = "";
-            if (string.IsNullOrEmpty(filename))
-                return null;
-            if (string.IsNullOrEmpty(customerid))
-                return null;
-
-            if (_cache == null)
-                _cache = new MemoryCache(new MemoryCacheOptions());
-
-            _cache.TryGetValue(customerid + filename, out Res);
-
-            if(!string.IsNullOrEmpty(Res))
-            {
-                return Res;
-            }
-
-            try
-            {
-                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-                {
-                    string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
-                    sURL = sURL.Replace("{fn}", "fnGetFile");
-
-                    using (HttpClient client = new HttpClient())
-                    {
-                        Res = await client.GetStringAsync($"{sURL}&customerid={customerid}&file={filename}");
-
-                        if(!string.IsNullOrEmpty(Res))
-                        {
-                            var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(5)); //cache hash for x Seconds
-                            _cache.Set(customerid + filename, Res, cacheEntryOptions);
-                        }
-                    }
-
-                }
-            }
-            catch (Exception ex)
-            {
-                ex.Message.ToString();
-                return Res;
-            }
-
-
-            return Res;
-        }
-
-        private async Task<string> GetOSDAsync(string customerid, string os = "")
-        {
-            string Res = "";
-            if (string.IsNullOrEmpty(customerid))
-                return null;
-
-            if (_cache == null)
-                _cache = new MemoryCache(new MemoryCacheOptions());
-
-            _cache.TryGetValue("osd" + customerid + os, out Res);
-
-            if (!string.IsNullOrEmpty(Res))
-            {
-                return Res;
-            }
-
-            try
-            {
-                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-                {
-                    string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
-                    sURL = sURL.Replace("{fn}", "fnGetOSDFiles");
-
-                    using (HttpClient client = new HttpClient())
-                    {
-                        Res = await client.GetStringAsync($"{sURL}&customerid={customerid}&os={os}");
-
-                        if (!string.IsNullOrEmpty(Res))
-                        {
-                            var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(15));
-                            _cache.Set("osd" +customerid + os, Res, cacheEntryOptions);
-                        }
-                    }
-
-                }
-            }
-            catch (Exception ex)
-            {
-                ex.Message.ToString();
-                return Res;
-            }
-
-
-            return Res;
-        }
-
-        private async Task<string> GetOSAsync(string customerid)
-        {
-            string Res = "";
-            if (string.IsNullOrEmpty(customerid))
-                return null;
-
-            if (_cache == null)
-                _cache = new MemoryCache(new MemoryCacheOptions());
-
-            _cache.TryGetValue("os" + customerid, out Res);
-
-            if (!string.IsNullOrEmpty(Res))
-            {
-                return Res;
-            }
-
-            try
-            {
-                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-                {
-                    string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
-                    sURL = sURL.Replace("{fn}", "fnGetSumData");
-
-                    using (HttpClient client = new HttpClient())
-                    {
-                        Res = await client.GetStringAsync($"{sURL}&secretname=AzureDevCDRCustomersTable&customerid={customerid}");
-
-                        if (!string.IsNullOrEmpty(Res))
-                        {
-                            try
-                            {
-                                JArray jRes = JArray.Parse(Res);
-                                string sOS = jRes[0]["OS"].Value<string>();
-                                var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(15));
-                                _cache.Set("os" + customerid, sOS, cacheEntryOptions);
-
-                                return sOS;
-                            }
-                            catch { }
-                        }
-                    }
-
-                }
-            }
-            catch (Exception ex)
-            {
-                return "";
-            }
-
-
-            return "";
-        }
-
-        [AllowAnonymous]
-        [HttpPost]
-        public async Task<string> PutFileAsync(string signature, string data = "")
-        {
-            X509AgentCert oSig = new X509AgentCert(signature);
-
-            try
-            {
-                if (X509AgentCert.publicCertificates.Count == 0)
-                    X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
-
-                var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
-                if (!X509AgentCert.publicCertificates.Contains(xIssuing))
-                    X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
-
-                oSig.ValidateChain(X509AgentCert.publicCertificates);
-            }
-            catch { }
-
-            if (oSig.Exists && oSig.Valid)
-            {
-                try
-                {
-                    if (string.IsNullOrEmpty(data))
-                    {
-                        using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
-                            data = reader.ReadToEnd();
-                    }
-
-                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-                    {
-                        string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
-                        sURL = sURL.Replace("{fn}", "fnUploadFile");
-
-                        string sNewData = data;
-                        try
-                        {
-                            if (data.StartsWith("{"))
-                            {
-                                var jObj = JObject.Parse(data);
-
-                                jObj.Remove("OptionalFeature");
-                                if (jObj.Remove("Services"))
-                                {
-                                    sNewData = jObj.ToString(Formatting.None);
-                                }
-                            }
-                        }
-                        catch { }
-
-                        using (HttpClient client = new HttpClient())
-                        {
-                            StringContent oData = new StringContent(sNewData, Encoding.UTF8, "application/json");
-                            await client.PostAsync($"{sURL}&deviceid={oSig.DeviceID}.json&customerid={oSig.CustomerID}", oData);
-                        }
-
-                        return jDB.UploadFull(data, oSig.DeviceID, "INV");
-
-                    }
-                }
-                catch (Exception ex)
-                {
-                    ex.Message.ToString();
-                    return null;
-                }
-            }
-
-            return null;
-        }
-
-        //#if DEBUG
-        //        [AllowAnonymous]
-        //#endif
-        [AllowAnonymous]
-        public ActionResult GetData(string Group = "", string Instance = "Default")
+        [TokenAuthentication]
+        //[Authorize]
+        public ActionResult GetData(string customerid = "", string exp = "", string token = "", string Instance = "Default")
         {
             JArray jData = new JArray();
             try
@@ -646,8 +119,8 @@ namespace DevCDRServer.Controllers
                 MemberInfo[] memberInfos = xType.GetMember("jData", BindingFlags.Public | BindingFlags.Static);
 
                 jData = ((FieldInfo)memberInfos[0]).GetValue(new JArray()) as JArray;
-                if(!string.IsNullOrEmpty(Group))
-                    jData = new JArray(jData.SelectTokens($"$.[?(@.Groups=='{ Group }')]"));
+                if(!string.IsNullOrEmpty(customerid))
+                    jData = new JArray(jData.SelectTokens($"$.[?(@.Customer=='{ customerid }')]"));
             }
             catch { }
 
@@ -685,10 +158,8 @@ namespace DevCDRServer.Controllers
             return iCount;
         }
 
-        //#if DEBUG
-        //        [AllowAnonymous]
-        //#endif
-        [AllowAnonymous]
+        [TokenAuthentication]
+        //[Authorize]
         public ActionResult Groups(string Instance = "Default")
         {
             List<string> lGroups = new List<string>();
@@ -713,10 +184,8 @@ namespace DevCDRServer.Controllers
             };
         }
 
-        //#if DEBUG
-        //        [AllowAnonymous]
-        //#endif
-        [AllowAnonymous]
+        [TokenAuthentication]
+        //[Authorize]
         public ActionResult GetRZCatalog(string Instance = "Default")
         {
             List<string> lRZCat = new List<string>();
@@ -800,10 +269,8 @@ namespace DevCDRServer.Controllers
             catch { }
         }
 
-        //#if DEBUG
-        //        [AllowAnonymous]
-        //#endif
-        [AllowAnonymous]
+        [TokenAuthentication]
+        //[Authorize]
         [HttpPost]
         public object Command()
         {
@@ -871,7 +338,7 @@ namespace DevCDRServer.Controllers
                     GetGroups(lHostnames, sInstance);
                     break;
                 case "SetGroups":
-                    SetGroups(lHostnames, sInstance, sArgs);
+                    //SetGroups(lHostnames, sInstance, sArgs);
                     break;
                 case "GetUpdates":
                     RunCommand(lHostnames, "(Get-WUList -MicrosoftUpdate) | select Title | ConvertTo-Json", sInstance, sCommand);
@@ -883,10 +350,10 @@ namespace DevCDRServer.Controllers
                     RestartAgent(lHostnames, sInstance);
                     break;
                 case "SetInstance":
-                    SetInstance(lHostnames, sInstance, sArgs);
+                    //SetInstance(lHostnames, sInstance, sArgs);
                     break;
                 case "SetEndpoint":
-                    SetEndpoint(lHostnames, sInstance, sArgs);
+                    //SetEndpoint(lHostnames, sInstance, sArgs);
                     break;
                 case "DevCDRUser":
                     runUserCmd(lHostnames, sInstance, "", "");
@@ -977,7 +444,7 @@ namespace DevCDRServer.Controllers
             }
         }
 
-        internal void SetGroups(List<string> Hostnames, string sInstance, string Args)
+        internal void _SetGroups(List<string> Hostnames, string sInstance, string Args)
         {
             foreach (string sHost in Hostnames)
             {
@@ -1073,7 +540,7 @@ namespace DevCDRServer.Controllers
             }
         }
 
-        internal void SetInstance(List<string> Hostnames, string sInstance, string Args)
+        internal void _SetInstance(List<string> Hostnames, string sInstance, string Args)
         {
             if (string.IsNullOrEmpty(Args))
                 return;
@@ -1099,7 +566,7 @@ namespace DevCDRServer.Controllers
             }
         }
 
-        internal void SetEndpoint(List<string> Hostnames, string sInstance, string Args)
+        internal void _SetEndpoint(List<string> Hostnames, string sInstance, string Args)
         {
             if (string.IsNullOrEmpty(Args))
                 return;
@@ -1273,10 +740,8 @@ namespace DevCDRServer.Controllers
             }
         }
 
-        //#if DEBUG
-        //        [AllowAnonymous]
-        //#endif
-        [AllowAnonymous]
+        [TokenAuthentication]
+        //[Authorize]
         [HttpPost]
         public object RunPS()
         {
@@ -1332,10 +797,9 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
-        //#if DEBUG
-        //        [AllowAnonymous]
-        //#endif
-        [AllowAnonymous]
+
+        [TokenAuthentication]
+        //[Authorize]
         [HttpPost]
         public object RunUserPS()
         {
@@ -1391,10 +855,9 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
-        //#if DEBUG
-        //        [AllowAnonymous]
-        //#endif
-        [AllowAnonymous]
+
+        [TokenAuthentication]
+        //[Authorize]
         [HttpPost]
         public object RunPSAsync()
         {
@@ -1450,10 +913,9 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
-        //#if DEBUG
-        //        [AllowAnonymous]
-        //#endif
-        [AllowAnonymous]
+
+        [TokenAuthentication]
+        //[Authorize]
         [HttpPost]
         public object RunPSFile()
         {
@@ -1581,5 +1043,156 @@ namespace DevCDRServer.Controllers
             return "";
         }
 
+    }
+
+    public class TokenAuthenticationAttribute : ActionFilterAttribute
+    {
+        private IMemoryCache _cache;
+        private WebClient client = new WebClient();
+        private Controller controller;
+
+
+        private JObject GetCustomerInfo(string CustomerID)
+        {
+            JObject jResult = new JObject();
+
+            try
+            {
+                if (_cache.TryGetValue("cust" + CustomerID, out jResult))
+                {
+                    return jResult;
+                }
+
+                string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                if (string.IsNullOrEmpty(sURL))
+                    return null;
+                sURL = sURL.Replace("{fn}", "fnGetSumData");
+
+                string customerInfo = client.DownloadString($"{ sURL }&secretname=AzureDevCDRCustomersTable&customerid=" + CustomerID);
+                JArray aObj = JArray.Parse(customerInfo);
+
+                var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(10));
+                _cache.Set("cust" + CustomerID, aObj[0] as JObject, cacheEntryOptions);
+
+                return aObj[0] as JObject;
+            }
+            catch (Exception ex)
+            {
+                ex.Message.ToString();
+            }
+
+            return jResult;
+        }
+
+        private bool ValidateToken(string CustomerID, string Exp, string Token)
+        {
+            try
+            {
+                string validationresult = "";
+                if (!_cache.TryGetValue("tok" + CustomerID + Exp + Token, out validationresult))
+                {
+                    string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                    sURL = sURL.Replace("{fn}", "fnValidateToken");
+                    if (string.IsNullOrEmpty(sURL))
+                        return false;
+
+                    validationresult = client.DownloadString($"{ sURL }&customerid={ CustomerID }&exp={ Exp }&token={ Token }");
+                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(10));
+                    _cache.Set("tok" + CustomerID + Exp + Token, validationresult, cacheEntryOptions);
+                }
+
+                controller.ViewBag.customerid = CustomerID;
+                controller.ViewBag.exp = Exp;
+                controller.ViewBag.token = Token;
+
+                if (validationresult == jaindb.Hash.CalculateMD5HashString("sec" + CustomerID + Exp + Token))
+                {
+                    controller.ViewBag.SecKey = true;
+                    controller.ViewBag.AdminKey = false;
+                    controller.ViewBag.PriKey = false;
+                    return true;
+                }
+
+                if (validationresult == jaindb.Hash.CalculateMD5HashString("pri" + CustomerID + Exp + Token))
+                {
+                    controller.ViewBag.SecKey = false;
+                    controller.ViewBag.AdminKey = false;
+                    controller.ViewBag.PriKey = true;
+                    return true;
+                }
+
+                if (validationresult == jaindb.Hash.CalculateMD5HashString("adm" + CustomerID + Exp + Token))
+                {
+                    controller.ViewBag.SecKey = false;
+                    controller.ViewBag.AdminKey = true;
+                    controller.ViewBag.PriKey = false;
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.Message.ToString();
+            }
+
+            return false;
+        }
+
+        public override void OnActionExecuting(ActionExecutingContext filterContext)
+        {
+            controller = filterContext.Controller as Controller;
+
+            _cache = controller.HttpContext.RequestServices.GetService(typeof(IMemoryCache)) as IMemoryCache;
+
+            string CustomerID = controller.Request.Query["customerid"];
+            string exp = controller.Request.Query["exp"];
+            string token = controller.Request.Query["token"];
+            
+            //if (string.IsNullOrEmpty(CustomerID))
+            //{
+            //    string sCust = controller.Request.Cookies["DEVCDRCUST"] ?? "";
+            //    if (!string.IsNullOrEmpty(sCust))
+            //    {
+            //        CustomerID = sCust;
+            //    }
+            //}
+
+            //if (string.IsNullOrEmpty(exp))
+            //{
+            //    string sExp = controller.Request.Cookies["DEVCDREXP"] ?? "";
+            //    if (!string.IsNullOrEmpty(sExp))
+            //    {
+            //        exp = sExp;
+            //    }
+            //}
+
+            //if (string.IsNullOrEmpty(token))
+            //{
+            //    string sTok = controller.Request.Cookies["DEVCDRTOK"] ?? "";
+            //    if (!string.IsNullOrEmpty(sTok))
+            //    {
+            //        token = sTok;
+            //    }
+            //}
+
+            if (ValidateToken(CustomerID, exp, token))
+            {
+                //CookieOptions option = new CookieOptions();
+                //option.Expires = DateTime.Now.AddDays(1);
+                //option.SameSite = SameSiteMode.Strict;
+                //option.HttpOnly = true;
+                //option.Secure = true;
+
+                //controller.Response.Cookies.Append("DEVCDRCUST", CustomerID, option);
+                //controller.Response.Cookies.Append("DEVCDREXP", exp, option);
+                //controller.Response.Cookies.Append("DEVCDRTOK", token, option);
+
+                return;
+            }
+            else
+            {
+                filterContext.Result = new UnauthorizedResult();
+                return;
+            }
+        }
     }
 }
