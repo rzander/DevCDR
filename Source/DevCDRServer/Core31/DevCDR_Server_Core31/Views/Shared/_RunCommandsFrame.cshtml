@@ -1,0 +1,79 @@
+﻿<script type="text/javascript">
+    function Command(param, args) {
+        var table = $('#test').DataTable();
+        if (args == null) { args = "" };
+        var rowdata = JSON.stringify(table.rows({ selected: true }).data().toArray());
+        $.ajax({
+            type: 'post',
+            url: '@Html.Raw(Url.Action("Command", "Frame", new { customerid = ViewData["customerid"], exp = ViewData["exp"], token = ViewData["token"] }))',
+            data: '{ "command": "' + param + '", "instance" : "@ViewData["Instance"].ToString()", "args": "' + args + '", "rows": ' + rowdata + '  }',
+            contentType: 'application/json; charset=utf-8',
+            dataType: "json",
+        })
+    }
+
+    function RunPS(param,title) {
+        var table = $('#test').DataTable();
+        var rowdata = JSON.stringify(table.rows({ selected: true }).data().toArray());
+        if (param == null) { param = psScript.value }
+        if (title == null) { title = "CustomPS" }
+        $.ajax({
+            type: 'post',
+            url: '@Html.Raw(Url.Action("RunPSCommand", "Frame", new { customerid = ViewData["customerid"], exp = ViewData["exp"], token = ViewData["token"] }))',
+            data: '{ "psscript": "' + encodeURIComponent(param) + '", "title" : "' + title + '", "instance" : "@ViewData["Instance"].ToString()", "rows": ' + rowdata + '  }',
+            contentType: 'application/json; charset=utf-8',
+            dataType: "json",
+        })
+    }
+
+        function RunPSAsync(param,title) {
+        var table = $('#test').DataTable();
+        var rowdata = JSON.stringify(table.rows({ selected: true }).data().toArray());
+        if (param == null) { param = psScript.value }
+        if (title == null) { title = "CustomPS" }
+        $.ajax({
+            type: 'post',
+            url: '@Html.Raw(Url.Action("RunPSAsync", "Frame", new { customerid = ViewData["customerid"], exp = ViewData["exp"], token = ViewData["token"] }))',
+            data: '{ "psscript": "' + encodeURIComponent(param) + '", "title" : "' + title + '", "instance" : "@ViewData["Instance"].ToString()", "rows": ' + rowdata + '  }',
+            contentType: 'application/json; charset=utf-8',
+            dataType: "json",
+        })
+    }
+
+    function InvExp() {
+        var table = $('#test').DataTable();
+        if (table.rows({ selected: true }).count() > 0) {
+            var id = table.rows({ selected: true }).data()[0]["id"];
+            var jUrl = "../JainDB/Inv?id=" + id + "&customerid=@(ViewData["customerid"] as string)&exp=@(ViewData["exp"] as string)&token=@(ViewData["token"] as string)";
+            window.open(jUrl); //to open a new tab
+            //window.location.href = jUrl;
+        };
+    }
+
+    function RunUserPS(param,title) {
+        var table = $('#test').DataTable();
+        var rowdata = JSON.stringify(table.rows({ selected: true }).data().toArray());
+        if (param == null) { param = psScript.value }
+        if (title == null) { title = "CustomPS" }
+        $.ajax({
+            type: 'post',
+            url: '@Html.Raw(Url.Action("RunUserPS", "Frame", new { customerid = ViewData["customerid"], exp = ViewData["exp"], token = ViewData["token"] }))',
+            data: '{ "psscript": "' + encodeURIComponent(param) + '", "title" : "' + title + '", "instance" : "@ViewData["Instance"].ToString()", "rows": ' + rowdata + '  }',
+            contentType: 'application/json; charset=utf-8',
+            dataType: "json",
+        })
+    }
+
+    function RunPSFile(file,title) {
+        var table = $('#test').DataTable();
+        var rowdata = JSON.stringify(table.rows({ selected: true }).data().toArray());
+        if (title == null) { title = "CustomPS" }
+        $.ajax({
+            type: 'post',
+            url: '@Html.Raw(Url.Action("RunPSFile", "Frame", new { customerid = ViewData["customerid"], exp = ViewData["exp"], token = ViewData["token"] }))',
+            data: '{ "file": "' + encodeURIComponent(file) + '", "title" : "' + title + '", "instance" : "@ViewData["Instance"].ToString()", "rows": ' + rowdata + '  }',
+            contentType: 'application/json; charset=utf-8',
+            dataType: "json",
+        })
+    }
+</script>

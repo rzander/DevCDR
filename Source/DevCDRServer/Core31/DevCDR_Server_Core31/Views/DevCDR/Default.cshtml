@@ -1,0 +1,65 @@
+﻿<div class="list-inline">
+    <button type="button" class="btn btn-outline-secondary float-right" title="download Agent" data-toggle="modal" data-target="#downloadModal">
+        <span class="fa fa-download "></span> Agent
+    </button>
+    <button type="button" class="btn btn-outline-secondary float-right" title="reload all device data" onclick="Command('Init')">
+        <span class="fa fa-refresha"></span> Reload
+    </button>
+    <h2>@ViewData["Title"]</h2>
+</div>
+
+<small style="position:relative; top:-12px">Instance-ID: @ViewData["Instance"]</small>
+
+<ul class="nav nav-tabs" id="tabs">
+    <li class="active nav-item"><a class="nav-link" href="" data-toggle="tab">All Devices</a></li>
+</ul>
+
+<table class="display compact" id="test" style="width:100%">
+    <thead>
+        <tr>
+            <th>Hostname</th>
+            <th>@ViewData["Location"].ToString()</th>
+            <th>Last Reboot</th>
+            <th>Reboot Pending</th>
+            <th>Users Online</th>
+            <th>OS</th>
+            <th>Version</th>
+            <th>Arch</th>
+            <th>Lang</th>
+            <th>ScriptResult</th>
+            <th>Groups</th>
+        </tr>
+    </thead>
+</table>
+
+<div class="row col-12">
+    <input class="btn btn-outline-secondary" type="button" onclick="Command('AgentVersion')" value="Agent Version" title="get the RZAgent Version" />
+    <input class="btn btn-outline-secondary" type="button" onclick="Command('Inv')" value="Run Inventory" title="Run JainDB inventory" />
+    <input class="btn btn-outline-secondary" type="button" value="Check Compliance" title="Run Compliance check" onclick="Command('Compliance')" />
+    <input class="btn btn-outline-secondary" type="button" onclick="Command('Restart')" value="Restart" title="restart selected devices" />
+    <input class="btn btn-outline-secondary" type="button" onclick="Command('Logoff')" value="Logoff" title="Logoff all users" />
+    <input class="btn btn-outline-secondary" type="button" onclick="Command('Shutdown')" value="Shutdown" title="shutdown selected devices" />
+    <input class="btn btn-outline-secondary" type="button" value="User Message.." data-toggle="modal" data-target="#msgModal" title="Send a message to logged on users" />
+    <input class="btn btn-outline-secondary" type="button" value="Get Groups" title="get Groups" onclick="Command('GetGroups')" />
+    <input class="btn btn-outline-secondary" type="button" value="Set Groups.." data-toggle="modal" data-target="#msgGroups" title="Group selected devices" />
+    @*<input class="btn btn-light" type="button" value="Set Instance.." data-toggle="modal" data-target="#msgInstance" title="change Instance" />*@
+    <input class="btn btn-outline-secondary" type="button" value="Set Endpoint.." data-toggle="modal" data-target="#msgEndpoint" title="change Endpoint (URL)" />
+    <input class="btn btn-outline-secondary" type="button" value="start DevCDR as User" title="start DevCDR as User" onclick="Command('DevCDRUser')" />
+    <input class="btn btn-outline-secondary" type="button" value="WakeUp All" title="WakeUp all Devices" onclick="Command('WOL')" />
+</div>
+
+@Html.Partial("_CustomPS")
+@Html.Partial("_ModalMessages")
+@Html.Partial("_Table")
+
+@*@await Component.InvokeAsync("ContextMenuLibrary.Simple", new { });*@
+@if (ViewData["ExtMenu"] != null)
+{@Html.Raw(ViewData["Menu"]);
+}
+else
+{
+@Html.Partial("_ContextMenu")
+}
+
+@Html.Partial("_RunCommands")
+
