@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.Win32;
 
 namespace DevCDRAgent
 {

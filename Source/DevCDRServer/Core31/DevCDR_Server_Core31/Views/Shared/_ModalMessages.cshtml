@@ -1,0 +1,216 @@
+﻿<!-- download Modal -->
+<div class="modal fade" id="downloadModal" tabindex="-1" role="dialog" aria-labelledby="donloadModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="donloadModalLabel">Install DevCDR-AgentCore</h4>
+            </div>
+            <div class="modal-body">
+                Run the following PowerShell command with administrative priviledges: <br />
+                <samp>@ViewData["InstallCMD"]</samp>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UserMessage Modal -->
+<div class="modal fade" id="msgModal" tabindex="-1" role="dialog" aria-labelledby="msgModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="msgModalLabel">send Message to logged on users...</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="usr">Message:</label>
+                    <input type="text" class="form-control" id="usr">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="RunPS('msg * ' + usr.value)" data-dismiss="modal">Send</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Groups Modal -->
+<div class="modal fade" id="msgGroups" tabindex="-1" role="dialog" aria-labelledby="msgGroupsLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="msgGroupsLabel">Set Device-Groups separated by semicolon (e.g. LAB;DEMO )</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="usr">Groups:</label>
+                    <input type="text" title="e.g. Group1;Group2" class="form-control" id="grps">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="Command('SetGroups', grps.value)" data-dismiss="modal">Send</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Set Instance Modal -->
+<div class="modal fade" id="msgInstance" tabindex="-1" role="dialog" aria-labelledby="msgInstanceLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="msgInstanceLabel">Assign Device(s) to a new DevCDR Instance.</h4>
+                <div class="alert alert-danger">The Devices may <strong>become unmanaged</strong> if the Instance is not available or invalid !!!</div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="usr">Instance-Name:</label>
+                    <input type="text" title="e.g. Default" class="form-control" id="instance">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="Command('SetInstance', instance.value)" data-dismiss="modal">Send</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Set Endpoint Modal -->
+<div class="modal fade" id="msgEndpoint" tabindex="-1" role="dialog" aria-labelledby="msgEndpointLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="msgEndpointLabel">Assign Device(s) to a new DevCDR Endpoint (URL).</h4>
+                <div class="alert alert-danger">The Devices may <strong>become unmanaged</strong> if the EndPoint is not available or invalid !!!</div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="usr">Endpoint-URL:</label>
+                    <input type="text" title="e.g. https://devcdr.azurewebsites.net/Chat" class="form-control" id="endpoint">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="Command('SetEndpoint', endpoint.value)" data-dismiss="modal">Send</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Set Install RuckZuck SW-->
+<div class="modal fade" id="msgRZ" tabindex="-1" role="dialog" aria-labelledby="msgRZLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="msgRZLabel">Install a RuckZuck-Package on the selected Device(s).</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="usr">RuckZuck Shortname:</label>
+                    <form class="eventInsForm" action="#" method="post">
+                        <input type="text" class="form-control addresspicker" title="e.g. 7Zip" id="shortname" />
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="Command('InstallRZSW', shortname.value)" data-dismiss="modal">Send</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    .ui-autocomplete-input {
+        border: none;
+        font-size: 14px;
+        width: 300px;
+        height: 28px;
+        margin-bottom: 4px;
+        padding-top: 3px;
+        border: 1px solid #DDD !important;
+        padding-top: 7px !important;
+        z-index: 1511;
+        position: relative;
+    }
+
+    .ui-menu .ui-menu-item a {
+        font-size: 12px;
+    }
+
+    .ui-autocomplete {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1510 !important;
+        float: left;
+        display: none;
+        min-width: 160px;
+        width: 160px;
+        padding: 4px 0;
+        margin: 2px 0 0 0;
+        list-style: none;
+        background-color: #ffffff;
+        border-color: #ccc;
+        border-color: rgba(0, 0, 0, 0.2);
+        border-style: solid;
+        border-width: 1px;
+        -webkit-border-radius: 2px;
+        -moz-border-radius: 2px;
+        border-radius: 2px;
+        -webkit-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+        -moz-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+        -webkit-background-clip: padding-box;
+        -moz-background-clip: padding;
+        background-clip: padding-box;
+        *border-right-width: 2px;
+        *border-bottom-width: 2px;
+    }
+
+    .ui-menu-item > a.ui-corner-all {
+        display: block;
+        padding: 3px 15px;
+        clear: both;
+        font-weight: normal;
+        line-height: 18px;
+        color: #555555;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+    .ui-state-hover, .ui-state-active {
+        color: #ffffff;
+        text-decoration: none;
+        background-color: #0088cc;
+        border-radius: 0px;
+        -webkit-border-radius: 0px;
+        -moz-border-radius: 0px;
+        background-image: none;
+    }
+
+    .ui-helper-hidden-accessible {
+        display: none;
+    }
+</style>
+
+<script>
+    $('#msgRZ').on('shown.bs.modal', function () {
+        var groupurl = '/DevCDR/GetRZCatalog?Instance=@ViewData["Instance"].ToString()';
+        $.post(groupurl, "",
+            function (data, status) {
+                $(".addresspicker").autocomplete({
+                    source: data,
+                    messages: {
+                        noResults: '',
+                        results: function () { }
+                    }
+                });
+                $(".addresspicker").autocomplete("option", "appendTo", ".eventInsForm");
+            });
+    });
+</script>

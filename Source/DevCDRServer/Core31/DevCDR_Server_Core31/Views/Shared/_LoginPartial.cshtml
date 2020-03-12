@@ -1,0 +1,19 @@
+﻿@if (User.Identity.IsAuthenticated)
+{
+    <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })" method="post" id="logoutForm" class="ml-auto">
+        <div class="navbar-nav">
+            <div class="nav-item">
+                <a asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage" class="nav-link btn navbar-btn">Hello @User.Identity.Name!!</a>
+            </div>
+            <div class="nav-item">
+                <button type="submit" class="btn btn-link navbar-btn nav-link">Logout</button>
+            </div>
+        </div>
+    </form>
+}
+else
+{
+<div class="nav navbar-nav ml-auto">
+    <div class="nav-item"><a class="nav-link" asp-area="Identity"  asp-controller="Account" asp-action="SignIn">Sign in</a></div>
+</div>
+}

@@ -1,0 +1,1 @@
+﻿$.Software[?(@.DisplayName=='Microsoft Office 365 ProPlus - de-de' || @.DisplayName=='Microsoft Office 365 ProPlus - en-us' || @.DisplayName=='Microsoft Office 365 ProPlus - fr-fr' || @.DisplayName=='Microsoft Office 365 Business - de-de' )]

@@ -133,6 +133,50 @@ namespace DevCDRServer.Controllers
         }
 
         [AllowAnonymous]
+        public ActionResult Frame()
+        {
+            ViewBag.Title = Environment.GetEnvironmentVariable("INSTANCETITLE") ?? "Default Environment";
+            ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default";
+            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
+            ViewBag.Endpoint = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat";
+            ViewBag.Customer = Environment.GetEnvironmentVariable("CUSTOMERID") ?? "DEMO";
+
+
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+            {
+                if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
+                    ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"}  /qn REBOOT=REALLYSUPPRESS";
+                else
+                    ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
+            }
+            else
+            {
+                if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
+                    ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
+                else
+                    ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
+            }
+            ViewBag.Route = "/chat";
+
+            var sRoot = Directory.GetCurrentDirectory();
+            if (System.IO.File.Exists(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml")))
+            {
+                ViewBag.Menu = System.IO.File.ReadAllText(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml"));
+                ViewBag.ExtMenu = true;
+            }
+
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
+            {
+                ViewBag.Location = "Internal IP";
+            }
+            else
+            {
+                ViewBag.Location = "Location";
+            }
+            return View();
+        }
+
+        [AllowAnonymous]
         public ActionResult About()
         {
             ViewBag.Message = "Device Commander details...";
@@ -197,6 +241,124 @@ namespace DevCDRServer.Controllers
                 }
             }
             return null;
+        }
+
+        [AllowAnonymous]
+        public ActionResult GetOSDFiles(string signature, string OS = "")
+        {
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+            {
+                X509AgentCert oSig = new X509AgentCert(signature);
+
+                try
+                {
+                    if (X509AgentCert.publicCertificates.Count == 0)
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+
+                    var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
+                    if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+                        X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+                    oSig.ValidateChain(X509AgentCert.publicCertificates);
+                }
+                catch { }
+
+                if (oSig.Exists && oSig.Valid)
+                {
+                    string sScript = GetOSDAsync(oSig.CustomerID, OS).Result;
+
+                    //if (string.IsNullOrEmpty(sScript))
+                    //    sScript = GetOSDAsync("DEMO").Result;
+
+                    if (!string.IsNullOrEmpty(sScript))
+                    {
+                        return new ContentResult()
+                        {
+                            Content = sScript,
+                            ContentType = "text/plain"
+                        };
+                    }
+                }
+                else
+                {
+                    if(oSig.Expired) //allow if cert is expired in the last 7 days
+                    {
+                        if((DateTime.UtcNow - oSig.Certificate.NotAfter).TotalDays < 7)
+                        {
+                            string sScript = GetOSDAsync(oSig.CustomerID, OS).Result;
+
+                            //if (string.IsNullOrEmpty(sScript))
+                            //    sScript = GetOSDAsync("DEMO").Result;
+
+                            if (!string.IsNullOrEmpty(sScript))
+                            {
+                                return new ContentResult()
+                                {
+                                    Content = sScript,
+                                    ContentType = "text/plain"
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            return BadRequest();
+        }
+
+        [AllowAnonymous]
+        public ActionResult GetOS(string signature)
+        {
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+            {
+                X509AgentCert oSig = new X509AgentCert(signature);
+
+                try
+                {
+                    if (X509AgentCert.publicCertificates.Count == 0)
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+
+                    var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
+                    if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+                        X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+                    oSig.ValidateChain(X509AgentCert.publicCertificates);
+                }
+                catch { }
+
+                if (oSig.Exists && oSig.Valid)
+                {
+                    string sScript = GetOSAsync(oSig.CustomerID).Result;
+
+                    if (!string.IsNullOrEmpty(sScript))
+                    {
+                        return new ContentResult()
+                        {
+                            Content = sScript,
+                            ContentType = "text/plain"
+                        };
+                    }
+                }
+                else
+                {
+                    if (oSig.Expired) //allow if cert is expired in the last 7 days
+                    {
+                        if ((DateTime.UtcNow - oSig.Certificate.NotAfter).TotalDays < 7)
+                        {
+                            string sScript = GetOSAsync(oSig.CustomerID).Result;
+
+                            if (!string.IsNullOrEmpty(sScript))
+                            {
+                                return new ContentResult()
+                                {
+                                    Content = sScript,
+                                    ContentType = "text/plain"
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            return BadRequest();
         }
 
 
@@ -301,6 +463,105 @@ namespace DevCDRServer.Controllers
             return Res;
         }
 
+        private async Task<string> GetOSDAsync(string customerid, string os = "")
+        {
+            string Res = "";
+            if (string.IsNullOrEmpty(customerid))
+                return null;
+
+            if (_cache == null)
+                _cache = new MemoryCache(new MemoryCacheOptions());
+
+            _cache.TryGetValue("osd" + customerid + os, out Res);
+
+            if (!string.IsNullOrEmpty(Res))
+            {
+                return Res;
+            }
+
+            try
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                {
+                    string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                    sURL = sURL.Replace("{fn}", "fnGetOSDFiles");
+
+                    using (HttpClient client = new HttpClient())
+                    {
+                        Res = await client.GetStringAsync($"{sURL}&customerid={customerid}&os={os}");
+
+                        if (!string.IsNullOrEmpty(Res))
+                        {
+                            var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(15));
+                            _cache.Set("osd" +customerid + os, Res, cacheEntryOptions);
+                        }
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.Message.ToString();
+                return Res;
+            }
+
+
+            return Res;
+        }
+
+        private async Task<string> GetOSAsync(string customerid)
+        {
+            string Res = "";
+            if (string.IsNullOrEmpty(customerid))
+                return null;
+
+            if (_cache == null)
+                _cache = new MemoryCache(new MemoryCacheOptions());
+
+            _cache.TryGetValue("os" + customerid, out Res);
+
+            if (!string.IsNullOrEmpty(Res))
+            {
+                return Res;
+            }
+
+            try
+            {
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                {
+                    string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                    sURL = sURL.Replace("{fn}", "fnGetSumData");
+
+                    using (HttpClient client = new HttpClient())
+                    {
+                        Res = await client.GetStringAsync($"{sURL}&secretname=AzureDevCDRCustomersTable&customerid={customerid}");
+
+                        if (!string.IsNullOrEmpty(Res))
+                        {
+                            try
+                            {
+                                JArray jRes = JArray.Parse(Res);
+                                string sOS = jRes[0]["OS"].Value<string>();
+                                var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(15));
+                                _cache.Set("os" + customerid, sOS, cacheEntryOptions);
+
+                                return sOS;
+                            }
+                            catch { }
+                        }
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                return "";
+            }
+
+
+            return "";
+        }
+
         [AllowAnonymous]
         [HttpPost]
         public async Task<string> PutFileAsync(string signature, string data = "")
@@ -371,10 +632,10 @@ namespace DevCDRServer.Controllers
             return null;
         }
 
-#if DEBUG
+        //#if DEBUG
+        //        [AllowAnonymous]
+        //#endif
         [AllowAnonymous]
-#endif
-        [Authorize]
         public ActionResult GetData(string Group = "", string Instance = "Default")
         {
             JArray jData = new JArray();
@@ -424,10 +685,10 @@ namespace DevCDRServer.Controllers
             return iCount;
         }
 
-#if DEBUG
+        //#if DEBUG
+        //        [AllowAnonymous]
+        //#endif
         [AllowAnonymous]
-#endif
-        [Authorize]
         public ActionResult Groups(string Instance = "Default")
         {
             List<string> lGroups = new List<string>();
@@ -452,10 +713,10 @@ namespace DevCDRServer.Controllers
             };
         }
 
-#if DEBUG
+        //#if DEBUG
+        //        [AllowAnonymous]
+        //#endif
         [AllowAnonymous]
-#endif
-        [Authorize]
         public ActionResult GetRZCatalog(string Instance = "Default")
         {
             List<string> lRZCat = new List<string>();
@@ -539,10 +800,10 @@ namespace DevCDRServer.Controllers
             catch { }
         }
 
-#if DEBUG
+        //#if DEBUG
+        //        [AllowAnonymous]
+        //#endif
         [AllowAnonymous]
-#endif
-        [Authorize]
         [HttpPost]
         public object Command()
         {
@@ -1012,10 +1273,10 @@ namespace DevCDRServer.Controllers
             }
         }
 
-#if DEBUG
+        //#if DEBUG
+        //        [AllowAnonymous]
+        //#endif
         [AllowAnonymous]
-#endif
-        [Authorize]
         [HttpPost]
         public object RunPS()
         {
@@ -1071,10 +1332,10 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
-#if DEBUG
+        //#if DEBUG
+        //        [AllowAnonymous]
+        //#endif
         [AllowAnonymous]
-#endif
-        [Authorize]
         [HttpPost]
         public object RunUserPS()
         {
@@ -1130,10 +1391,10 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
-#if DEBUG
+        //#if DEBUG
+        //        [AllowAnonymous]
+        //#endif
         [AllowAnonymous]
-#endif
-        [Authorize]
         [HttpPost]
         public object RunPSAsync()
         {
@@ -1189,10 +1450,10 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
-#if DEBUG
+        //#if DEBUG
+        //        [AllowAnonymous]
+        //#endif
         [AllowAnonymous]
-#endif
-        [Authorize]
         [HttpPost]
         public object RunPSFile()
         {

@@ -1,0 +1,73 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>DevCDR</RootNamespace>
+    <Authors>Roger Zander</Authors>
+    <Company>Zander Tools</Company>
+    <Product>DevCDR Server Core</Product>
+    <Copyright>Copyright (c) 2020 by Roger Zander</Copyright>
+    <PackageLicenseUrl>https://github.com/rzander/DevCDR/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/rzander/DevCDR</PackageProjectUrl>
+    <Description>lightweight Client/Server Management tool</Description>
+    <ApplicationIcon>wwwroot\favicon.ico</ApplicationIcon>
+    <OutputType>WinExe</OutputType>
+    <StartupObject>DevCDR.Program</StartupObject>
+    <AssemblyVersion>2.1.0.0</AssemblyVersion>
+    <WebProject_DirectoryAccessLevelKey>0</WebProject_DirectoryAccessLevelKey>
+    <FileVersion>2.1.0.0</FileVersion>
+    <Version>2.1.0</Version>
+    <DockerTargetOS>Linux</DockerTargetOS>
+    <UserSecretsId>93ce79d7-2e37-460b-bc67-a091d9b812b5</UserSecretsId>
+    <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="jaindb\**" />
+    <Content Remove="jaindb\**" />
+    <EmbeddedResource Remove="jaindb\**" />
+    <None Remove="jaindb\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="bundleconfig.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="bundleconfig.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="jaindb.base" Version="1.1.0" />
+    <PackageReference Include="jaindb.storage.FileStore" Version="1.1.0" />
+    <PackageReference Include="jaindb.storage.Memory" Version="1.1.0" />
+    <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="3.1.2" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
+    <PackageReference Include="Microsoft.Azure.SignalR" Version="1.4.0" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.9.10" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\PSScripts\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="bundleconfig.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <WCFMetadata Include="Connected Services" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\favicon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ProjectExtensions><VisualStudio><UserProperties wwwroot_4lib_4bootstrap_4dist_4css_4bootstrap_1css_1map__JsonSchema="" /></VisualStudio></ProjectExtensions>
+
+</Project>
