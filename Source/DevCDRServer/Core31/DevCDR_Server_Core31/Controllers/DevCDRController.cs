@@ -562,9 +562,79 @@ namespace DevCDRServer.Controllers
             return "";
         }
 
+        //[AllowAnonymous]
+        //[HttpPost]
+        //public async Task<string> PutFileAsync(string signature, string data = "")
+        //{
+        //    X509AgentCert oSig = new X509AgentCert(signature);
+
+        //    try
+        //    {
+        //        if (X509AgentCert.publicCertificates.Count == 0)
+        //            X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+
+        //        var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
+        //        if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+        //            X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+        //        oSig.ValidateChain(X509AgentCert.publicCertificates);
+        //    }
+        //    catch { }
+
+        //    if (oSig.Exists && oSig.Valid)
+        //    {
+        //        try
+        //        {
+        //            if (string.IsNullOrEmpty(data))
+        //            {
+        //                using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
+        //                    data = reader.ReadToEndAsync().Result;
+        //            }
+
+        //            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+        //            {
+        //                string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+        //                sURL = sURL.Replace("{fn}", "fnUploadFile");
+
+        //                string sNewData = data;
+        //                try
+        //                {
+        //                    if (data.StartsWith("{"))
+        //                    {
+        //                        var jObj = JObject.Parse(data);
+
+        //                        jObj.Remove("OptionalFeature");
+        //                        if (jObj.Remove("Services"))
+        //                        {
+        //                            sNewData = jObj.ToString(Formatting.None);
+        //                        }
+        //                    }
+        //                }
+        //                catch { }
+
+        //                using (HttpClient client = new HttpClient())
+        //                {
+        //                    StringContent oData = new StringContent(sNewData, Encoding.UTF8, "application/json");
+        //                    await client.PostAsync($"{sURL}&deviceid={oSig.DeviceID}.json&customerid={oSig.CustomerID}", oData);
+        //                }
+
+        //                return jDB.UploadFull(data, oSig.DeviceID, "INV");
+
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            ex.Message.ToString();
+        //            return null;
+        //        }
+        //    }
+
+        //    return null;
+        //}
+
         [AllowAnonymous]
         [HttpPost]
-        public async Task<string> PutFileAsync(string signature, string data = "")
+        public ActionResult PutFile(string signature, string data = "")
         {
             X509AgentCert oSig = new X509AgentCert(signature);
 
@@ -615,21 +685,21 @@ namespace DevCDRServer.Controllers
                         using (HttpClient client = new HttpClient())
                         {
                             StringContent oData = new StringContent(sNewData, Encoding.UTF8, "application/json");
-                            await client.PostAsync($"{sURL}&deviceid={oSig.DeviceID}.json&customerid={oSig.CustomerID}", oData);
+                            client.PostAsync($"{sURL}&deviceid={oSig.DeviceID}.json&customerid={oSig.CustomerID}", oData);
                         }
 
-                        return jDB.UploadFull(data, oSig.DeviceID, "INV");
+                        return new OkObjectResult(jDB.UploadFull(data, oSig.DeviceID, "INV"));
 
                     }
                 }
                 catch (Exception ex)
                 {
                     ex.Message.ToString();
-                    return null;
+                    return new BadRequestResult();
                 }
             }
 
-            return null;
+            return new OkObjectResult("");
         }
 
         //#if DEBUG
