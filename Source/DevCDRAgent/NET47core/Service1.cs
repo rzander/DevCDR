@@ -129,8 +129,9 @@ namespace DevCDRAgent
                                                             using (HttpClient oWebClient = new HttpClient())
                                                             {
                                                                 HttpContent oCont = new StringContent(sResult2);
-                                                                var sRes = oWebClient.PostAsync(sEndPoint + "/devcdr/PutFileAsync?signature=" + xAgent.Signature, oCont).Result;
-                                                                sRes.StatusCode.ToString();
+                                                                var sRes = oWebClient.PostAsync(sEndPoint + "/devcdr/PutFile?signature=" + xAgent.Signature, oCont).Result;
+                                                                Trace.WriteLine(DateTime.Now.ToString() + "\t PutFile Status code: " + sRes.StatusCode.ToString());
+
                                                             }
 
                                                             sScriptResult = "Inventory completed...";
@@ -1644,7 +1645,10 @@ namespace DevCDRAgent
                         }
                         //alternative way
                         if (string.IsNullOrEmpty(sCommand))
+                        {
+                            Trace.WriteLine(DateTime.Now.ToString() + "\t unable to get inventory2.ps1... ");
                             sCommand = "Invoke-RestMethod -Uri '" + sEndPoint + "/devcdr/getfile?filename=inventory2.ps1&signature=" + xAgent.Signature + "' | IEX";
+                        }
 
                         var tSWScan = Task.Run(() =>
                         {
@@ -1663,8 +1667,9 @@ namespace DevCDRAgent
                                             using (HttpClient oWebClient = new HttpClient())
                                             {
                                                 HttpContent oCont = new StringContent(sResult2);
-                                                var sRes = oWebClient.PostAsync(sEndPoint + "/devcdr/PutFileAsync?signature=" + xAgent.Signature, oCont).Result;
-                                                sRes.StatusCode.ToString();
+                                                var sRes = oWebClient.PostAsync(sEndPoint + "/devcdr/PutFile?signature=" + xAgent.Signature, oCont).Result;
+                                                Trace.WriteLine(DateTime.Now.ToString() + "\t PutFile Status code: " + sRes.StatusCode.ToString());
+                                                //Trace.WriteLine(DateTime.Now.ToString() + "\t URL: " + sEndPoint + "/devcdr/PutFile?signature=" + xAgent.Signature);
                                             }
 
                                             sScriptResult = "Inventory completed...";
