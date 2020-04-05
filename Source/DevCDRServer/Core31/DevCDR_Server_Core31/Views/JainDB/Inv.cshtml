@@ -1,96 +1,96 @@
 ﻿<p></p>
 <form class="">
-    <div class="container">
+    <div class="">
         <div class="row">
-            <div class="col-md-offset-1 col-md-5">
-                <div class="form-group has-success">
-                    <label class="control-label">Name:</label>
-                    <div class="">
+            <div class="col-md-5 offset-1">
+                <div class="form-group row has-success">
+                    <label class="col-form-label col-3 text-right">Name:</label>
+                    <div class="col-9">
                         <input style="font-weight: bold;background-color:transparent" class="form-control" id="tbName" type="text" value="@ViewBag.Name" readonly>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="control-label">Vendor:</label>
-                    <div class="">
+                <div class="form-group row">
+                    <label class="col-form-label col-3 text-right">Vendor:</label>
+                    <div class="col-9">
                         <input class="form-control" id="tbVendor" type="text" value="@ViewBag.Vendor" readonly>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="control-labelt">Model:</label>
-                    <div class="">
+                <div class="form-group row">
+                    <label class="col-form-label col-3 text-right">Model:</label>
+                    <div class="col-9">
                         <input class="form-control" id="tbModel" type="text" value="@ViewBag.Model" readonly>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="control-label">Type:</label>
-                    <div class="">
+                <div class="form-group row">
+                    <label class="col-form-label col-3 text-right">Type:</label>
+                    <div class="col-9">
                         <input class="form-control" id="tbType" type="text" value="@ViewBag.Type" readonly>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="control-label">SerialNr:</label>
-                    <div class="">
+                <div class="form-group row">
+                    <label class="col-form-label col-3 text-right">SerialNr:</label>
+                    <div class="col-9">
                         <input class="form-control" id="tbSer" type="text" value="@ViewBag.Serial" readonly>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="control-label">Memory:</label>
-                    <div class="">
+                <div class="form-group row">
+                    <label class="col-form-label col-3 text-right">Memory:</label>
+                    <div class="col-9">
                         <input class="form-control" id="tbMem" type="text" value="@ViewBag.Memory (GB)" readonly>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="control-label">CPU:</label>
-                    <div class="">
+                <div class="form-group row">
+                    <label class="col-form-label col-3 text-right">CPU:</label>
+                    <div class="col-9">
                         <input class="form-control" id="tbCPU" type="text" value="@ViewBag.CPU" readonly>
                     </div>
                 </div>
             </div>
             <div class="col-md-5">
-                <div class="form-group">
-                    <label class="control-label">OS:</label>
-                    <div class="">
+                <div class="form-group row">
+                    <label class="col-form-label col-3 text-right">OS:</label>
+                    <div class="col-9">
                         <input class="form-control" id="tbOS" type="text" value="@ViewBag.OS" readonly>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="control-labelt">Version:</label>
-                    <div class="">
+                <div class="form-group row">
+                    <label class="col-form-label col-3 text-right">Version:</label>
+                    <div class="col-9">
                         <input class="form-control" id="tbVersion" type="text" value="@ViewBag.Version" readonly>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="control-label">Language:</label>
-                    <div class="">
+                <div class="form-group row">
+                    <label class="col-form-label col-3 text-right">Language:</label>
+                    <div class="col-9">
                         <input class="form-control" id="tbLang" type="text" value="@ViewBag.Language" readonly>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="control-label">Architecture:</label>
-                    <div class="">
+                <div class="form-group row">
+                    <label class="col-form-label col-3 text-right">Architecture:</label>
+                    <div class="col-9">
                         <input class="form-control" id="tbArch" type="text" value="@ViewBag.Arch" readonly>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="control-label">Installdate:</label>
-                    <div class="">
+                <div class="form-group row">
+                    <label class="col-form-label col-3 text-right">Installdate:</label>
+                    <div class="col-9">
                         <input class="form-control" id="tbInstDate" type="text" value="@ViewBag.InstDate (UTC)" readonly>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="control-label">Inventory age:</label>
-                    <div class="input-group">
+                <div class="form-group row">
+                    <label class="col-form-label col-3 text-right">Inventory age:</label>
+                    <div class="input-group col-9">
                         <input class="form-control" id="tbInvDate" type="text" value="@ViewBag.LastInv  Revision: @ViewBag.Index" readonly>
                         <div class="input-group-append">
-                            <a href="Diff?id=@ViewBag.Id&r=@ViewBag.Index" role="button" class="input-group-text" role="button" aria-pressed="true">Diff</a>
+                            <a href="Diff?id=@ViewBag.Id&r=@ViewBag.Index" role="button" class="input-group-text alert-primary" aria-pressed="true">Show Diff...</a>
                         </div>
                         @*<a href="Diff?id=@ViewBag.Id&r=@ViewBag.Index" role="button" class="btn btn-light col-md-12" aria-pressed="true">Diff</a>*@
                     </div>
 
                 </div>
-                <div class="form-group">
-                    <label class="control-label">UserName:</label>
-                    <div class="">
+                <div class="form-group row">
+                    <label class="col-form-label col-3 text-right">UserName:</label>
+                    <div class="col-9">
                         <input class="form-control" id="tbUserName" type="text" value="@ViewBag.UserName" readonly>
                     </div>
                 </div>
@@ -101,11 +101,11 @@
         <hr style="width: 100%; color: black; height: 1px; background-color:darkgray;" />
 
         <div class="row justify-content-md-center">
-            <div class="row col-sm-8" style="margin-bottom:5px">
-                <button class="btn @ViewBag.CoreStyle col-sm-10" type="button" data-toggle="collapse" data-target="#collapseCoreSW" aria-expanded="false" aria-controls="collapseCoreSW">
+            <div class="row col-sm-10" style="margin-bottom:5px">
+                <button class="btn @ViewBag.CoreStyle col-sm-12" type="button" data-toggle="collapse" data-target="#collapseCoreSW" aria-expanded="false" aria-controls="collapseCoreSW">
                     Core Applications
                 </button>
-                <div class="collapse col-sm-10" id="collapseCoreSW">
+                <div class="collapse col-sm-12" id="collapseCoreSW">
                     <div class="card card-body @ViewBag.CoreStyle">
                         @foreach (var app in ViewBag.CoreSW)
                         {
@@ -115,11 +115,11 @@
                 </div>
             </div>
 
-            <div class="row col-sm-8" style="margin-bottom:5px">
-                <button class="btn alert-info col-sm-10" type="button" data-toggle="collapse" data-target="#collapseIndSW" aria-expanded="false" aria-controls="collapseIndSW">
+            <div class="row col-sm-10" style="margin-bottom:5px">
+                <button class="btn alert-info col-sm-12" type="button" data-toggle="collapse" data-target="#collapseIndSW" aria-expanded="false" aria-controls="collapseIndSW">
                     Individual Software (@ViewBag.IndSWc)
                 </button>
-                <div class="collapse col-sm-10" id="collapseIndSW">
+                <div class="collapse col-sm-12" id="collapseIndSW">
                     <div class="card card-body alert-info">
                         @foreach (var app in ViewBag.IndSW)
                         {
@@ -129,11 +129,11 @@
                 </div>
             </div>
 
-            <div class="row col-sm-8">
-                <button class="btn alert-danger col-sm-10" type="button" data-toggle="collapse" data-target="#collapseUnknSW" aria-expanded="false" aria-controls="collapseUnknSW">
+            <div class="row col-sm-10">
+                <button class="btn alert-danger col-sm-12" type="button" data-toggle="collapse" data-target="#collapseUnknSW" aria-expanded="false" aria-controls="collapseUnknSW">
                     Unknown Software (@ViewBag.UnknSWc)
                 </button>
-                <div class="collapse col-sm-10" id="collapseUnknSW">
+                <div class="collapse col-sm-12" id="collapseUnknSW">
                     <div class="card card-body alert-danger">
                         @foreach (var app in ViewBag.UnknSW)
                         {
@@ -147,7 +147,7 @@
         color: black;
         height: 1px;
         background-color: darkgray;" />
-        <a href="InvJson?id=@ViewBag.Id&l=@ViewBag.idx" role="button" class="btn btn-light col-sm-2" aria-pressed="true">show JSON...</a>
+        <a href="InvJson?id=@ViewBag.Id&l=@ViewBag.idx" role="button" class="btn alert-primary col-sm-2" aria-pressed="true">show JSON...</a>
     </div>
 </form>
 
