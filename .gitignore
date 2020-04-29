@@ -341,3 +341,4 @@ Source/DevCDRServer/NET47/signFiles.ps1
 Source/DevCDRAgent/NET46/PSStatus.ps1
 Source/DevCDRServer/Core21/DevCDR_Server_Core21/wwwroot/rzcat.json
 Source/DevCDRServer/Core21/DevCDR_Server_Core21/wwwroot/plugin_ContextMenu.cshtml
+Source/DevCDRServer/Core31/DevCDR_Server_Core31/wwwroot/rzcat.json

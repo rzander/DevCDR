@@ -685,11 +685,11 @@ namespace DevCDRServer.Controllers
                         using (HttpClient client = new HttpClient())
                         {
                             StringContent oData = new StringContent(sNewData, Encoding.UTF8, "application/json");
-                            client.PostAsync($"{sURL}&deviceid={oSig.DeviceID}.json&customerid={oSig.CustomerID}", oData);
+                            var oPost = client.PostAsync($"{sURL}&deviceid={oSig.DeviceID}.json&customerid={oSig.CustomerID}", oData);
+                            string sID = jDB.UploadFull(data, oSig.DeviceID, "INV");
+                            oPost.Wait(5000);
+                            return new OkObjectResult(sID);
                         }
-
-                        return new OkObjectResult(jDB.UploadFull(data, oSig.DeviceID, "INV"));
-
                     }
                 }
                 catch (Exception ex)
