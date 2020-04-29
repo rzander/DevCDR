@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Win32;
+using System.IO;
 
 namespace DevCDRAgent
 {
@@ -83,13 +84,24 @@ namespace DevCDRAgent
                             parameter = Environment.MachineName.ToUpper() + ":" + Environment.UserName.ToUpper();
                         Trace.WriteLine("Startup Parameter: " + parameter);
 
-                        Service1 ConsoleApp = new Service1(Environment.ExpandEnvironmentVariables(parameter));
-                        ConsoleApp.Start(null);
-                        MinimizeFootprint();
-                        Trace.WriteLine("Started... " + DateTime.Now.ToString());
-                        Console.WriteLine("Press ENTER to terminate...");
-                        Console.ReadLine();
-                        ConsoleApp.Stop();
+                        try
+                        {
+                            Service1 ConsoleApp = new Service1(Environment.ExpandEnvironmentVariables(parameter));
+                            ConsoleApp.Start(null);
+                            MinimizeFootprint();
+                            Trace.WriteLine("Started... " + DateTime.Now.ToString());
+                            Console.WriteLine("Press ENTER to terminate...");
+                            Console.ReadLine();
+                            ConsoleApp.Stop();
+                        }
+                        catch(Exception ex)
+                        {
+                            //In case of config File corruption, delete all old config Files
+                            foreach (string sDir in Directory.GetDirectories(Environment.ExpandEnvironmentVariables("%LOCALAPPDATA%\\Zander_Tools"), "DevCDRAgentCore*", SearchOption.TopDirectoryOnly))
+                            {
+                                Directory.Delete(sDir, true);
+                            }
+                        }
                         break;
                 }
 
@@ -97,9 +109,32 @@ namespace DevCDRAgent
             }
             else
             {
-                var sService = new Service1(Environment.MachineName);
-                ServiceBase.Run(sService);
-                return sService.ExitCode;
+                try
+                {
+                    System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
+                    System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
+                    System.Environment.SetEnvironmentVariable("DevCDRId", "", EnvironmentVariableTarget.Machine);
+
+                    var sService = new Service1(Environment.MachineName);
+                    ServiceBase.Run(sService);
+                    return sService.ExitCode;
+                }
+                catch(Exception ex) {
+
+                    Console.WriteLine(ex.Message);
+                    //Trace.WriteLine("ERROR: " + ex.Message + DateTime.Now.ToString());
+                    //Trace.Indent();
+                    //Trace.Flush();
+
+                    //In case of config File corruption, delete all old config Files
+                    foreach (string sDir in Directory.GetDirectories(Environment.ExpandEnvironmentVariables("%LOCALAPPDATA%\\Zander_Tools"), "DevCDRAgentCore*", SearchOption.TopDirectoryOnly))
+                    {
+                        Directory.Delete(sDir, true);
+                    }
+
+                    return 911;
+
+                }
             }
         }
 

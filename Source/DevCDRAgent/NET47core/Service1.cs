@@ -275,6 +275,7 @@ namespace DevCDRAgent
 
         protected override void OnStart(string[] args)
         {
+            
             if (Properties.Settings.Default.CustomerID == "DEMO" && File.Exists("c:\\remove-me.txt"))
             {
                 OFF(true);
@@ -1940,14 +1941,6 @@ namespace DevCDRAgent
                     Trace.WriteLine(DateTime.Now.ToString() + "\t AgentSignature and CustomerID missing... Starting legacy mode.");
                     Console.WriteLine("AgentSignature and CustomerID missing... Starting legacy mode.");
 
-                    try
-                    {
-                        System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
-                        System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
-                        System.Environment.SetEnvironmentVariable("DevCDRId", "", EnvironmentVariableTarget.Machine);
-                    }
-                    catch { }
-
                     //Legacy Init
                     connection.InvokeAsync("Init", Hostname).ContinueWith(task1 =>
                     {
@@ -2031,33 +2024,11 @@ namespace DevCDRAgent
                         }
 
                         File.WriteAllText(Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\WindowsPowerShell\Modules\Compliance\compliance.psm1"), sModule, new UTF8Encoding(true));
-                        try
-                        {
-                            System.Environment.SetEnvironmentVariable("DevCDRSig", xAgent.Signature, EnvironmentVariableTarget.Machine);
-                            System.Environment.SetEnvironmentVariable("DevCDREP", sEndPoint, EnvironmentVariableTarget.Machine);
-                            System.Environment.SetEnvironmentVariable("DevCDRId", xAgent.CustomerID, EnvironmentVariableTarget.Machine);
-
-                            //Remove Environmnet Variable when all Agents are updated (>= 2.0.1.32)
-                            //System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
-                            //System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
-                            //System.Environment.SetEnvironmentVariable("DevCDRId", "", EnvironmentVariableTarget.Machine);
-                        }
-                        catch { }
                     }
                     catch (Exception ex)
                     {
                         Trace.TraceError(DateTime.Now.ToString() + "\t" + ex.Message);
                     }
-                }
-                else
-                {
-                    try
-                    {
-                        System.Environment.SetEnvironmentVariable("DevCDRSig", "", EnvironmentVariableTarget.Machine);
-                        System.Environment.SetEnvironmentVariable("DevCDREP", "", EnvironmentVariableTarget.Machine);
-                        System.Environment.SetEnvironmentVariable("DevCDRId", "", EnvironmentVariableTarget.Machine);
-                    }
-                    catch { }
                 }
             }
             catch (Exception ex)
@@ -2252,6 +2223,7 @@ namespace DevCDRAgent
                     {
                         bool bVirus = false;
                         bool bConfig = false;
+                        bool bASR = false;
                         iLastEventId = arg.EventRecord.RecordId ?? 0; //prevent duplicate reports
                         switch (arg.EventRecord.Id)
                         {
@@ -2272,6 +2244,9 @@ namespace DevCDRAgent
                                 break;
                             case 1119:
                                 bVirus = true;
+                                break;
+                            case 1121:
+                                bASR = true;
                                 break;
                             case 5007:
                                 bConfig = true;
@@ -2364,6 +2339,57 @@ namespace DevCDRAgent
                                     jLog.Add(new JProperty("EventRecordID", arg.EventRecord.RecordId));
                                     jLog.Add(new JProperty("Description", arg.EventRecord.Properties[2].Value));
                                     jLog.Add(new JProperty("ActionString", arg.EventRecord.Properties[3].Value));
+                                }
+                                catch { }
+
+                                if (isconnected)
+                                {
+                                    AzureLog.Post(jLog.ToString(), "Defender");
+                                }
+                                else
+                                {
+                                    //Store Alert as JSON File...
+                                    if (!Directory.Exists(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection")))
+                                        Directory.CreateDirectory(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection"));
+
+                                    File.WriteAllText(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection", Path.GetRandomFileName() + ".json"), jLog.ToString());
+                                }
+
+                                Trace.WriteLine(DateTime.Now.ToString() + "\t Threat Alert send to Azure Logs...");
+                            }
+
+                            Properties.Settings.Default.InventorySuccess = new DateTime();
+                            Properties.Settings.Default.HealthCheckSuccess = new DateTime();
+                            Random rnd2 = new Random();
+                            tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                        }
+
+                        if (bASR)
+                        {
+                            if (!string.IsNullOrEmpty(AzureLog.WorkspaceId))
+                            {
+                                JObject jLog = new JObject();
+
+                                string sCustomerID = "";
+                                try
+                                {
+                                    sCustomerID = xAgent.CustomerID;
+                                }
+                                catch { }
+
+                                try
+                                {
+                                    Trace.WriteLine(DateTime.Now.ToString() + "\t ASR Event detected... !!!");
+                                    jLog.Add(new JProperty("Computer", Environment.MachineName));
+                                    jLog.Add(new JProperty("DeviceID", Properties.Settings.Default.HardwareID));
+                                    jLog.Add(new JProperty("CustomerID", sCustomerID));
+                                    jLog.Add(new JProperty("EventID", 1002));
+                                    jLog.Add(new JProperty("DefenderEventID", arg.EventRecord.Id));
+                                    jLog.Add(new JProperty("EventRecordID", arg.EventRecord.RecordId));
+                                    jLog.Add(new JProperty("Description", "ASR blocked activity"));
+                                    jLog.Add(new JProperty("ActionString", arg.EventRecord.Properties[7].Value)); //Blocked File
+                                    jLog.Add(new JProperty("ActionID", arg.EventRecord.Properties[3].Value)); //ASR Rule ID
+                                    
                                 }
                                 catch { }
 
