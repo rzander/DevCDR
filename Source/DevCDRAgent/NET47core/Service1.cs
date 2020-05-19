@@ -2224,6 +2224,7 @@ namespace DevCDRAgent
                         bool bVirus = false;
                         bool bConfig = false;
                         bool bASR = false;
+                        bool bNEP = false;
                         iLastEventId = arg.EventRecord.RecordId ?? 0; //prevent duplicate reports
                         switch (arg.EventRecord.Id)
                         {
@@ -2245,8 +2246,17 @@ namespace DevCDRAgent
                             case 1119:
                                 bVirus = true;
                                 break;
-                            case 1121:
+                            case 1121: //ASR Block
                                 bASR = true;
+                                break;
+                            case 1122: //ASR Audit
+                                bASR = true;
+                                break;
+                            case 1125: //Network protection Audit
+                                bNEP = true;
+                                break;
+                            case 1126: //Network protection Block
+                                bNEP = true;
                                 break;
                             case 5007:
                                 bConfig = true;
@@ -2309,10 +2319,12 @@ namespace DevCDRAgent
                                 Trace.WriteLine(DateTime.Now.ToString() + "\t Threat Alert send to Azure Logs...");
                             }
 
-                            Properties.Settings.Default.InventorySuccess = new DateTime();
-                            Properties.Settings.Default.HealthCheckSuccess = new DateTime();
+                            //Enforce Inventory and Compliance check
+                            Properties.Settings.Default.InventorySuccess = new DateTime().AddDays(1);
+                            Properties.Settings.Default.HealthCheckSuccess = new DateTime().AddDays(1);
                             Random rnd2 = new Random();
                             tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+
                         }
 
                         if (bConfig)
@@ -2346,22 +2358,13 @@ namespace DevCDRAgent
                                 {
                                     AzureLog.Post(jLog.ToString(), "Defender");
                                 }
-                                else
-                                {
-                                    //Store Alert as JSON File...
-                                    if (!Directory.Exists(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection")))
-                                        Directory.CreateDirectory(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection"));
-
-                                    File.WriteAllText(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection", Path.GetRandomFileName() + ".json"), jLog.ToString());
-                                }
-
-                                Trace.WriteLine(DateTime.Now.ToString() + "\t Threat Alert send to Azure Logs...");
                             }
 
-                            Properties.Settings.Default.InventorySuccess = new DateTime();
-                            Properties.Settings.Default.HealthCheckSuccess = new DateTime();
-                            Random rnd2 = new Random();
-                            tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                            //Enforce Inventory and Compliance check
+                            Properties.Settings.Default.InventorySuccess.AddHours(-2);
+                            //Properties.Settings.Default.HealthCheckSuccess = new DateTime();
+                            //Random rnd2 = new Random();
+                            //tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay * 2); //wait max Xs to ReInit
                         }
 
                         if (bASR)
@@ -2386,10 +2389,11 @@ namespace DevCDRAgent
                                     jLog.Add(new JProperty("EventID", 1002));
                                     jLog.Add(new JProperty("DefenderEventID", arg.EventRecord.Id));
                                     jLog.Add(new JProperty("EventRecordID", arg.EventRecord.RecordId));
-                                    jLog.Add(new JProperty("Description", "ASR blocked activity"));
-                                    jLog.Add(new JProperty("ActionString", arg.EventRecord.Properties[7].Value)); //Blocked File
-                                    jLog.Add(new JProperty("ActionID", arg.EventRecord.Properties[3].Value)); //ASR Rule ID
-                                    
+                                    jLog.Add(new JProperty("Description", "ASR activity"));
+                                    jLog.Add(new JProperty("Process", arg.EventRecord.Properties[7].Value)); //Blocked File
+                                    jLog.Add(new JProperty("Resource", arg.EventRecord.Properties[3].Value)); //ASR Rule ID
+                                    //jLog.Add(new JProperty("ErrorDescription", "ASR blocked activity")); //
+
                                 }
                                 catch { }
 
@@ -2409,16 +2413,71 @@ namespace DevCDRAgent
                                 Trace.WriteLine(DateTime.Now.ToString() + "\t Threat Alert send to Azure Logs...");
                             }
 
-                            Properties.Settings.Default.InventorySuccess = new DateTime();
-                            Properties.Settings.Default.HealthCheckSuccess = new DateTime();
-                            Random rnd2 = new Random();
-                            tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay); //wait max Xs to ReInit
+                            //Properties.Settings.Default.InventorySuccess = new DateTime();
+                            //Properties.Settings.Default.HealthCheckSuccess = new DateTime();
+                            //Random rnd2 = new Random();
+                            //tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay * 2); //wait max Xs to ReInit
+                        }
+
+                        if (bNEP)
+                        {
+                            if (!string.IsNullOrEmpty(AzureLog.WorkspaceId))
+                            {
+                                JObject jLog = new JObject();
+
+                                string sCustomerID = "";
+                                try
+                                {
+                                    sCustomerID = xAgent.CustomerID;
+                                }
+                                catch { }
+
+                                try
+                                {
+                                    Trace.WriteLine(DateTime.Now.ToString() + "\t NEP Event detected... !!!");
+                                    jLog.Add(new JProperty("Computer", Environment.MachineName));
+                                    jLog.Add(new JProperty("DeviceID", Properties.Settings.Default.HardwareID));
+                                    jLog.Add(new JProperty("CustomerID", sCustomerID));
+                                    jLog.Add(new JProperty("EventID", 1003));
+                                    jLog.Add(new JProperty("DefenderEventID", arg.EventRecord.Id));
+                                    jLog.Add(new JProperty("EventRecordID", arg.EventRecord.RecordId));
+                                    jLog.Add(new JProperty("Description", "NEP activity"));
+                                    jLog.Add(new JProperty("Process", arg.EventRecord.Properties[7].Value)); //Blocked File
+                                    jLog.Add(new JProperty("Resource", arg.EventRecord.Properties[3].Value)); //ASR Rule ID
+                                    //jLog.Add(new JProperty("ErrorDescription", "ASR blocked activity")); //
+
+                                }
+                                catch { }
+
+                                if (isconnected)
+                                {
+                                    AzureLog.Post(jLog.ToString(), "Defender");
+                                }
+                                else
+                                {
+                                    //Store Alert as JSON File...
+                                    if (!Directory.Exists(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection")))
+                                        Directory.CreateDirectory(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection"));
+
+                                    File.WriteAllText(Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection", Path.GetRandomFileName() + ".json"), jLog.ToString());
+                                }
+
+                                Trace.WriteLine(DateTime.Now.ToString() + "\t Threat Alert send to Azure Logs...");
+                            }
+
+                            //Enforce HealthCheck
+                            //Properties.Settings.Default.InventorySuccess = new DateTime();
+                            //Properties.Settings.Default.HealthCheckSuccess = new DateTime();
+                            //Random rnd2 = new Random();
+                            //tReInit.Interval = rnd2.Next(200, Properties.Settings.Default.StatusDelay * 2); //wait max Xs to ReInit
                         }
 
                     }
                     catch (Exception ex)
                     {
                         Trace.WriteLine(DateTime.Now.ToString() + "\t Error on AV detection: " + ex.Message);
+                        Properties.Settings.Default.InventorySuccess = new DateTime().AddDays(1);
+                        Properties.Settings.Default.HealthCheckSuccess = new DateTime().AddDays(1);
                     }
                 }
             }
