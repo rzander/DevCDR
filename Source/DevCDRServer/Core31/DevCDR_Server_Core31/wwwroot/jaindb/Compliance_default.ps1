@@ -172,48 +172,79 @@ function Test-Administrators {
     if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) {
         if (Get-LocalGroupMember -SID S-1-5-32-544 -ea SilentlyContinue) { } else {
             $localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
-            $Group = [ADSI]"WinNT://localhost/$LocalGroup,group"
+            $Group = [ADSI]"WinNT://localhost/$LocalGroup, group"
             $members = $Group.psbase.Invoke("Members")
             $members | ForEach-Object { $_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -like "S-1-12-1-*" } | ForEach-Object { Remove-LocalGroupMember -Name $localgroup $_ } 
             $bRes = $true;
         }
+    } 
+}
+
+function Set-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
+    <#
+        .Description
+         disable local Admin account or randomize PW if older than 4 hours
+    #>
+
+    #Skip fix if running on a DC
+    if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) {
+        $pwlastset = (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).PasswordLastSet
+        if (!$pwlastset) { $pwlastset = Get-Date -Date "1970-01-01 00:00:00Z" }
+        if (((get-date) - $pwlastset).TotalHours -gt 4) {
+            if ($disableAdmin) {
+                (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Disable-LocalUser
+            }
+            else {
+                (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Enable-LocalUser 
+            }
+
+            if ($randomizeAdmin) {
+                if (((get-date) - $pwlastset).TotalHours -gt 12) {
+                    $pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | ForEach-Object -begin { $aa = $null } -process { $aa += [char]$_ } -end { $aa }; 
+                    (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
+
+                    if (Test-Logging) {
+                        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "AdminPW:" + $pw; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDR" -TennantID "DevCDR"
+                    }
+                }
+            }
+        }
     }
-    if ($null -eq $global:chk) { $global:chk = @{ } }
-    if ($global:chk.ContainsKey("FixAdministrators")) { $global:chk.Remove("FixAdministrators") }
-    $global:chk.Add("FixAdministrators", $bRes)
 }
 
 function Test-LocalAdmin {
     <#
         .Description
-         disable local Admin account if PW is older than 4 hours
+         disable local Admin account or randomize PW if older than 4 hours
     #>
-    $Admins = ""
 
+    $locAdmin = @()  
     #Skip fix if running on a DC
     if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) {
-        if ((Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Enabled) {
-            #Fix if local Admin PW is older than 4 Hours
-            if (((get-date) - (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).PasswordLastSet).TotalHours -gt 4) {
-                #Disable local Admin
-                (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Disable-LocalUser
-
-                #generate new random PW
-                $pw = get-random -count 12 -input (35..37 + 45..46 + 48..57 + 65..90 + 97..122) | ForEach-Object -begin { $aa = $null } -process { $aa += [char]$_ } -end { $aa }; (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
-                $pw = "";
-
-                $Admins = (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }).Name
-
-                if ($bLogging) {
-                    Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1005; Description = "local Admin account disabled and new random passwort generated" }) -LogType "DevCDRCore" 
-                }
+        
+        $admingroup = (Get-WmiObject -Class Win32_Group -Filter "LocalAccount='True' AND SID='S-1-5-32-544'").Name
+       
+        $groupconnection = [ADSI]("WinNT://localhost/$admingroup,group")
+        $members = $groupconnection.Members()
+        ForEach ($member in $members) {
+            $name = $member.GetType().InvokeMember("Name", "GetProperty", $NULL, $member, $NULL)
+            $class = $member.GetType().InvokeMember("Class", "GetProperty", $NULL, $member, $NULL)
+            $bytes = $member.GetType().InvokeMember("objectsid", "GetProperty", $NULL, $member, $NULL)
+            $sid = New-Object Security.Principal.SecurityIdentifier ($bytes, 0)
+            $result = New-Object -TypeName psobject
+            $result | Add-Member -MemberType NoteProperty -Name Name -Value $name
+            $result | Add-Member -MemberType NoteProperty -Name ObjectClass -Value $class
+            $result | Add-Member -MemberType NoteProperty -Name id -Value $sid.Value.ToString()
+            #Exclude locaAdmin and DomainAdmins
+            if (($result.id -notlike "S-1-5-21-*-500" ) -and ($result.id -notlike "S-1-5-21-*-512" )) {
+                $locAdmin = $locAdmin + $result;
             }
         }
     }
 
     if ($null -eq $global:chk) { $global:chk = @{ } }
-    if ($global:chk.ContainsKey("LocalAdmin")) { $global:chk.Remove("LocalAdmin") }
-    $global:chk.Add("LocalAdmin", $Admins)
+    if ($global:chk.ContainsKey("Admins")) { $global:chk.Remove("Admins") }
+    $global:chk.Add("Admins", $locAdmin.Count)
 }
 
 function Test-WOL {
@@ -258,10 +289,11 @@ function Test-WOL {
         New-NetFirewallRule -DisplayName "WOL" -Direction Outbound -RemotePort 9 -Protocol UDP -Action Allow
     }
 
-    if ($null -eq $global:chk) { $global:chk = @{ } }
-    if ($global:chk.ContainsKey("WOL")) { $global:chk.Remove("WOL") }
-    $global:chk.Add("WOL", $bRes)
+    #if ($null -eq $global:chk) { $global:chk = @{ } }
+    #if ($global:chk.ContainsKey("WOL")) { $global:chk.Remove("WOL") }
+    #$global:chk.Add("WOL", $bRes)
 }
+
 
 function Test-FastBoot($Value = 0) {
     <#
@@ -308,6 +340,27 @@ function Test-locked {
     return $bRes
 }
 
+function Test-Software {
+    <#
+        .Description
+        Check for missing SW Updates
+    #>
+
+    #Find Software Updates
+    $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename
+
+    if ($updates) {
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("RZUpdates")) { $global:chk.Remove("RZUpdates") }
+        if ($updates) { $global:chk.Add("RZUpdates", $updates.PackageFilename -join ';') } else { $global:chk.Add("RZUpdates", "") }
+    }
+    else {
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("RZUpdates")) { $global:chk.Remove("RZUpdates") }
+        if ($updates) { $global:chk.Add("RZUpdates", "") } else { $global:chk.Add("RZUpdates", "") }   
+    }
+}
+
 function Update-Software {
     <#
         .Description
@@ -315,7 +368,7 @@ function Update-Software {
     #>
     param( 
         [parameter(Mandatory = $true)] [string[]] $SWList, 
-        [parameter(Mandatory = $false)] [boolean] $CheckMeteredNetwork = $false
+        [parameter(Mandatory = $true)] [boolean] $CheckMeteredNetwork
     )
 
     if ($CheckMeteredNetwork) {
@@ -328,8 +381,8 @@ function Update-Software {
     #Update only managed Software
     $SWList | ForEach-Object { 
         if ($updates.PackageFilename -contains $_) { 
-            if ($bLogging) {
-                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 2000; Description = "RuckZuck updating: $($_)" }) -LogType "DevCDR" 
+            if (Test-Logging) {
+                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 2000; Description = "RuckZuck updating: $($_)"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDR" -TennantID "DevCDR"
             }
             "Updating: " + $_ ;
             Install-Package -ProviderName RuckZuck "$($_)" -ea SilentlyContinue
@@ -341,6 +394,7 @@ function Update-Software {
     if ($global:chk.ContainsKey("SoftwareUpdates")) { $global:chk.Remove("SoftwareUpdates") }
     if ($updates) { $global:chk.Add("SoftwareUpdates", $updates.PackageFilename.count) } else { $global:chk.Add("SoftwareUpdates", 0) }
 }
+
 
 function Test-Temp {
     <#
@@ -362,20 +416,21 @@ Function Test-Defender($Age = 7) {
         .Description
         Run Defender Quickscan if last scan is older than $Age days
     #>
-    if ((Get-WmiObject -Namespace root\\SecurityCenter2 -Query "SELECT * FROM AntiVirusProduct" -ea SilentlyContinue).displayName.count -eq 1) {
+    if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVirusProduct" -ea SilentlyContinue).displayName.count -eq 1) {
         $ScanAge = (Get-MpComputerStatus).QuickScanAge
-        if ($ScanAge -ge $Age) { Start-MpScan -ScanType QuickScan }
+        if ($ScanAge -ge $Age) { start-process "$($env:ProgramFiles)\Windows Defender\MpCmdRun.exe" -ArgumentList '-Scan -ScanType 1' }
 
         if ($null -eq $global:chk) { $global:chk = @{ } }
-        if ($global:chk.ContainsKey("DefenderScangAge")) { $global:chk.Remove("DefenderScangAge") }
-        $global:chk.Add("DefenderScangAge", $ScanAge)
+        if ($global:chk.ContainsKey("DefenderScanAge")) { $global:chk.Remove("DefenderScangAge") }
+        $global:chk.Add("DefenderScanAge", $ScanAge)
     }
     else {
         if ($null -eq $global:chk) { $global:chk = @{ } }
-        if ($global:chk.ContainsKey("DefenderScangAge")) { $global:chk.Remove("DefenderScangAge") }
-        $global:chk.Add("DefenderScangAge", 999)
+        if ($global:chk.ContainsKey("DefenderScanAge")) { $global:chk.Remove("DefenderScanAge") }
+        $global:chk.Add("DefenderScanAge", 999)
     }
 }
+
 
 Function Test-Bitlocker {
     <#
@@ -396,9 +451,10 @@ Function Test-Bitlocker {
 #Import-Module Compliance
 Test-Nuget
 Test-OneGetProvider("1.7.1.3")
-Test-DevCDRAgent("2.0.1.34")
-#Test-Administrators 
-Test-LocalAdmin
+Test-DevCDRAgent("2.0.1.36")
+#Test-Administrators
+Set-LocalAdmin -disableAdmin $false -randomizeAdmin $true 
+#Test-LocalAdmin
 Test-WOL
 Test-FastBoot
 Test-DeliveryOptimization
@@ -414,6 +470,10 @@ if (Test-locked) {
 
     Update-Software -SWList $ManagedSW -CheckMeteredNetwork $true
     Test-Temp
+
+    if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVirusProduct" -ea SilentlyContinue).displayName.count -eq 1) {
+        try { Test-Defender(3) } catch { }
+    }
 }
 
 if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVirusProduct" -ea SilentlyContinue).displayName.count -eq 1) {
@@ -426,8 +486,8 @@ if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVir
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMBjryQgq8x1Kh8r0yp+e34dg
-# fHugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyFKbMzPfI1XGCC34/RRcUpzl
+# MImgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -492,12 +552,12 @@ if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVir
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRO
-# IolF4VaKi/ReFZ/MquTcS0xWJDANBgkqhkiG9w0BAQEFAASCAQAKmQjqsbtUYZrt
-# tCOvmE9ndtAkzU4KawiJIyk/78c5zHPs6KE2vyuaP2hpiYeZSz1DycjPnpFc6RJb
-# Hc0z1UhfKS1vfGKrkuFN9wmRJZWgAEFh0FV/tHNdMTq8s4QwYpV31StzTbQwnIHW
-# 2Of575rnHXDqYMrDrpBO8TVPKMPBiYpmtGCyX4tyzpVZ1ZSQyjItbHvsT2a4dpfB
-# 0yZWs5zlVTaQvEGbHqoUyhjHFtTPkCS1uXmftfwvY/FyC5GUxjT2EHF0z5uiNQ3u
-# ioUPXlV4t/y1VROG3xOLjrZzNUPrSG8006AJssX3/O3AgtulTqaNO2E5HgKyaA81
-# F1JLNkog
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRQ
+# 1hgDUX/iwrliWAUzQClsyCfGNzANBgkqhkiG9w0BAQEFAASCAQAUfdeCSA6BBpiU
+# YGc4dXy04tHodEqVi30tOS6Ij4CJVsgx7IMXdy3wAda/Lp4AYuDRVwpnJ1teSm6m
+# 7Iaft6CZt3xRthX7A71fldMqCb5OmjN4txUthY7I95ye0qNhOCrfrcLV7CdalxPs
+# fGfcSlfdwu1VO7c57n46XyAin6KGejLDixoePFErYQy2PmvQ91cFoE7YHreuoTBU
+# ekDX4YJuxDfaPB99CxS3G/IK2nP5NGX7aVAnYM8uQiVaNLPkhImqCnM5GgtHiuND
+# wz7zY0SgP578WsTaIIY/MbmnFz+19hFxA4he/AcO+OXduxpjPO745tirR9wNsmpE
+# /d61i6TJ
 # SIG # End signature block
