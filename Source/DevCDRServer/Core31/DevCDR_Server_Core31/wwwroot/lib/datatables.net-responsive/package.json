@@ -1,6 +1,6 @@
 {
     "name": "datatables.net-responsive",
-    "version": "2.2.3",
+    "version": "2.2.5",
     "description": "Responsive for DataTables ",
     "files": [
         "js/**/*.js"

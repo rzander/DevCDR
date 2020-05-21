@@ -18,7 +18,7 @@
       ]
     },
     {
-      "library": "jquery@3.4.1",
+      "library": "jquery@3.5.1",
       "destination": "wwwroot/lib/jquery/",
       "files": [
         "jquery.min.js",
@@ -56,12 +56,12 @@
     },
     {
       "provider": "unpkg",
-      "library": "datatables.net@1.10.20",
+      "library": "datatables.net@1.10.21",
       "destination": "wwwroot/lib/datatables.net/"
     },
     {
       "provider": "unpkg",
-      "library": "datatables.net-jqui@1.10.20",
+      "library": "datatables.net-jqui@1.10.21",
       "destination": "wwwroot/lib/datatables.net-jqui/"
     },
     {
@@ -71,7 +71,7 @@
     },
     {
       "provider": "unpkg",
-      "library": "datatables.net-buttons-jqui@1.6.1",
+      "library": "datatables.net-buttons-jqui@1.6.2",
       "destination": "wwwroot/lib/datatables.net-buttons-jqui/"
     },
     {
@@ -81,7 +81,7 @@
     },
     {
       "provider": "unpkg",
-      "library": "datatables.net-buttons@1.6.1",
+      "library": "datatables.net-buttons@1.6.2",
       "destination": "wwwroot/lib/datatables.net-buttons/"
     },
     {
@@ -91,7 +91,7 @@
     },
     {
       "provider": "unpkg",
-      "library": "datatables.net-responsive@2.2.3",
+      "library": "datatables.net-responsive@2.2.5",
       "destination": "wwwroot/lib/datatables.net-responsive/"
     },
     {
@@ -106,7 +106,7 @@
     },
     {
       "provider": "unpkg",
-      "library": "bootstrap@4.4.1",
+      "library": "bootstrap@4.5.0",
       "destination": "wwwroot/lib/bootstrap4/"
     },
     {
