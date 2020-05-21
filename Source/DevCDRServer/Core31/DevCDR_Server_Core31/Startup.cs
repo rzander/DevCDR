@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -10,6 +11,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace DevCDR
 {
@@ -64,15 +67,11 @@ namespace DevCDR
 
             if (Env.IsDevelopment())
             {
-                services.AddMvc(opts =>
-                {
-                    opts.Filters.Add(new AllowAnonymousFilter());
-                });
+                //Disable AUthentication in Develpment mode
+                services.AddSingleton<IAuthorizationHandler, AllowAnonymous>();
             }
-            else
-            {
-                services.AddMvc();
-            }
+
+            services.AddMvc();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -115,6 +114,20 @@ namespace DevCDR
             Console.WriteLine("loading JainDB plugins:");
             jaindb.jDB.loadPlugins();
             Console.WriteLine("");
+        }
+
+        /// <summary>
+        /// This authorisation handler will bypass all requirements
+        /// </summary>
+        public class AllowAnonymous : IAuthorizationHandler
+        {
+            public Task HandleAsync(AuthorizationHandlerContext context)
+            {
+                foreach (IAuthorizationRequirement requirement in context.PendingRequirements.ToList())
+                    context.Succeed(requirement); //Simply pass all requirements
+
+                return Task.CompletedTask;
+            }
         }
     }
 }
