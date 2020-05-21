@@ -14,9 +14,14 @@ Java 8 Update 231
 Java 8 Update 231 (64-bit)
 KeePass 2.43
 LastPass (uninstall only)
+Local Administrator Password Solution
+LocalAdminWMIProvider
 Logitech Options
+Microsoft .NET Framework 4.5 Multi-Targeting Pack
+Microsoft .NET Framework 4.5.1 Multi-Targeting Pack
 Microsoft .NET Framework 4.5.1 Multi-Targeting Pack (ENU)
 Microsoft .NET Framework 4.5.1 SDK
+Microsoft .NET Framework 4.5.2 Multi-Targeting Pack
 Microsoft .NET Framework 4.5.2 Multi-Targeting Pack (ENU)
 Microsoft ASP.NET MVC 2
 Microsoft Azure Information Protection
@@ -24,13 +29,16 @@ Microsoft Azure Storage Explorer version 1.10.1
 Microsoft Edge Beta
 Microsoft Edge Dev
 Microsoft Edge Update
+Microsoft Edge
 Microsoft Intune Management Extension
 Microsoft ODBC Driver 13 for SQL Server
 Microsoft Office 365 ProPlus - de-de
 Microsoft Office 365 ProPlus - en-us
+Microsoft Office Professional Plus 2016
 Microsoft OneNote Home and Student 2016 - de-de
 Microsoft OneDrive
 Microsoft Power BI Desktop (x64)
+Microsoft PowerBI Desktop (x64)
 Microsoft Project Professional 2016 - de-de
 Microsoft Project Professional 2016 - en-us
 Microsoft Silverlight
@@ -62,6 +70,8 @@ Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.23.27820
 Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.23.27820
 Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.24.28127
 Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.24.28127
+Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.26.28720
+Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.26.28720
 Microsoft Visual Studio 2010 Tools for Office Runtime (x64)
 Microsoft Visual Studio 2015 Shell (Isolated)
 Microsoft Visual Studio Code
@@ -89,4 +99,5 @@ TeamViewer 14
 Visual Studio Professional 2017
 Visual Studio Professional 2019
 VLC media player
+Windows Assessment and Deployment Kit - Windows 10
 ZyWALL SecuExtender

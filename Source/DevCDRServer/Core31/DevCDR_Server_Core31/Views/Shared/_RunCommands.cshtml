@@ -45,8 +45,8 @@
         if (table.rows({ selected: true }).count() > 0) {
             var id = table.rows({ selected: true }).data()[0]["id"];
             var jUrl = "../JainDB/Inv?id=" + id;
-            //window.open(jUrl); //to open a new tab
-            window.location.href = jUrl;
+            window.open(jUrl); //to open a new tab
+            //window.location.href = jUrl;
         };
     }
 

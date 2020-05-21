@@ -1150,49 +1150,52 @@ namespace DevCDRServer.Controllers
             string token = controller.Request.Query["token"];
             token = token ?? controller.Request.Query["amp;token"];
 
-            //if (string.IsNullOrEmpty(CustomerID))
-            //{
-            //    string sCust = controller.Request.Cookies["DEVCDRCUST"] ?? "";
-            //    if (!string.IsNullOrEmpty(sCust))
-            //    {
-            //        CustomerID = sCust;
-            //    }
-            //}
+            if (string.IsNullOrEmpty(CustomerID))
+            {
+                string sCust = controller.Request.Cookies["DEVCDRCUST"] ?? "";
+                if (!string.IsNullOrEmpty(sCust))
+                {
+                    CustomerID = sCust;
+                }
+            }
 
-            //if (string.IsNullOrEmpty(exp))
-            //{
-            //    string sExp = controller.Request.Cookies["DEVCDREXP"] ?? "";
-            //    if (!string.IsNullOrEmpty(sExp))
-            //    {
-            //        exp = sExp;
-            //    }
-            //}
+            if (string.IsNullOrEmpty(exp))
+            {
+                string sExp = controller.Request.Cookies["DEVCDREXP"] ?? "";
+                if (!string.IsNullOrEmpty(sExp))
+                {
+                    exp = sExp;
+                }
+            }
 
-            //if (string.IsNullOrEmpty(token))
-            //{
-            //    string sTok = controller.Request.Cookies["DEVCDRTOK"] ?? "";
-            //    if (!string.IsNullOrEmpty(sTok))
-            //    {
-            //        token = sTok;
-            //    }
-            //}
+            if (string.IsNullOrEmpty(token))
+            {
+                string sTok = controller.Request.Cookies["DEVCDRTOK"] ?? "";
+                if (!string.IsNullOrEmpty(sTok))
+                {
+                    token = sTok;
+                }
+            }
 
             if (ValidateToken(CustomerID, exp, token))
             {
-                //CookieOptions option = new CookieOptions();
-                //option.Expires = DateTime.Now.AddDays(1);
-                //option.SameSite = SameSiteMode.Strict;
-                //option.HttpOnly = true;
-                //option.Secure = true;
+                CookieOptions option = new CookieOptions();
+                option.Expires = DateTime.Now.AddDays(1);
+                option.SameSite = SameSiteMode.Strict;
+                option.HttpOnly = true;
+                option.Secure = true;
 
-                //controller.Response.Cookies.Append("DEVCDRCUST", CustomerID, option);
-                //controller.Response.Cookies.Append("DEVCDREXP", exp, option);
-                //controller.Response.Cookies.Append("DEVCDRTOK", token, option);
+                controller.Response.Cookies.Append("DEVCDRCUST", CustomerID, option);
+                controller.Response.Cookies.Append("DEVCDREXP", exp, option);
+                controller.Response.Cookies.Append("DEVCDRTOK", token, option);
 
                 return;
             }
             else
             {
+                controller.Response.Cookies.Delete("DEVCDRCUST");
+                controller.Response.Cookies.Delete("DEVCDREXP");
+                controller.Response.Cookies.Delete("DEVCDRTOK");
                 filterContext.Result = new UnauthorizedResult();
                 return;
             }

@@ -376,7 +376,16 @@ namespace DevCDRServer.Controllers
                         ViewBag.Model = (oInv["Computer"].SelectTokens("..Model").FirstOrDefault() ?? "unknown").ToString();
                         ViewBag.Language = oInv["OS"]["OSLanguage"].ToString();
                         ViewBag.Arch = oInv["OS"]["OSArchitecture"];
-                        ViewBag.CPU = oInv["Processor"]["Name"] ?? oInv["Processor"][0]["Name"];
+                        try
+                        {
+                            if(oInv["Processor"].Type == JTokenType.Object)
+                                ViewBag.CPU = oInv["Processor"]["Name"];
+
+                            if (oInv["Processor"].Type == JTokenType.Array)
+                                ViewBag.CPU = oInv["Processor"][0]["Name"];
+                        }
+                        catch { }
+
                         ViewBag.Memory = Convert.ToInt32((long)(oInv["Computer"].SelectTokens("..TotalPhysicalMemory").FirstOrDefault() ?? 0) / 1000 / 1000 / 1000);
                         switch (ViewBag.Memory)
                         {
@@ -553,6 +562,14 @@ namespace DevCDRServer.Controllers
             return Redirect("../DevCdr/Dashboard");
         }
 
+        [TokenAuthentication]
+        [Route("invFrame")]
+        [HttpGet]
+        public ActionResult InvFrame(string id, string name = "", int index = -1, string blockType = "INV")
+        {
+            return Inv(id, name, index, blockType);
+        }
+
 #if DEBUG
         [AllowAnonymous]
 #endif
@@ -651,6 +668,101 @@ namespace DevCDRServer.Controllers
             return View("Diff");
         }
 
+        [TokenAuthentication]
+        [Route("diffFrame")]
+        [HttpGet]
+        public ActionResult DiffFrame(string id, int l = -1, int r = -1)
+        {
+            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
+            string spath = Path.Combine(_env.WebRootPath, "jaindb");
+            jaindb.jDB.FilePath = spath;
+            JObject oL = new JObject();
+            JObject oR = new JObject();
+
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
+            {
+                oR = jDB.GetFull(id, r);
+                if (l == -1)
+                {
+                    try
+                    {
+                        l = (int)oR["_index"] - 1;
+                    }
+                    catch { }
+                }
+                oL = jDB.GetFull(id, l);
+            }
+            else
+            {
+                using (HttpClient oClient = new HttpClient())
+                {
+                    oClient.DefaultRequestHeaders.Clear();
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTUSER")))
+                    {
+                        var byteArray = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("REPORTUSER") + ":" + Environment.GetEnvironmentVariable("REPORTPASSWORD"));
+                        oClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+                    }
+                    var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + id + "&index=" + r.ToString());
+                    response.Wait(180000);
+                    if (response.IsCompleted)
+                    {
+                        oR = JObject.Parse(response.Result);
+                    }
+
+                    if (l == -1)
+                    {
+                        try
+                        {
+                            l = (int)oR["_index"] - 1;
+                        }
+                        catch { }
+                    }
+
+                    response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + id + "&index=" + l.ToString());
+                    response.Wait(15000);
+                    if (response.IsCompleted)
+                    {
+                        oL = JObject.Parse(response.Result);
+                    }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(id))
+            {
+                //remove all @ attributes
+                foreach (var oKey in oL.Descendants().Where(t => t.Type == JTokenType.Property && ((JProperty)t).Name.StartsWith("@")).ToList())
+                {
+                    try
+                    {
+                        oKey.Remove();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine(ex.Message);
+                    }
+                }
+
+                //remove all @ attributes
+                foreach (var oKey in oR.Descendants().Where(t => t.Type == JTokenType.Property && ((JProperty)t).Name.StartsWith("@")).ToList())
+                {
+                    try
+                    {
+                        oKey.Remove();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine(ex.Message);
+                    }
+                }
+
+                ViewBag.jsonR = oR.ToString(Formatting.Indented);
+                ViewBag.jsonL = oL.ToString(Formatting.Indented);
+                ViewBag.History = GetHistory(id).ToString(Formatting.Indented);
+                ViewBag.Id = id;
+            }
+            return View("DiffFrame");
+        }
+
 #if DEBUG
         [AllowAnonymous]
 #endif
@@ -693,6 +805,47 @@ namespace DevCDRServer.Controllers
 
             }
             return View("InvJson");
+        }
+
+        [TokenAuthentication]
+        [Route("invjsonframe")]
+        [HttpGet]
+        public ActionResult InvJsonFrame(string id, int l = -1, string blockType = "INV")
+        {
+            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
+            string spath = Path.Combine(_env.WebRootPath, "jaindb");
+            jaindb.jDB.FilePath = spath;
+
+            if (!string.IsNullOrEmpty(id))
+            {
+                if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
+                {
+                    var oL = jDB.GetFull(id, l, blockType);
+                    ViewBag.jsonL = oL.ToString(Formatting.None);
+                }
+                else
+                {
+                    using (HttpClient oClient = new HttpClient())
+                    {
+                        oClient.DefaultRequestHeaders.Clear();
+                        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTUSER")))
+                        {
+                            var byteArray = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("REPORTUSER") + ":" + Environment.GetEnvironmentVariable("REPORTPASSWORD"));
+                            oClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+                        }
+                        var response = oClient.GetStringAsync(Environment.GetEnvironmentVariable("JainDBURL") + "/full?id=" + id + "&index=" + l);
+                        response.Wait(180000);
+                        if (response.IsCompleted)
+                        {
+                            var oL = JObject.Parse(response.Result);
+                            ViewBag.jsonL = oL.ToString(Formatting.None);
+                        }
+                    }
+                }
+
+
+            }
+            return View("InvJsonFrame");
         }
 
         [Authorize]
