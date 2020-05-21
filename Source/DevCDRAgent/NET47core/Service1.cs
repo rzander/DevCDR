@@ -2305,7 +2305,18 @@ namespace DevCDRAgent
 
                                 if (isconnected)
                                 {
-                                    AzureLog.Post(jLog.ToString(), "Defender");
+                                    try
+                                    {
+                                        AzureLog.Post(jLog.ToString(), "Defender");
+
+                                        using (HttpClient oWebClient = new HttpClient())
+                                        {
+                                            string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
+                                            HttpContent oCont = new StringContent(jLog.ToString());
+                                            oWebClient.PostAsync(sEndPoint + "/devcdr/createalert?signature=" + xAgent.Signature, oCont);
+                                        }
+                                    }
+                                    catch { }
                                 }
                                 else
                                 {
