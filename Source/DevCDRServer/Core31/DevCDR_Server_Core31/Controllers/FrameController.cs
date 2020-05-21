@@ -743,7 +743,7 @@ namespace DevCDRServer.Controllers
         [TokenAuthentication]
         //[Authorize]
         [HttpPost]
-        public object RunPS()
+        public object RunPSCommand()
         {
             string sParams = "";
             //Load response

@@ -1,6 +1,6 @@
 {
     "name": "datatables.net-jqui",
-    "version": "1.10.20",
+    "version": "1.10.21",
     "description": "DataTables for jQuery with styling for [jQuery UI](http://jqueryui.com/)",
     "files": [
         "css/**/*.css",
@@ -25,7 +25,7 @@
     },
     "dependencies": {
         "jquery": ">=1.7",
-        "datatables.net": "1.10.20"
+        "datatables.net": "1.10.21"
     },
     "repository": {
         "type": "git",

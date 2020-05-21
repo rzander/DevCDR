@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
@@ -28,6 +29,7 @@ namespace DevCDRServer.Controllers
         private readonly IHubContext<Default> _hubContext;
         private readonly IWebHostEnvironment _env;
         private IMemoryCache _cache;
+        private WebClient webclient = new WebClient();
         public DevCDR.Extensions.AzureLogAnalytics AzureLog = new DevCDR.Extensions.AzureLogAnalytics("","","");
 
         public DevCDRController(IHubContext<Default> hubContext, IWebHostEnvironment env, IMemoryCache memoryCache)
@@ -132,49 +134,49 @@ namespace DevCDRServer.Controllers
             return View();
         }
 
-        [AllowAnonymous]
-        public ActionResult Frame()
-        {
-            ViewBag.Title = Environment.GetEnvironmentVariable("INSTANCETITLE") ?? "Default Environment";
-            ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default";
-            ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
-            ViewBag.Endpoint = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat";
-            ViewBag.Customer = Environment.GetEnvironmentVariable("CUSTOMERID") ?? "DEMO";
+        //[AllowAnonymous]
+        //public ActionResult Frame()
+        //{
+        //    ViewBag.Title = Environment.GetEnvironmentVariable("INSTANCETITLE") ?? "Default Environment";
+        //    ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default";
+        //    ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
+        //    ViewBag.Endpoint = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat";
+        //    ViewBag.Customer = Environment.GetEnvironmentVariable("CUSTOMERID") ?? "DEMO";
 
 
-            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-            {
-                if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
-                    ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"}  /qn REBOOT=REALLYSUPPRESS";
-                else
-                    ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
-            }
-            else
-            {
-                if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
-                    ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
-                else
-                    ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
-            }
-            ViewBag.Route = "/chat";
+        //    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+        //    {
+        //        if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
+        //            ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"}  /qn REBOOT=REALLYSUPPRESS";
+        //        else
+        //            ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
+        //    }
+        //    else
+        //    {
+        //        if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
+        //            ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
+        //        else
+        //            ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
+        //    }
+        //    ViewBag.Route = "/chat";
 
-            var sRoot = Directory.GetCurrentDirectory();
-            if (System.IO.File.Exists(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml")))
-            {
-                ViewBag.Menu = System.IO.File.ReadAllText(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml"));
-                ViewBag.ExtMenu = true;
-            }
+        //    var sRoot = Directory.GetCurrentDirectory();
+        //    if (System.IO.File.Exists(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml")))
+        //    {
+        //        ViewBag.Menu = System.IO.File.ReadAllText(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml"));
+        //        ViewBag.ExtMenu = true;
+        //    }
 
-            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
-            {
-                ViewBag.Location = "Internal IP";
-            }
-            else
-            {
-                ViewBag.Location = "Location";
-            }
-            return View();
-        }
+        //    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
+        //    {
+        //        ViewBag.Location = "Internal IP";
+        //    }
+        //    else
+        //    {
+        //        ViewBag.Location = "Location";
+        //    }
+        //    return View();
+        //}
 
         [AllowAnonymous]
         public ActionResult About()
@@ -360,7 +362,6 @@ namespace DevCDRServer.Controllers
             }
             return BadRequest();
         }
-
 
         private async Task<string> GetPublicCertAsync(string CertName, bool useKey = true)
         {
@@ -563,8 +564,132 @@ namespace DevCDRServer.Controllers
         }
 
         [AllowAnonymous]
+        public ActionResult CreateAlert(string data, string signature)
+        {
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+            {
+                X509AgentCert oSig = new X509AgentCert(signature);
+
+                try
+                {
+                    if (X509AgentCert.publicCertificates.Count == 0)
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+
+                    var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
+                    if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+                        X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+                    oSig.ValidateChain(X509AgentCert.publicCertificates);
+                }
+                catch { }
+
+                if (oSig.Exists && oSig.Valid)
+                {
+                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                    {
+                        string customerInfo = "";
+
+                        string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                        sURL = sURL.Replace("{fn}", "fnGetSumData");
+                        customerInfo = webclient.DownloadString($"{sURL}&secretname=AzureDevCDRCustomersTable&customerid={ oSig.CustomerID }");
+                        JArray aObj = JArray.Parse(customerInfo);
+                        JObject jCust = aObj[0] as JObject;
+
+                        sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                        sURL = sURL.Replace("{fn}", "fnSendMail");
+
+                        if (string.IsNullOrEmpty(data))
+                        {
+                            using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
+                                data = reader.ReadToEndAsync().Result;
+                        }
+
+                        using (HttpClient client = new HttpClient())
+                        {
+                            StringContent oData = new StringContent(data, Encoding.UTF8, "application/json");
+                            var oPost = client.PostAsync($"{sURL}&to={jCust["contact"].ToString()}&subject=Alert", new StringContent(data));
+                            oPost.Wait(5000);
+                            return new OkResult();
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        //[AllowAnonymous]
+        //[HttpPost]
+        //public async Task<string> PutFileAsync(string signature, string data = "")
+        //{
+        //    X509AgentCert oSig = new X509AgentCert(signature);
+
+        //    try
+        //    {
+        //        if (X509AgentCert.publicCertificates.Count == 0)
+        //            X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+
+        //        var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
+        //        if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+        //            X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+        //        oSig.ValidateChain(X509AgentCert.publicCertificates);
+        //    }
+        //    catch { }
+
+        //    if (oSig.Exists && oSig.Valid)
+        //    {
+        //        try
+        //        {
+        //            if (string.IsNullOrEmpty(data))
+        //            {
+        //                using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
+        //                    data = reader.ReadToEndAsync().Result;
+        //            }
+
+        //            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+        //            {
+        //                string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+        //                sURL = sURL.Replace("{fn}", "fnUploadFile");
+
+        //                string sNewData = data;
+        //                try
+        //                {
+        //                    if (data.StartsWith("{"))
+        //                    {
+        //                        var jObj = JObject.Parse(data);
+
+        //                        jObj.Remove("OptionalFeature");
+        //                        if (jObj.Remove("Services"))
+        //                        {
+        //                            sNewData = jObj.ToString(Formatting.None);
+        //                        }
+        //                    }
+        //                }
+        //                catch { }
+
+        //                using (HttpClient client = new HttpClient())
+        //                {
+        //                    StringContent oData = new StringContent(sNewData, Encoding.UTF8, "application/json");
+        //                    await client.PostAsync($"{sURL}&deviceid={oSig.DeviceID}.json&customerid={oSig.CustomerID}", oData);
+        //                }
+
+        //                return jDB.UploadFull(data, oSig.DeviceID, "INV");
+
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            ex.Message.ToString();
+        //            return null;
+        //        }
+        //    }
+
+        //    return null;
+        //}
+
+        [AllowAnonymous]
         [HttpPost]
-        public async Task<string> PutFileAsync(string signature, string data = "")
+        public ActionResult PutFile(string signature, string data = "")
         {
             X509AgentCert oSig = new X509AgentCert(signature);
 
@@ -615,21 +740,21 @@ namespace DevCDRServer.Controllers
                         using (HttpClient client = new HttpClient())
                         {
                             StringContent oData = new StringContent(sNewData, Encoding.UTF8, "application/json");
-                            await client.PostAsync($"{sURL}&deviceid={oSig.DeviceID}.json&customerid={oSig.CustomerID}", oData);
+                            var oPost = client.PostAsync($"{sURL}&deviceid={oSig.DeviceID}.json&customerid={oSig.CustomerID}", oData);
+                            string sID = jDB.UploadFull(data, oSig.DeviceID, "INV");
+                            oPost.Wait(5000);
+                            return new OkObjectResult(sID);
                         }
-
-                        return jDB.UploadFull(data, oSig.DeviceID, "INV");
-
                     }
                 }
                 catch (Exception ex)
                 {
                     ex.Message.ToString();
-                    return null;
+                    return new BadRequestResult();
                 }
             }
 
-            return null;
+            return new OkObjectResult("");
         }
 
         //#if DEBUG

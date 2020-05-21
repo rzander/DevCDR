@@ -95,12 +95,12 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https
     $global:chk.Add("OneGetProvider", (Get-PackageProvider -Name Ruckzuck).Version.ToString())
 }
 
-function Test-DevCDRAgent($AgentVersion = "2.0.1.34") {
+function Test-DevCDRAgent($AgentVersion = "2.0.1.36") {
     <#
         .Description
         Install or Update DevCDRAgentCore if required
     #>
-    $fix = "1.0.0.6"
+    $fix = "1.0.0.7"
     if (-NOT (Get-Process DevCDRAgent -ea SilentlyContinue)) {
         if ([version](get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]($AgentVersion)) {
             [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
@@ -231,7 +231,7 @@ function Set-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
 function Test-LocalAdmin {
     <#
         .Description
-         disable local Admin account or randomize PW if older than 4 hours
+         count local Admins
     #>
 
     $locAdmin = @()  
@@ -618,7 +618,7 @@ Function Test-WU {
     #>
 
     try {
-        if (Get-InstalledModule -Name PSWindowsUpdate -MinimumVersion "2.1.1.2" -ea SilentlyContinue) { } else {
+        if (Get-InstalledModule -Name PSWindowsUpdate -MinimumVersion "2.2.0.2" -ea SilentlyContinue) { } else {
             set-executionpolicy bypass -Force
             Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.208 -Force
             Set-PSRepository -Name PSGallery -InstallationPolicy Trusted 
@@ -896,8 +896,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUPwqb2uoR45GMaBJjWQbPh3vh
-# yESgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU4Tnd/07wj3odpK7Tu9Q4fw1e
+# sZagggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -962,12 +962,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRi
-# A4ioQHC9C0J5bj6xExsvIUX9DTANBgkqhkiG9w0BAQEFAASCAQA66RdWQgjKmt90
-# JqA+GxsYl4sgfhElqS1b4ElCAcjHdkIrn1NUQ3Vq2YLY7b4xz2C/6BR6V8hp6vmt
-# bb+fAZ3FrzSR3/en4LoaClshNXJeYKKzZjguWYTlzwobgW92ce+Jb6WGqnf4boor
-# CttvV5BkddDauGIJ0mLgj0e8O6iAepGjKThwZYWa6Nquj/tB8Urrpe8+iIUk76nE
-# 1fF2hs2DXrPZudCisIBYuYRpbyv4ZFVh0iDB8IP9DP72b5dzy5GI+wNjszgFsLWx
-# Wnc7O/Ea4OyEQce8+p0O3+5jt8QhvSk+drPtzYNNHKwuZopTieah4ulM2isNilXz
-# q43NndUa
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ9
+# IuEEsChF6vfhOujSJHJsV/yimzANBgkqhkiG9w0BAQEFAASCAQAEnSK1XlhNrNIf
+# PcOQxDQXLJVYp3/1Ydsc27QR3JFOAMhpWdZjp0xqAyhcw91h/UxRSDEGeBY87CO0
+# YJSQNuIdR3Pa/p63VpgrWzH5SZxEhHEE2DcO/tT7WjHhWdhwmVHwmmAIrQDonNb5
+# VqCTKcIPDYkwpJDltEHXFSQIQH+HeBwtiwsTNoxIMFPMnOrOz8knJEq1EqeJbElH
+# nkwcABi7c22/bWY+MWwQv5ne3u1grTjVEqMBMDrpjIIS3rPRIlffQOZpiZD1HRCQ
+# ZXwbWBdLEDyGn0koe3ev9iEVwpA82Ap1JEjr8O8huexSkQkUSEdQFlJcxyw30Ni5
+# Owzb2p7r
 # SIG # End signature block

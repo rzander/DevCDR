@@ -383,6 +383,9 @@ namespace DevCDRServer.Controllers
                             case 17:
                                 ViewBag.Memory = 16;
                                 break;
+                            case 33:
+                                ViewBag.Memory = 32;
+                                break;
                             case 34:
                                 ViewBag.Memory = 32;
                                 break;
