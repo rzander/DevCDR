@@ -6,7 +6,7 @@ Summary: https://rzander.azurewebsites.net/device-commander/
 
 Get a free instance:
 
-<a href="https://azuredeploy.net/?repository=https://github.com/rzander/devcdr/tree/ServerCore21" target="_blank">
+<a href="https://azuredeploy.net/?repository=https://github.com/rzander/devcdr/tree/ServerCore31" target="_blank">
     <img src="http://azuredeploy.net/deploybutton.png"/>
 </a>
 
