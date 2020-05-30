@@ -245,7 +245,7 @@ namespace DevCDRServer.Controllers
                         //Prevent multiple Mails from same Alert; cache for 1min
                         var cHash = jaindb.Hash.CalculateMD5HashString(data);
                         var cRes = _cache.Get(jaindb.Hash.CalculateMD5HashString(cHash));
-                        if (cRes != null)
+                        if (cRes == null)
                         {
                             if (string.IsNullOrEmpty(data))
                             {
