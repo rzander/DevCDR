@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
@@ -31,6 +30,7 @@ namespace DevCDRServer.Controllers
         private readonly IHubContext<Default> _hubContext;
         private IMemoryCache _cache;
         private WebClient webclient = new WebClient();
+
         public DevCDRController(IHubContext<Default> hubContext, IWebHostEnvironment env, IMemoryCache memoryCache)
         {
             _hubContext = hubContext;
@@ -45,7 +45,6 @@ namespace DevCDRServer.Controllers
                 ((FieldInfo)memberInfos[0]).SetValue(new string(""), _env.WebRootPath);
             }
             catch { }
-
 
             if (string.IsNullOrEmpty(AzureLog.WorkspaceId))
             {
@@ -121,6 +120,7 @@ namespace DevCDRServer.Controllers
                 case "AgentVersion":
                     AgentVersion(lHostnames, sInstance);
                     break;
+
                 case "Inv":
                     if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
                     {
@@ -133,54 +133,71 @@ namespace DevCDRServer.Controllers
                         RunCommand(lHostnames, "Invoke-RestMethod -Uri '" + sEndPoint + "/jaindb/getps?filename=" + inventoryFile + "' | IEX;'Inventory complete..'", sInstance, sCommand);
                     }
                     break;
+
                 case "Restart":
                     RunCommand(lHostnames, "restart-computer -force", sInstance, sCommand);
                     break;
+
                 case "Shutdown":
                     RunCommand(lHostnames, "stop-computer -force", sInstance, sCommand);
                     break;
+
                 case "Logoff":
                     RunCommand(lHostnames, "(gwmi win32_operatingsystem).Win32Shutdown(4);'Logoff enforced..'", sInstance, sCommand);
                     break;
+
                 case "Init":
                     Reload(sInstance);
                     break;
+
                 case "GetRZUpdates":
                     RZScan(lHostnames, sInstance);
                     break;
+
                 case "InstallRZUpdates":
                     RZUpdate(lHostnames, sInstance, sArgs);
                     break;
+
                 case "InstallRZSW":
                     InstallRZSW(lHostnames, sInstance, sArgs);
                     break;
+
                 case "GetGroups":
                     GetGroups(lHostnames, sInstance);
                     break;
+
                 case "SetGroups":
                     SetGroups(lHostnames, sInstance, sArgs);
                     break;
+
                 case "GetUpdates":
                     RunCommand(lHostnames, "(Get-WUList -MicrosoftUpdate) | select Title | ConvertTo-Json", sInstance, sCommand);
                     break;
+
                 case "InstallUpdates":
                     RunCommand(lHostnames, "Install-WindowsUpdate -MicrosoftUpdate -IgnoreReboot -AcceptAll -Install;installing Updates...", sInstance, sCommand);
                     break;
+
                 case "RestartAgent":
                     RestartAgent(lHostnames, sInstance);
                     break;
+
                 case "SetInstance":
                     SetInstance(lHostnames, sInstance, sArgs);
                     break;
+
                 case "SetEndpoint":
                     SetEndpoint(lHostnames, sInstance, sArgs);
                     break;
+
                 case "DevCDRUser":
                     runUserCmd(lHostnames, sInstance, "", "");
                     break;
+
                 case "WOL":
                     sendWOL(lHostnames, sInstance, GetAllMACAddresses());
                     break;
+
                 case "Compliance":
                     if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
                     {
@@ -242,24 +259,24 @@ namespace DevCDRServer.Controllers
                         sURL = Environment.GetEnvironmentVariable("fnDevCDR");
                         sURL = sURL.Replace("{fn}", "fnSendMail");
 
+                        if (string.IsNullOrEmpty(data))
+                        {
+                            using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
+                                data = reader.ReadToEndAsync().Result;
+                        }
+
                         //Prevent multiple Mails from same Alert; cache for 1min
                         var cHash = jaindb.Hash.CalculateMD5HashString(data);
-                        var cRes = _cache.Get(jaindb.Hash.CalculateMD5HashString(cHash));
-                        if (cRes == null)
+                        string cRes = "";
+                        if (!_cache.TryGetValue(cHash, out cRes))
                         {
-                            if (string.IsNullOrEmpty(data))
-                            {
-                                using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
-                                    data = reader.ReadToEndAsync().Result;
-                            }
+                            _cache.Set(cHash, data, new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(1)));
 
                             using (HttpClient client = new HttpClient())
                             {
                                 StringContent oData = new StringContent(JObject.Parse(data).ToString(Formatting.Indented), Encoding.UTF8, "application/json");
-                                var oPost = client.PostAsync($"{sURL}&to={jCust["contact"].ToString()}&subject=Virus Alert", new StringContent(data));
+                                var oPost = client.PostAsync($"{sURL}&to={jCust["contact"]}&subject=Virus Alert", new StringContent(data));
                                 oPost.Wait(5000);
-
-                                _cache.Set(cHash, data, new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(1)));
                                 return new OkResult();
                             }
                         }
@@ -299,6 +316,7 @@ namespace DevCDRServer.Controllers
         }
 
 #if DEBUG
+
         [AllowAnonymous]
 #endif
         [Authorize]
@@ -309,7 +327,6 @@ namespace DevCDRServer.Controllers
             ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             ViewBag.Endpoint = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat";
             ViewBag.Customer = Environment.GetEnvironmentVariable("CUSTOMERID") ?? "DEMO";
-
 
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
             {
@@ -334,7 +351,7 @@ namespace DevCDRServer.Controllers
                 ViewBag.ExtMenu = true;
             }
 
-            if(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
             {
                 ViewBag.Location = "Internal IP";
             }
@@ -353,7 +370,6 @@ namespace DevCDRServer.Controllers
         //    ViewBag.appVersion = typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
         //    ViewBag.Endpoint = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat";
         //    ViewBag.Customer = Environment.GetEnvironmentVariable("CUSTOMERID") ?? "DEMO";
-
 
         //    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
         //    {
@@ -609,6 +625,7 @@ namespace DevCDRServer.Controllers
         {
             return Content(typeof(DevCDRController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version);
         }
+
         //#if DEBUG
         //        [AllowAnonymous]
         //#endif
@@ -1377,7 +1394,6 @@ namespace DevCDRServer.Controllers
             }
             catch { }
 
-
             return new ContentResult();
         }
 
@@ -1415,7 +1431,6 @@ namespace DevCDRServer.Controllers
                 }
                 else
                 {
-
                 }
 
                 HttpClient oClient = new HttpClient();
@@ -1434,8 +1449,6 @@ namespace DevCDRServer.Controllers
                         return sResult;
                     }
                 }
-
-
             }
             catch (Exception ex)
             {
@@ -1492,14 +1505,12 @@ namespace DevCDRServer.Controllers
                             catch { }
                         }
                     }
-
                 }
             }
             catch (Exception ex)
             {
                 return "";
             }
-
 
             return "";
         }
@@ -1537,7 +1548,6 @@ namespace DevCDRServer.Controllers
                             _cache.Set("osd" + customerid + os, Res, cacheEntryOptions);
                         }
                     }
-
                 }
             }
             catch (Exception ex)
@@ -1545,7 +1555,6 @@ namespace DevCDRServer.Controllers
                 ex.Message.ToString();
                 return Res;
             }
-
 
             return Res;
         }
@@ -1616,7 +1625,7 @@ namespace DevCDRServer.Controllers
 
             _cache.TryGetValue(customerid + filename, out Res);
 
-            if(!string.IsNullOrEmpty(Res))
+            if (!string.IsNullOrEmpty(Res))
             {
                 return Res;
             }
@@ -1632,13 +1641,12 @@ namespace DevCDRServer.Controllers
                     {
                         Res = await client.GetStringAsync($"{sURL}&customerid={customerid}&file={filename}");
 
-                        if(!string.IsNullOrEmpty(Res))
+                        if (!string.IsNullOrEmpty(Res))
                         {
                             var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(5)); //cache hash for x Seconds
                             _cache.Set(customerid + filename, Res, cacheEntryOptions);
                         }
                     }
-
                 }
             }
             catch (Exception ex)
@@ -1647,9 +1655,9 @@ namespace DevCDRServer.Controllers
                 return Res;
             }
 
-
             return Res;
         }
+
         //[AllowAnonymous]
         //[HttpPost]
         //public async Task<string> PutFileAsync(string signature, string data = "")
