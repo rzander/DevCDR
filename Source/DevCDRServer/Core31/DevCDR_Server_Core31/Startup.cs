@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -32,47 +31,6 @@ namespace DevCDR
 
         public IConfiguration Configuration { get; }
         public IWebHostEnvironment Env { get; }
-
-        // This method gets called by the runtime. Use this method to add services to the container.
-        public void ConfigureServices(IServiceCollection services)
-        {
-            services.AddAuthentication(sharedOptions =>
-            {
-                sharedOptions.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                sharedOptions.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-            })
-            .AddAzureAd(options => Configuration.Bind("AzureAd", options))
-            .AddCookie();
-
-            services.Configure<CookiePolicyOptions>(options =>
-            {
-                // This lambda determines whether user consent for non-essential cookies is needed for a given request.
-                options.CheckConsentNeeded = context => false;
-                options.MinimumSameSitePolicy = SameSiteMode.None;
-            });
-
-            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Azure:SignalR:ConnectionString")))
-                services.AddSignalR();
-            else
-            {
-                services.AddSignalR()
-                  .AddAzureSignalR();
-            }
-
-            services.AddMemoryCache();
-            services.AddResponseCompression(options =>
-            {
-                options.EnableForHttps = true;
-            });
-
-            if (Env.IsDevelopment())
-            {
-                //Disable AUthentication in Develpment mode
-                services.AddSingleton<IAuthorizationHandler, AllowAnonymous>();
-            }
-
-            services.AddMvc();
-        }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -116,6 +74,46 @@ namespace DevCDR
             Console.WriteLine("");
         }
 
+        // This method gets called by the runtime. Use this method to add services to the container.
+        public void ConfigureServices(IServiceCollection services)
+        {
+            services.AddAuthentication(sharedOptions =>
+            {
+                sharedOptions.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                sharedOptions.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+            })
+            .AddAzureAd(options => Configuration.Bind("AzureAd", options))
+            .AddCookie();
+
+            services.Configure<CookiePolicyOptions>(options =>
+            {
+                // This lambda determines whether user consent for non-essential cookies is needed for a given request.
+                options.CheckConsentNeeded = context => false;
+                options.MinimumSameSitePolicy = SameSiteMode.None;
+            });
+
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Azure:SignalR:ConnectionString")))
+                services.AddSignalR();
+            else
+            {
+                services.AddSignalR()
+                  .AddAzureSignalR();
+            }
+
+            services.AddMemoryCache();
+            services.AddResponseCompression(options =>
+            {
+                options.EnableForHttps = true;
+            });
+
+            if (Env.IsDevelopment())
+            {
+                //Disable AUthentication in Develpment mode
+                services.AddSingleton<IAuthorizationHandler, AllowAnonymous>();
+            }
+
+            services.AddMvc();
+        }
         /// <summary>
         /// This authorisation handler will bypass all requirements
         /// </summary>
