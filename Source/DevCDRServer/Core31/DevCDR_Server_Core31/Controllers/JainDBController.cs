@@ -47,7 +47,7 @@ namespace DevCDRServer.Controllers
         [AllowAnonymous]
         [HttpPost]
         [Route("upload/{param}")]
-        public string Upload(string param, string blockType = "INV")
+        public async Task<string> Upload(string param, string blockType = "INV")
         {
 
             _cache.Remove("totalDeviceCount");
@@ -60,7 +60,7 @@ namespace DevCDRServer.Controllers
 
             if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
             {
-                return jDB.UploadFull(sParams, param, blockType);
+                return await jDB.UploadFullAsync(sParams, param, blockType);
             }
             else
             {
@@ -121,7 +121,7 @@ namespace DevCDRServer.Controllers
         [HttpGet]
         [BasicAuthenticationAttribute()]
         [Route("full")]
-        public JObject Full(string blockType = "INV")
+        public async Task<string> Full(string blockType = "INV")
         {
             //string sPath = this.Request.Path;
             string spath = Path.Combine(_env.WebRootPath, "jaindb");
@@ -140,7 +140,7 @@ namespace DevCDRServer.Controllers
                 if (!int.TryParse(query["index"], out int index))
                     index = -1;
                 if (!string.IsNullOrEmpty(sKey))
-                    return jDB.GetFull(sKey, index, blockType);
+                    return (await jDB.GetFullAsync(sKey, index, blockType)).ToString();
                 else
                     return null;
             }
@@ -160,7 +160,7 @@ namespace DevCDRServer.Controllers
                         response.Wait(180000);
                         if (response.IsCompleted)
                         {
-                            return JObject.Parse(response.Result);
+                            return JObject.Parse(response.Result).ToString();
                         }
                     }
                 }
@@ -172,7 +172,7 @@ namespace DevCDRServer.Controllers
                         response.Wait(15000);
                         if (response.IsCompleted)
                         {
-                            return JObject.Parse(response.Result);
+                            return JObject.Parse(response.Result).ToString();
                         }
                     }
                 }
@@ -187,7 +187,7 @@ namespace DevCDRServer.Controllers
         [HttpGet]
         [BasicAuthenticationAttribute()]
         [Route("query")]
-        public async System.Threading.Tasks.Task<JArray> Query(string sParams = "")
+        public async Task<string> Query(string sParams = "")
         {
             DateTime dStart = DateTime.Now;
 
@@ -210,7 +210,7 @@ namespace DevCDRServer.Controllers
                     string qsel = (query["$select"] ?? "").Replace(',', ';');
                     string qexc = (query["$exclude"] ?? "").Replace(',', ';');
                     string qwhe = (query["$where"] ?? "").Replace(',', ';');
-                    return await jDB.QueryAsync(qpath, qsel, qexc, qwhe);
+                    return (await jDB.QueryAsync(qpath, qsel, qexc, qwhe)).ToString();
                 }
                 else
                 {
@@ -226,7 +226,7 @@ namespace DevCDRServer.Controllers
                         response.Wait(15000);
                         if (response.IsCompleted)
                         {
-                            return JArray.Parse(response.Result);
+                            return JArray.Parse(response.Result).ToString();
                         }
                     }
                 }
@@ -234,6 +234,7 @@ namespace DevCDRServer.Controllers
             }
             return null;
         }
+
 
         [HttpGet]
         [BasicAuthenticationAttribute()]
@@ -309,7 +310,7 @@ namespace DevCDRServer.Controllers
                 if (string.IsNullOrEmpty(id))
                     return Redirect("../DevCdr/Dashboard");
 
-                oInv = jDB.GetFull(id, index, blockType);
+                oInv = jDB.GetFullAsync(id, index, blockType).Result;
 
             }
             else
@@ -586,7 +587,7 @@ namespace DevCDRServer.Controllers
 
             if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
             {
-                oR = jDB.GetFull(id, r);
+                oR = jDB.GetFullAsync(id, r).Result;
                 if (l == -1)
                 {
                     try
@@ -595,7 +596,7 @@ namespace DevCDRServer.Controllers
                     }
                     catch { }
                 }
-                oL = jDB.GetFull(id, l);
+                oL = jDB.GetFullAsync(id, l).Result;
             }
             else
             {
@@ -681,7 +682,7 @@ namespace DevCDRServer.Controllers
 
             if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
             {
-                oR = jDB.GetFull(id, r);
+                oR = jDB.GetFullAsync(id, r).Result;
                 if (l == -1)
                 {
                     try
@@ -690,7 +691,7 @@ namespace DevCDRServer.Controllers
                     }
                     catch { }
                 }
-                oL = jDB.GetFull(id, l);
+                oL = jDB.GetFullAsync(id, l).Result;
             }
             else
             {
@@ -779,7 +780,7 @@ namespace DevCDRServer.Controllers
             {
                 if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
                 {
-                    var oL = jDB.GetFull(id, l, blockType);
+                    var oL = jDB.GetFullAsync(id, l, blockType).Result;
                     ViewBag.jsonL = oL.ToString(Formatting.None);
                 }
                 else
@@ -820,7 +821,7 @@ namespace DevCDRServer.Controllers
             {
                 if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
                 {
-                    var oL = jDB.GetFull(id, l, blockType);
+                    var oL = jDB.GetFullAsync(id, l, blockType).Result;
                     ViewBag.jsonL = oL.ToString(Formatting.None);
                 }
                 else
@@ -864,7 +865,7 @@ namespace DevCDRServer.Controllers
             if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JainDBURL")))
             {
                 if (!string.IsNullOrEmpty(sKey))
-                    return jDB.GetJHistory(sKey, blockType);
+                    return jDB.GetJHistoryAsync(sKey, blockType).Result;
             }
             else
             {
@@ -910,7 +911,7 @@ namespace DevCDRServer.Controllers
                 string qsel = (query["$select"] ?? "").Replace(',', ';');
                 string qexc = (query["$exclude"] ?? "").Replace(',', ';');
                 string qwhe = (query["$where"] ?? "").Replace(',', ';');
-                return jDB.QueryAll(qpath, qsel, qexc, qwhe);
+                return jDB.QueryAllAsync(qpath, qsel, qexc, qwhe).Result;
             }
             else
             {

@@ -708,7 +708,7 @@ namespace DevCDRServer.Controllers
                         {
                             StringContent oData = new StringContent(sNewData, Encoding.UTF8, "application/json");
                             var oPost = client.PostAsync($"{sURL}&deviceid={oSig.DeviceID}.json&customerid={oSig.CustomerID}", oData);
-                            string sID = jDB.UploadFull(data, oSig.DeviceID, "INV");
+                            string sID = jDB.UploadFullAsync(data, oSig.DeviceID, "INV").Result;
                             oPost.Wait(5000);
                             return new OkObjectResult(sID);
                         }
@@ -1046,7 +1046,7 @@ namespace DevCDRServer.Controllers
         {
             List<string> lResult = new List<string>();
             var tItems = new JainDBController(_env, _cache).Query("$select=@MAC");
-            JArray jMacs = tItems.Result;
+            JArray jMacs = JArray.Parse(tItems.Result);
 
             foreach (var jTok in jMacs.SelectTokens("..@MAC"))
             {
