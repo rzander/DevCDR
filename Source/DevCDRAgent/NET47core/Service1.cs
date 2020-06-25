@@ -1518,7 +1518,7 @@ namespace DevCDRAgent
 
                 connection.On<string>("setCert", (s1) =>
                 {
-                    if (s1.Length > 64)
+                    if (s1.Length > 67)
                     {
                         Trace.WriteLine(DateTime.Now.ToString() + "\t Certificate received... ");
                     }

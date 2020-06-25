@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Device Commander Agent Core")]
 [assembly: AssemblyDescription("Cloud Management Agent")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Zander Tools")]
+[assembly: AssemblyCompany("Zander - Tools")]
 [assembly: AssemblyProduct("DevCDR Agent Core")]
 [assembly: AssemblyCopyright("Copyright ©  2020 by Roger Zander")]
 [assembly: AssemblyTrademark("")]
@@ -33,4 +33,4 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("2.0.1.*")]
-[assembly: AssemblyFileVersion("2.0.1.38")]
+[assembly: AssemblyFileVersion("2.0.1.40")]
