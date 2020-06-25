@@ -703,7 +703,7 @@ namespace DevCDRServer.Controllers
         {
             List<string> lResult = new List<string>();
             var tItems = new JainDBController(_env, _cache).Query("$select=@MAC");
-            JArray jMacs = JArray.Parse(tItems.Result);
+            JArray jMacs = tItems.Result;
 
             foreach (var jTok in jMacs.SelectTokens("..@MAC"))
             {
