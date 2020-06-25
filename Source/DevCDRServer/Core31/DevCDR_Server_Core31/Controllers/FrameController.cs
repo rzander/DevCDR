@@ -27,11 +27,10 @@ namespace DevCDRServer.Controllers
     [TokenAuthentication]
     public class FrameController : Controller
     {
-        private readonly IHubContext<Default> _hubContext;
+        public DevCDR.Extensions.AzureLogAnalytics AzureLog = new DevCDR.Extensions.AzureLogAnalytics("", "", "");
         private readonly IWebHostEnvironment _env;
+        private readonly IHubContext<Default> _hubContext;
         private IMemoryCache _cache;
-        public DevCDR.Extensions.AzureLogAnalytics AzureLog = new DevCDR.Extensions.AzureLogAnalytics("","","");
-
         public FrameController(IHubContext<Default> hubContext, IWebHostEnvironment env, IMemoryCache memoryCache)
         {
             _hubContext = hubContext;
@@ -58,85 +57,6 @@ namespace DevCDRServer.Controllers
             }
         }
 
-        [TokenAuthentication]
-        public ActionResult Index()
-        {
-            ViewBag.Title = Environment.GetEnvironmentVariable("INSTANCETITLE") ?? "Default Environment";
-            ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default";
-            ViewBag.appVersion = typeof(FrameController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
-            ViewBag.Endpoint = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat";
-            ViewBag.Customer = Environment.GetEnvironmentVariable("CUSTOMERID") ?? "DEMO";
-
-            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-            {
-                if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
-                    ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"}  /qn REBOOT=REALLYSUPPRESS";
-                else
-                    ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
-            }
-            else
-            {
-                if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
-                    ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
-                else
-                    ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
-            }
-            ViewBag.Route = "/chat";
-
-            var sRoot = Directory.GetCurrentDirectory();
-            if (System.IO.File.Exists(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml")))
-            {
-                ViewBag.Menu = System.IO.File.ReadAllText(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml"));
-                ViewBag.ExtMenu = true;
-            }
-
-            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
-            {
-                ViewBag.Location = "Internal IP";
-            }
-            else
-            {
-                ViewBag.Location = "Location";
-            }
-            return View();
-        }
-
-        [AllowAnonymous]
-        public ActionResult GetVersion()
-        {
-            return Content(typeof(FrameController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version);
-        }
-
-        [TokenAuthentication]
-        //[Authorize]
-        public ActionResult GetData(string customerid = "", string exp = "", string token = "", string Instance = "Default")
-        {
-            JArray jData = new JArray();
-            try
-            {
-                Type xType = Type.GetType("DevCDRServer." + Instance);
-
-                MemberInfo[] memberInfos = xType.GetMember("jData", BindingFlags.Public | BindingFlags.Static);
-
-                jData = ((FieldInfo)memberInfos[0]).GetValue(new JArray()) as JArray;
-                if(!string.IsNullOrEmpty(customerid))
-                    jData = new JArray(jData.SelectTokens($"$.[?(@.Customer=='{ customerid }')]"));
-            }
-            catch { }
-
-            JObject oObj = new JObject
-            {
-                { "data", jData }
-            };
-
-            return new ContentResult
-            {
-                Content = oObj.ToString(Newtonsoft.Json.Formatting.None),
-                ContentType = "application/json"
-                //ContentEncoding = Encoding.UTF8
-            };
-        }
-
         public int ClientCount(string Instance = "Default")
         {
             int iCount = 0;
@@ -156,117 +76,6 @@ namespace DevCDRServer.Controllers
             catch { }
 
             return iCount;
-        }
-
-        [TokenAuthentication]
-        //[Authorize]
-        public ActionResult Groups(string Instance = "Default")
-        {
-            List<string> lGroups = new List<string>();
-            try
-            {
-                Type xType = Type.GetType("DevCDRServer." + Instance);
-
-                MemberInfo[] memberInfos = xType.GetMember("lGroups", BindingFlags.Public | BindingFlags.Static);
-
-                lGroups = ((FieldInfo)memberInfos[0]).GetValue(new List<string>()) as List<string>;
-            }
-            catch { }
-
-            lGroups.Remove("web");
-            lGroups.Remove("Devices");
-
-            return new ContentResult
-            {
-                Content = JsonConvert.SerializeObject(lGroups, Formatting.None),
-                ContentType = "application/json"
-                //ContentEncoding = Encoding.UTF8
-            };
-        }
-
-        [TokenAuthentication]
-        //[Authorize]
-        public ActionResult GetRZCatalog(string Instance = "Default")
-        {
-            List<string> lRZCat = new List<string>();
-            try
-            {
-                string sCat = SWResults("");
-                JArray oCat = JArray.Parse(sCat);
-                lRZCat = JArray.Parse(sCat).SelectTokens("..ShortName").Values<string>().OrderBy(t => t).ToList();
-            }
-            catch { }
-
-            return new ContentResult
-            {
-                Content = JsonConvert.SerializeObject(lRZCat, Formatting.None),
-                ContentType = "application/json"
-                //ContentEncoding = Encoding.UTF8
-            };
-        }
-
-        internal ActionResult SetResult(string Instance, string Hostname, string Result)
-        {
-            JArray jData = new JArray();
-            try
-            {
-                Type xType = Type.GetType("DevCDRServer." + Instance);
-
-                MemberInfo[] memberInfos = xType.GetMember("jData", BindingFlags.Public | BindingFlags.Static);
-
-                jData = ((FieldInfo)memberInfos[0]).GetValue(new JArray()) as JArray;
-
-                var tok = jData.SelectToken("[?(@.Hostname == '" + Hostname + "')].ScriptResult");
-                tok = Result;
-                jData.SelectToken("[?(@.Hostname == '" + Hostname + "')].ScriptResult").Replace(tok);
-
-                ((FieldInfo)memberInfos[0]).SetValue(new JArray(), jData);
-
-                //AzureLog.PostAsync(new { Computer = Hostname, EventID = 3000, Description = $"Result: {Result}" });
-            }
-            catch { }
-
-
-            return new ContentResult();
-        }
-
-        internal string GetID(string Instance, string Host)
-        {
-            string sID = "";
-            try
-            {
-                Type xType = Type.GetType("DevCDRServer." + Instance);
-
-                MethodInfo methodInfo = xType.GetMethod(
-                                            "GetID",
-                                            BindingFlags.Public | BindingFlags.Static
-                                        );
-                sID = methodInfo.Invoke(new object(), new object[] { Host }) as string;
-            }
-            catch { }
-
-            return sID;
-        }
-
-        internal void Reload(string Instance = "Default")
-        {
-            string sID = "";
-            try
-            {
-                AzureLog.PostAsync(new { Computer = Environment.MachineName, EventID = 1001, Description = $"Reloading {Instance}" });
-
-                _hubContext.Clients.All.SendAsync("init", "init");
-                _hubContext.Clients.Group("web").SendAsync("newData", "Hub", ""); //Enforce PageUpdate
-
-                Type xType = Type.GetType("DevCDRServer." + Instance);
-
-                MethodInfo methodInfo = xType.GetMethod(
-                                            "Clear",
-                                            BindingFlags.Public | BindingFlags.Static
-                                        );
-                sID = methodInfo.Invoke(new object(), new object[] { Instance }) as string;
-            }
-            catch { }
         }
 
         [TokenAuthentication]
@@ -378,366 +187,186 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
-        internal List<string> GetAllMACAddresses()
+        [TokenAuthentication]
+        //[Authorize]
+        public ActionResult GetData(string customerid = "", string exp = "", string token = "", string Instance = "Default")
         {
-            List<string> lResult = new List<string>();
-            var tItems = new JainDBController(_env, _cache).Query("$select=@MAC");
-            JArray jMacs = tItems.Result;
-
-            foreach(var jTok in jMacs.SelectTokens("..@MAC"))
+            JArray jData = new JArray();
+            try
             {
-                if (jTok.Type == JTokenType.String)
-                    lResult.Add(jTok.Value<string>());
-                if (jTok.Type == JTokenType.Array)
-                    lResult.AddRange(jTok.Values<string>().ToList());
-            }
+                Type xType = Type.GetType("DevCDRServer." + Instance);
 
-            return lResult;
+                MemberInfo[] memberInfos = xType.GetMember("jData", BindingFlags.Public | BindingFlags.Static);
+
+                jData = ((FieldInfo)memberInfos[0]).GetValue(new JArray()) as JArray;
+                if (!string.IsNullOrEmpty(customerid))
+                    jData = new JArray(jData.SelectTokens($"$.[?(@.Customer=='{ customerid }')]"));
+            }
+            catch { }
+
+            JObject oObj = new JObject
+            {
+                { "data", jData }
+            };
+
+            return new ContentResult
+            {
+                Content = oObj.ToString(Newtonsoft.Json.Formatting.None),
+                ContentType = "application/json"
+                //ContentEncoding = Encoding.UTF8
+            };
         }
 
-        internal void RunCommand(List<string> Hostnames, string sCommand, string sInstance, string CmdName)
+        [TokenAuthentication]
+        //[Authorize]
+        public ActionResult GetRZCatalog(string Instance = "Default")
         {
-            //IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext(sInstance);
-
-            foreach (string sHost in Hostnames)
+            List<string> lRZCat = new List<string>();
+            try
             {
-                SetResult(sInstance, sHost, "triggered:" + CmdName); //Update Status
+                string sCat = SWResults("");
+                JArray oCat = JArray.Parse(sCat);
+                lRZCat = JArray.Parse(sCat).SelectTokens("..ShortName").Values<string>().OrderBy(t => t).ToList();
             }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "RunCommand"); //Enforce PageUpdate
+            catch { }
 
-            foreach (string sHost in Hostnames)
+            return new ContentResult
             {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
-                {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2001, Description = $"PSCommand: {sCommand}" });
-                    _hubContext.Clients.Client(sID).SendAsync("returnPS", sCommand, "Host");
-                }
-            }
+                Content = JsonConvert.SerializeObject(lRZCat, Formatting.None),
+                ContentType = "application/json"
+                //ContentEncoding = Encoding.UTF8
+            };
         }
 
-        internal void GetGroups(List<string> Hostnames, string sInstance)
+        [AllowAnonymous]
+        public ActionResult GetVersion()
         {
-            foreach (string sHost in Hostnames)
-            {
-                SetResult(sInstance, sHost, "triggered:" + "get Groups"); //Update Status
-            }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "GetGroups"); //Enforce PageUpdate
-
-            foreach (string sHost in Hostnames)
-            {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
-                {
-                    _hubContext.Clients.Client(sID).SendAsync("getgroups", "Host");
-                }
-            }
+            return Content(typeof(FrameController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version);
         }
 
-        internal void _SetGroups(List<string> Hostnames, string sInstance, string Args)
+        [TokenAuthentication]
+        //[Authorize]
+        public ActionResult Groups(string Instance = "Default")
         {
-            foreach (string sHost in Hostnames)
+            List<string> lGroups = new List<string>();
+            try
             {
-                SetResult(sInstance, sHost, "triggered:" + "set Groups"); //Update Status
-            }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "SetGroups"); //Enforce PageUpdate
+                Type xType = Type.GetType("DevCDRServer." + Instance);
 
-            foreach (string sHost in Hostnames)
+                MemberInfo[] memberInfos = xType.GetMember("lGroups", BindingFlags.Public | BindingFlags.Static);
+
+                lGroups = ((FieldInfo)memberInfos[0]).GetValue(new List<string>()) as List<string>;
+            }
+            catch { }
+
+            lGroups.Remove("web");
+            lGroups.Remove("Devices");
+
+            return new ContentResult
             {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
-                {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2009, Description = $"Set Agent Groups: {Args}" });
-                    _hubContext.Clients.Client(sID).SendAsync("setgroups", Args);
-                }
-            }
+                Content = JsonConvert.SerializeObject(lGroups, Formatting.None),
+                ContentType = "application/json"
+                //ContentEncoding = Encoding.UTF8
+            };
         }
 
-        internal void AgentVersion(List<string> Hostnames, string sInstance = "Default")
+        [TokenAuthentication]
+        public ActionResult Index()
         {
-            foreach (string sHost in Hostnames)
+            ViewBag.Title = Environment.GetEnvironmentVariable("INSTANCETITLE") ?? "Default Environment";
+            ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default";
+            ViewBag.appVersion = typeof(FrameController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
+            ViewBag.Endpoint = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat";
+            ViewBag.Customer = Environment.GetEnvironmentVariable("CUSTOMERID") ?? "DEMO";
+
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
             {
-                SetResult(sInstance, sHost, "triggered:" + "Get AgentVersion"); //Update Status
+                if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
+                    ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"}  /qn REBOOT=REALLYSUPPRESS";
+                else
+                    ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
             }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "AgentVersion"); //Enforce PageUpdate
-
-            foreach (string sHost in Hostnames)
+            else
             {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
-                {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2008, Description = $"get Agent version" });
-                    _hubContext.Clients.Client(sID).SendAsync("version", "HUB");
-                }
+                if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
+                    ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
+                else
+                    ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
             }
+            ViewBag.Route = "/chat";
+
+            var sRoot = Directory.GetCurrentDirectory();
+            if (System.IO.File.Exists(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml")))
+            {
+                ViewBag.Menu = System.IO.File.ReadAllText(Path.Combine(sRoot, "wwwroot/plugin_ContextMenu.cshtml"));
+                ViewBag.ExtMenu = true;
+            }
+
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
+            {
+                ViewBag.Location = "Internal IP";
+            }
+            else
+            {
+                ViewBag.Location = "Location";
+            }
+            return View();
         }
-
-        internal void CheckInventory(List<string> Hostnames, string sInstance = "Default")
+        [TokenAuthentication]
+        //[Authorize]
+        [HttpPost]
+        public object RunPSAsync()
         {
-            foreach (string sHost in Hostnames)
+            string sParams = "";
+            //Load response
+            using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
+                sParams = reader.ReadToEndAsync().Result;
+
+            if (string.IsNullOrEmpty(sParams))
+                return new ContentResult(); ;
+
+            //Parse response as JSON
+            JObject oParams = JObject.Parse(sParams);
+
+            string sCommand = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.psscript").Value<string>()); //get command
+            string sInstance = "Default"; // oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
+            string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
+
+            if (string.IsNullOrEmpty(sInstance)) //Skip if instance is null
+                return new ContentResult();
+
+            List<string> lHostnames = new List<string>();
+
+            foreach (var oRow in oParams["rows"])
             {
-                SetResult(sInstance, sHost, "triggered:" + "Get Inventory..."); //Update Status
+                string sHost = oRow.Value<string>("Hostname");
+                SetResult(sInstance, sHost, "triggered:" + sTitle); //Update Status
             }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "AgentVersion"); //Enforce PageUpdate
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "RunPSAsync"); //Enforce PageUpdate
 
-            foreach (string sHost in Hostnames)
+            foreach (var oRow in oParams["rows"])
             {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                try
                 {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2011, Description = $"get Inventory" });
-                    _hubContext.Clients.Client(sID).SendAsync("checkInventoryAsync", "HUB");
+                    //Get Hostname from Row
+                    string sHost = oRow.Value<string>("Hostname");
+
+                    if (string.IsNullOrEmpty(sHost))
+                        continue;
+
+                    //Get ConnectionID from HostName
+                    string sID = GetID(sInstance, sHost);
+
+                    if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                    {
+                        AzureLog.PostAsync(new { Computer = sHost, EventID = 2051, Description = $"Run PSAsync: {sCommand}" });
+                        _hubContext.Clients.Client(sID).SendAsync("returnPSAsync", sCommand, "Host");
+                    }
                 }
+                catch { }
             }
-        }
 
-        internal void CheckCompliance(List<string> Hostnames, string sInstance = "Default")
-        {
-            foreach (string sHost in Hostnames)
-            {
-                SetResult(sInstance, sHost, "triggered:" + "Get Compliance..."); //Update Status
-            }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "AgentVersion"); //Enforce PageUpdate
-
-            foreach (string sHost in Hostnames)
-            {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
-                {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2012, Description = $"get Compliance data" });
-                    _hubContext.Clients.Client(sID).SendAsync("checkComplianceAsync", "HUB");
-                }
-            }
-        }
-
-        internal void _SetInstance(List<string> Hostnames, string sInstance, string Args)
-        {
-            if (string.IsNullOrEmpty(Args))
-                return;
-
-            foreach (string sHost in Hostnames)
-            {
-                SetResult(sInstance, sHost, "triggered:" + "set Instance"); //Update Status
-            }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "SetInstance"); //Enforce PageUpdate
-
-            foreach (string sHost in Hostnames)
-            {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
-                {
-                    _hubContext.Clients.Client(sID).SendAsync("setinstance", Args);
-                }
-            }
-        }
-
-        internal void _SetEndpoint(List<string> Hostnames, string sInstance, string Args)
-        {
-            if (string.IsNullOrEmpty(Args))
-                return;
-
-            foreach (string sHost in Hostnames)
-            {
-                SetResult(sInstance, sHost, "triggered:" + "set Endpoint"); //Update Status
-            }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "SetEndpoint"); //Enforce PageUpdate
-
-            foreach (string sHost in Hostnames)
-            {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
-                {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2007, Description = $"set new Endpoint: {Args}" });
-                    _hubContext.Clients.Client(sID).SendAsync("setendpoint", Args);
-                }
-            }
-        }
-
-        internal void RestartAgent(List<string> Hostnames, string sInstance)
-        {
-            foreach (string sHost in Hostnames)
-            {
-                SetResult(sInstance, sHost, "triggered:" + "restart Agent"); //Update Status
-            }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "RestartAgent"); //Enforce PageUpdate
-
-            foreach (string sHost in Hostnames)
-            {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
-                {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2006, Description = $"restart Agent" });
-                    _hubContext.Clients.Client(sID).SendAsync("restartservice", "HUB");
-                }
-            }
-        }
-
-        internal void InstallRZSW(List<string> Hostnames, string sInstance, string Args)
-        {
-            if (string.IsNullOrEmpty(Args))
-                return;
-
-            foreach (string sHost in Hostnames)
-            {
-                SetResult(sInstance, sHost, "triggered:" + "Install SW"); //Update Status
-            }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "InstallRZSW"); //Enforce PageUpdate
-
-            foreach (string sHost in Hostnames)
-            {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
-                {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2005, Description = $"install RuckZuck software: {Args}" });
-                    _hubContext.Clients.Client(sID).SendAsync("rzinstall", Args);
-                }
-            }
-        }
-
-        internal void RZScan(List<string> Hostnames, string sInstance)
-        {
-            foreach (string sHost in Hostnames)
-            {
-                SetResult(sInstance, sHost, "triggered:" + "get RZ Updates"); //Update Status
-            }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "RZScan"); //Enforce PageUpdate
-
-            foreach (string sHost in Hostnames)
-            {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
-                {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2003, Description = $"trigger RuckZuck scan" });
-                    _hubContext.Clients.Client(sID).SendAsync("rzscan", "HUB");
-                }
-            }
-        }
-
-        internal void RZUpdate(List<string> Hostnames, string sInstance, string Args = "")
-        {
-            foreach (string sHost in Hostnames)
-            {
-                SetResult(sInstance, sHost, "triggered:" + "install RZ Updates"); //Update Status
-            }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "RZUpdate"); //Enforce PageUpdate
-
-            foreach (string sHost in Hostnames)
-            {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
-                {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2004, Description = $"trigger RuckZuck update" });
-                    _hubContext.Clients.Client(sID).SendAsync("rzupdate", Args);
-                }
-            }
-        }
-
-        internal void runUserCmd(List<string> Hostnames, string sInstance, string cmd, string args)
-        {
-            foreach (string sHost in Hostnames)
-            {
-                SetResult(sInstance, sHost, "triggered:" + "run command as User..."); //Update Status
-            }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "runUserCmd"); //Enforce PageUpdate
-
-            foreach (string sHost in Hostnames)
-            {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
-                {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2010, Description = $"Run USer Processs: {cmd} {args}" });
-                    _hubContext.Clients.Client(sID).SendAsync("userprocess", cmd, args);
-                }
-            }
-        }
-
-        internal void sendWOL(List<string> Hostnames, string sInstance, List<string> MAC)
-        {
-            foreach (string sHost in Hostnames)
-            {
-                SetResult(sInstance, sHost, "triggered:" + "WakeUp devices..."); //Update Status
-            }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "sendWOL"); //Enforce PageUpdate
-
-            foreach (string sHost in Hostnames)
-            {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
-                {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2002, Description = $"WakeUp all devices" });
-                    _hubContext.Clients.Client(sID).SendAsync("wol", string.Join(';', MAC));
-                }
-            }
+            return new ContentResult();
         }
 
         [TokenAuthentication]
@@ -796,123 +425,6 @@ namespace DevCDRServer.Controllers
 
             return new ContentResult();
         }
-
-
-        [TokenAuthentication]
-        //[Authorize]
-        [HttpPost]
-        public object RunUserPS()
-        {
-            string sParams = "";
-            //Load response
-            using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
-                sParams = reader.ReadToEndAsync().Result;
-
-            if (string.IsNullOrEmpty(sParams))
-                return new ContentResult(); ;
-
-            //Parse response as JSON
-            JObject oParams = JObject.Parse(sParams);
-
-            string sCommand = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.psscript").Value<string>()); //get command
-            string sInstance = "Default"; // oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
-            string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
-
-            if (string.IsNullOrEmpty(sInstance)) //Skip if instance is null
-                return new ContentResult();
-
-            List<string> lHostnames = new List<string>();
-
-            foreach (var oRow in oParams["rows"])
-            {
-                string sHost = oRow.Value<string>("Hostname");
-                SetResult(sInstance, sHost, "triggered:" + sTitle); //Update Status
-            }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "RunUserPS"); //Enforce PageUpdate
-
-            foreach (var oRow in oParams["rows"])
-            {
-                try
-                {
-                    //Get Hostname from Row
-                    string sHost = oRow.Value<string>("Hostname");
-
-                    if (string.IsNullOrEmpty(sHost))
-                        continue;
-
-                    //Get ConnectionID from HostName
-                    string sID = GetID(sInstance, sHost);
-
-                    if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
-                    {
-                        _hubContext.Clients.Client(sID).SendAsync("userprocess", "powershell.exe", "-command \"& { " + sCommand + " }\"");
-                        //hubContext.Clients.Client(sID).returnPS(sCommand, "Host");
-                    }
-                }
-                catch { }
-            }
-
-            return new ContentResult();
-        }
-
-
-        [TokenAuthentication]
-        //[Authorize]
-        [HttpPost]
-        public object RunPSAsync()
-        {
-            string sParams = "";
-            //Load response
-            using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
-                sParams = reader.ReadToEndAsync().Result;
-
-            if (string.IsNullOrEmpty(sParams))
-                return new ContentResult(); ;
-
-            //Parse response as JSON
-            JObject oParams = JObject.Parse(sParams);
-
-            string sCommand = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.psscript").Value<string>()); //get command
-            string sInstance = "Default"; // oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
-            string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
-
-            if (string.IsNullOrEmpty(sInstance)) //Skip if instance is null
-                return new ContentResult();
-
-            List<string> lHostnames = new List<string>();
-
-            foreach (var oRow in oParams["rows"])
-            {
-                string sHost = oRow.Value<string>("Hostname");
-                SetResult(sInstance, sHost, "triggered:" + sTitle); //Update Status
-            }
-            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "RunPSAsync"); //Enforce PageUpdate
-
-            foreach (var oRow in oParams["rows"])
-            {
-                try
-                {
-                    //Get Hostname from Row
-                    string sHost = oRow.Value<string>("Hostname");
-
-                    if (string.IsNullOrEmpty(sHost))
-                        continue;
-
-                    //Get ConnectionID from HostName
-                    string sID = GetID(sInstance, sHost);
-
-                    if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
-                    {
-                        AzureLog.PostAsync(new { Computer = sHost, EventID = 2051, Description = $"Run PSAsync: {sCommand}" });
-                        _hubContext.Clients.Client(sID).SendAsync("returnPSAsync", sCommand, "Host");
-                    }
-                }
-                catch { }
-            }
-
-            return new ContentResult();
-        }
-
 
         [TokenAuthentication]
         //[Authorize]
@@ -981,6 +493,488 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
+        [TokenAuthentication]
+        //[Authorize]
+        [HttpPost]
+        public object RunUserPS()
+        {
+            string sParams = "";
+            //Load response
+            using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
+                sParams = reader.ReadToEndAsync().Result;
+
+            if (string.IsNullOrEmpty(sParams))
+                return new ContentResult(); ;
+
+            //Parse response as JSON
+            JObject oParams = JObject.Parse(sParams);
+
+            string sCommand = System.Uri.UnescapeDataString(oParams.SelectToken(@"$.psscript").Value<string>()); //get command
+            string sInstance = "Default"; // oParams.SelectToken(@"$.instance").Value<string>(); //get instance name
+            string sTitle = oParams.SelectToken(@"$.title").Value<string>(); //get title
+
+            if (string.IsNullOrEmpty(sInstance)) //Skip if instance is null
+                return new ContentResult();
+
+            List<string> lHostnames = new List<string>();
+
+            foreach (var oRow in oParams["rows"])
+            {
+                string sHost = oRow.Value<string>("Hostname");
+                SetResult(sInstance, sHost, "triggered:" + sTitle); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "RunUserPS"); //Enforce PageUpdate
+
+            foreach (var oRow in oParams["rows"])
+            {
+                try
+                {
+                    //Get Hostname from Row
+                    string sHost = oRow.Value<string>("Hostname");
+
+                    if (string.IsNullOrEmpty(sHost))
+                        continue;
+
+                    //Get ConnectionID from HostName
+                    string sID = GetID(sInstance, sHost);
+
+                    if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                    {
+                        _hubContext.Clients.Client(sID).SendAsync("userprocess", "powershell.exe", "-command \"& { " + sCommand + " }\"");
+                        //hubContext.Clients.Client(sID).returnPS(sCommand, "Host");
+                    }
+                }
+                catch { }
+            }
+
+            return new ContentResult();
+        }
+
+        internal void _SetEndpoint(List<string> Hostnames, string sInstance, string Args)
+        {
+            if (string.IsNullOrEmpty(Args))
+                return;
+
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "set Endpoint"); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "SetEndpoint"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2007, Description = $"set new Endpoint: {Args}" });
+                    _hubContext.Clients.Client(sID).SendAsync("setendpoint", Args);
+                }
+            }
+        }
+
+        internal void _SetGroups(List<string> Hostnames, string sInstance, string Args)
+        {
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "set Groups"); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "SetGroups"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2009, Description = $"Set Agent Groups: {Args}" });
+                    _hubContext.Clients.Client(sID).SendAsync("setgroups", Args);
+                }
+            }
+        }
+
+        internal void _SetInstance(List<string> Hostnames, string sInstance, string Args)
+        {
+            if (string.IsNullOrEmpty(Args))
+                return;
+
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "set Instance"); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "SetInstance"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    _hubContext.Clients.Client(sID).SendAsync("setinstance", Args);
+                }
+            }
+        }
+
+        internal void AgentVersion(List<string> Hostnames, string sInstance = "Default")
+        {
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "Get AgentVersion"); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "AgentVersion"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2008, Description = $"get Agent version" });
+                    _hubContext.Clients.Client(sID).SendAsync("version", "HUB");
+                }
+            }
+        }
+
+        internal void CheckCompliance(List<string> Hostnames, string sInstance = "Default")
+        {
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "Get Compliance..."); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "AgentVersion"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2012, Description = $"get Compliance data" });
+                    _hubContext.Clients.Client(sID).SendAsync("checkComplianceAsync", "HUB");
+                }
+            }
+        }
+
+        internal void CheckInventory(List<string> Hostnames, string sInstance = "Default")
+        {
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "Get Inventory..."); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "AgentVersion"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2011, Description = $"get Inventory" });
+                    _hubContext.Clients.Client(sID).SendAsync("checkInventoryAsync", "HUB");
+                }
+            }
+        }
+
+        internal List<string> GetAllMACAddresses()
+        {
+            List<string> lResult = new List<string>();
+            var tItems = new JainDBController(_env, _cache).Query("$select=@MAC");
+            JArray jMacs = JArray.Parse(tItems.Result);
+
+            foreach (var jTok in jMacs.SelectTokens("..@MAC"))
+            {
+                if (jTok.Type == JTokenType.String)
+                    lResult.Add(jTok.Value<string>());
+                if (jTok.Type == JTokenType.Array)
+                    lResult.AddRange(jTok.Values<string>().ToList());
+            }
+
+            return lResult;
+        }
+
+        internal void GetGroups(List<string> Hostnames, string sInstance)
+        {
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "get Groups"); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "GetGroups"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    _hubContext.Clients.Client(sID).SendAsync("getgroups", "Host");
+                }
+            }
+        }
+
+        internal string GetID(string Instance, string Host)
+        {
+            string sID = "";
+            try
+            {
+                Type xType = Type.GetType("DevCDRServer." + Instance);
+
+                MethodInfo methodInfo = xType.GetMethod(
+                                            "GetID",
+                                            BindingFlags.Public | BindingFlags.Static
+                                        );
+                sID = methodInfo.Invoke(new object(), new object[] { Host }) as string;
+            }
+            catch { }
+
+            return sID;
+        }
+
+        internal void InstallRZSW(List<string> Hostnames, string sInstance, string Args)
+        {
+            if (string.IsNullOrEmpty(Args))
+                return;
+
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "Install SW"); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "InstallRZSW"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2005, Description = $"install RuckZuck software: {Args}" });
+                    _hubContext.Clients.Client(sID).SendAsync("rzinstall", Args);
+                }
+            }
+        }
+
+        internal void Reload(string Instance = "Default")
+        {
+            string sID = "";
+            try
+            {
+                AzureLog.PostAsync(new { Computer = Environment.MachineName, EventID = 1001, Description = $"Reloading {Instance}" });
+
+                _hubContext.Clients.All.SendAsync("init", "init");
+                _hubContext.Clients.Group("web").SendAsync("newData", "Hub", ""); //Enforce PageUpdate
+
+                Type xType = Type.GetType("DevCDRServer." + Instance);
+
+                MethodInfo methodInfo = xType.GetMethod(
+                                            "Clear",
+                                            BindingFlags.Public | BindingFlags.Static
+                                        );
+                sID = methodInfo.Invoke(new object(), new object[] { Instance }) as string;
+            }
+            catch { }
+        }
+
+        internal void RestartAgent(List<string> Hostnames, string sInstance)
+        {
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "restart Agent"); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "RestartAgent"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2006, Description = $"restart Agent" });
+                    _hubContext.Clients.Client(sID).SendAsync("restartservice", "HUB");
+                }
+            }
+        }
+
+        internal void RunCommand(List<string> Hostnames, string sCommand, string sInstance, string CmdName)
+        {
+            //IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext(sInstance);
+
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + CmdName); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "RunCommand"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2001, Description = $"PSCommand: {sCommand}" });
+                    _hubContext.Clients.Client(sID).SendAsync("returnPS", sCommand, "Host");
+                }
+            }
+        }
+
+        internal void runUserCmd(List<string> Hostnames, string sInstance, string cmd, string args)
+        {
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "run command as User..."); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "runUserCmd"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2010, Description = $"Run USer Processs: {cmd} {args}" });
+                    _hubContext.Clients.Client(sID).SendAsync("userprocess", cmd, args);
+                }
+            }
+        }
+
+        internal void RZScan(List<string> Hostnames, string sInstance)
+        {
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "get RZ Updates"); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "RZScan"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2003, Description = $"trigger RuckZuck scan" });
+                    _hubContext.Clients.Client(sID).SendAsync("rzscan", "HUB");
+                }
+            }
+        }
+
+        internal void RZUpdate(List<string> Hostnames, string sInstance, string Args = "")
+        {
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "install RZ Updates"); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "RZUpdate"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2004, Description = $"trigger RuckZuck update" });
+                    _hubContext.Clients.Client(sID).SendAsync("rzupdate", Args);
+                }
+            }
+        }
+
+        internal void sendWOL(List<string> Hostnames, string sInstance, List<string> MAC)
+        {
+            foreach (string sHost in Hostnames)
+            {
+                SetResult(sInstance, sHost, "triggered:" + "WakeUp devices..."); //Update Status
+            }
+            _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "sendWOL"); //Enforce PageUpdate
+
+            foreach (string sHost in Hostnames)
+            {
+                if (string.IsNullOrEmpty(sHost))
+                    continue;
+
+                //Get ConnectionID from HostName
+                string sID = GetID(sInstance, sHost);
+
+                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                {
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2002, Description = $"WakeUp all devices" });
+                    _hubContext.Clients.Client(sID).SendAsync("wol", string.Join(';', MAC));
+                }
+            }
+        }
+
+        internal ActionResult SetResult(string Instance, string Hostname, string Result)
+        {
+            JArray jData = new JArray();
+            try
+            {
+                Type xType = Type.GetType("DevCDRServer." + Instance);
+
+                MemberInfo[] memberInfos = xType.GetMember("jData", BindingFlags.Public | BindingFlags.Static);
+
+                jData = ((FieldInfo)memberInfos[0]).GetValue(new JArray()) as JArray;
+
+                var tok = jData.SelectToken("[?(@.Hostname == '" + Hostname + "')].ScriptResult");
+                tok = Result;
+                jData.SelectToken("[?(@.Hostname == '" + Hostname + "')].ScriptResult").Replace(tok);
+
+                ((FieldInfo)memberInfos[0]).SetValue(new JArray(), jData);
+
+                //AzureLog.PostAsync(new { Computer = Hostname, EventID = 3000, Description = $"Result: {Result}" });
+            }
+            catch { }
+
+
+            return new ContentResult();
+        }
         internal string SWResults(string Searchstring)
         {
             string sCatFile = @"/App_Data/rzcat.json";
@@ -1051,6 +1045,70 @@ namespace DevCDRServer.Controllers
         private WebClient client = new WebClient();
         private Controller controller;
 
+
+        public override void OnActionExecuting(ActionExecutingContext filterContext)
+        {
+            controller = filterContext.Controller as Controller;
+
+            _cache = controller.HttpContext.RequestServices.GetService(typeof(IMemoryCache)) as IMemoryCache;
+
+            string CustomerID = controller.Request.Query["customerid"];
+            CustomerID = CustomerID ?? controller.Request.Query["amp;customerid"];
+            string exp = controller.Request.Query["exp"];
+            exp = exp ?? controller.Request.Query["amp;exp"];
+            string token = controller.Request.Query["token"];
+            token = token ?? controller.Request.Query["amp;token"];
+
+            if (string.IsNullOrEmpty(CustomerID))
+            {
+                string sCust = controller.Request.Cookies["DEVCDRCUST"] ?? "";
+                if (!string.IsNullOrEmpty(sCust))
+                {
+                    CustomerID = sCust;
+                }
+            }
+
+            if (string.IsNullOrEmpty(exp))
+            {
+                string sExp = controller.Request.Cookies["DEVCDREXP"] ?? "";
+                if (!string.IsNullOrEmpty(sExp))
+                {
+                    exp = sExp;
+                }
+            }
+
+            if (string.IsNullOrEmpty(token))
+            {
+                string sTok = controller.Request.Cookies["DEVCDRTOK"] ?? "";
+                if (!string.IsNullOrEmpty(sTok))
+                {
+                    token = sTok;
+                }
+            }
+
+            if (ValidateToken(CustomerID, exp, token))
+            {
+                CookieOptions option = new CookieOptions();
+                option.Expires = DateTime.Now.AddDays(1);
+                option.SameSite = SameSiteMode.Strict;
+                option.HttpOnly = true;
+                option.Secure = true;
+
+                controller.Response.Cookies.Append("DEVCDRCUST", CustomerID, option);
+                controller.Response.Cookies.Append("DEVCDREXP", exp, option);
+                controller.Response.Cookies.Append("DEVCDRTOK", token, option);
+
+                return;
+            }
+            else
+            {
+                controller.Response.Cookies.Delete("DEVCDRCUST");
+                controller.Response.Cookies.Delete("DEVCDREXP");
+                controller.Response.Cookies.Delete("DEVCDRTOK");
+                filterContext.Result = new UnauthorizedResult();
+                return;
+            }
+        }
 
         private JObject GetCustomerInfo(string CustomerID)
         {
@@ -1135,70 +1193,6 @@ namespace DevCDRServer.Controllers
             }
 
             return false;
-        }
-
-        public override void OnActionExecuting(ActionExecutingContext filterContext)
-        {
-            controller = filterContext.Controller as Controller;
-
-            _cache = controller.HttpContext.RequestServices.GetService(typeof(IMemoryCache)) as IMemoryCache;
-
-            string CustomerID = controller.Request.Query["customerid"];
-            CustomerID = CustomerID ?? controller.Request.Query["amp;customerid"];
-            string exp = controller.Request.Query["exp"];
-            exp = exp ?? controller.Request.Query["amp;exp"];
-            string token = controller.Request.Query["token"];
-            token = token ?? controller.Request.Query["amp;token"];
-
-            if (string.IsNullOrEmpty(CustomerID))
-            {
-                string sCust = controller.Request.Cookies["DEVCDRCUST"] ?? "";
-                if (!string.IsNullOrEmpty(sCust))
-                {
-                    CustomerID = sCust;
-                }
-            }
-
-            if (string.IsNullOrEmpty(exp))
-            {
-                string sExp = controller.Request.Cookies["DEVCDREXP"] ?? "";
-                if (!string.IsNullOrEmpty(sExp))
-                {
-                    exp = sExp;
-                }
-            }
-
-            if (string.IsNullOrEmpty(token))
-            {
-                string sTok = controller.Request.Cookies["DEVCDRTOK"] ?? "";
-                if (!string.IsNullOrEmpty(sTok))
-                {
-                    token = sTok;
-                }
-            }
-
-            if (ValidateToken(CustomerID, exp, token))
-            {
-                CookieOptions option = new CookieOptions();
-                option.Expires = DateTime.Now.AddDays(1);
-                option.SameSite = SameSiteMode.Strict;
-                option.HttpOnly = true;
-                option.Secure = true;
-
-                controller.Response.Cookies.Append("DEVCDRCUST", CustomerID, option);
-                controller.Response.Cookies.Append("DEVCDREXP", exp, option);
-                controller.Response.Cookies.Append("DEVCDRTOK", token, option);
-
-                return;
-            }
-            else
-            {
-                controller.Response.Cookies.Delete("DEVCDRCUST");
-                controller.Response.Cookies.Delete("DEVCDREXP");
-                controller.Response.Cookies.Delete("DEVCDRTOK");
-                filterContext.Result = new UnauthorizedResult();
-                return;
-            }
         }
     }
 }
