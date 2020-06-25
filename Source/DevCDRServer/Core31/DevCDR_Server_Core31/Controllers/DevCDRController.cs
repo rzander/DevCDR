@@ -741,7 +741,7 @@ namespace DevCDRServer.Controllers
                         {
                             StringContent oData = new StringContent(sNewData, Encoding.UTF8, "application/json");
                             var oPost = client.PostAsync($"{sURL}&deviceid={oSig.DeviceID}.json&customerid={oSig.CustomerID}", oData);
-                            string sID = jDB.UploadFull(data, oSig.DeviceID, "INV");
+                            string sID = jDB.UploadFullAsync(data, oSig.DeviceID, "INV").Result;
                             oPost.Wait(5000);
                             return new OkObjectResult(sID);
                         }
@@ -1521,7 +1521,7 @@ namespace DevCDRServer.Controllers
         //#endif
         [AllowAnonymous]
         [HttpPost]
-        public object RunPSAsync()
+        public object RunPSAsy()
         {
             string sParams = "";
             //Load response

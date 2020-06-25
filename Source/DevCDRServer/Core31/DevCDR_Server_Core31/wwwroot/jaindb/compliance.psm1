@@ -4,7 +4,7 @@
         test if logging is enabled
     #>
 
-    if (Get-Module -ListAvailable -Name WriteAnalyticsLog) { return $true } else { return $false }
+    if (Get-Module -ListAvailable -Name WriteAnalyticsLog) { return WriteAnalyticsLog\Test-Logging  -TenantID "ROMAWO" } else { return $false }
 }
 
 function Test-Nuget {
@@ -220,7 +220,7 @@ function Set-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
                     (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
 
                     if (Test-Logging) {
-                        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "AdminPW:" + $pw; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDR" -TennantID "DevCDR"
+                        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "AdminPW:" + $pw; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDR" -TenantID "DevCDR"
                     }
                 }
             }
@@ -396,7 +396,7 @@ function Update-Software {
     $SWList | ForEach-Object { 
         if ($updates.PackageFilename -contains $_) { 
             if (Test-Logging) {
-                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 2000; Description = "RuckZuck updating: $($_)"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDR" -TennantID "DevCDR"
+                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 2000; Description = "RuckZuck updating: $($_)"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDR" -TenantID "DevCDR"
             }
             "Updating: " + $_ ;
             Install-Package -ProviderName RuckZuck "$($_)" -ea SilentlyContinue
@@ -664,6 +664,82 @@ Function Test-AppLocker {
     }
 }
 
+Function Set-EdgeChromium ($HomePageURL = "", $RestrictUserDomain = "", $PolicyRevision = 0, $Force = $false) {
+
+    <#
+        .Description
+        Configure Edge Chromium...
+    #>
+
+    #Fake MDM
+    #https://hitco.at/blog/apply-edge-policies-for-non-domain-joined-devices/
+    if ($HomePageURL -and (Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts' -ea SilentlyContinue).count -eq 0) {
+        
+        #  # Fake MDM-Enrollment - Key 1 of 2 - let a Win10 v1809, v1903, v1909 Machine "feel" MDM-Managed
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\Microsoft\Enrollments\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF") -ne $true) { New-Item "HKLM:\SOFTWARE\Microsoft\Enrollments\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF" -force -ea SilentlyContinue | Out-Null };
+
+        #  # Fake MDM-Enrollment - Key 2 of 2 - let a Win10 v1809, v1903, v1909 Machine "feel" MDM-Managed
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF") -ne $true) { New-Item "HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Enrollments\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'EnrollmentState' -Value 0x00000001  -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Enrollments\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'EnrollmentType' -Value 0x00000000  -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Enrollments\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'IsFederated' -Value 0 -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'Flags' -Value 14089087 -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'AcctUId' -Value '0x000000000000000000000000000000000000000000000000000000000000000000000000' -PropertyType String -Force -ea SilentlyContinue | Out-Null;
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'RoamingCount' -Value 0 -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'SslClientCertReference' -Value 'MY;User;0000000000000000000000000000000000000000' -PropertyType String -Force -ea SilentlyContinue | Out-Null;
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'ProtoVer' -Value '1.2' -PropertyType String -Force -ea SilentlyContinue | Out-Null;
+    }
+
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).EdgePolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
+        #Create the key if missing 
+        If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Edge') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Edge' -force -ea SilentlyContinue | Out-Null } 
+        If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -force -ea SilentlyContinue | Out-Null } 
+        If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended\RestoreOnStartupURLs') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended\RestoreOnStartupURLs' -force -ea SilentlyContinue | Out-Null } 
+        If ((Test-Path 'HKLM:\Software\Policies\Microsoft\EdgeUpdate') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\EdgeUpdate' -force -ea SilentlyContinue | Out-Null } 
+    
+        #Action to take on startup
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'RestoreOnStartup' -Value 4 -ea SilentlyContinue 
+    
+        #Configure the home page URL
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Name 'HomepageLocation' -Value "$($HomePageURL)" -ea SilentlyContinue 
+    
+        #Set the new tab page as the home page
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'HomepageIsNewTabPage' -Value 0 -ea SilentlyContinue 
+    
+        #Show Home button on toolbar
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'ShowHomeButton' -Value 1 -ea SilentlyContinue 
+    
+        #Sites to open when the browser starts
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended\RestoreOnStartupURLs' -Name '1' -Value "$($HomePageURL)" -ea SilentlyContinue 
+    
+        #Hide the First-run experience and splash screen
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Name 'HideFirstRunExperience' -Value 1 -ea SilentlyContinue 
+    
+        if ($RestrictUserDomain) {
+            #Restrict which accounts can be used as Microsoft Edge primary accounts
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Name 'RestrictSigninToPattern' -Value ".*@$($RestrictUserDomain)" -ea SilentlyContinue 
+        }
+
+        #Prevent Desktop Shortcut creation upon install default
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\EdgeUpdate' -Name 'CreateDesktopShortcutDefault' -Value 0 -ea SilentlyContinue 
+
+    }
+
+    #remove Policy
+    if ([string]::IsNullOrEmpty($HomePageURL)) {
+        Remove-Item -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Recurse -force -ea SilentlyContinue  | Out-Null;
+        Remove-Item  -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -force -ea SilentlyContinue  | Out-Null;
+        Remove-Item  -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended\RestoreOnStartupURLs' -force -ea SilentlyContinue  | Out-Null;
+        Remove-Item  -Path 'HKLM:\Software\Policies\Microsoft\EdgeUpdate' -force -ea SilentlyContinue  | Out-Null;
+        Remove-Item  -Path 'HKLM:\SOFTWARE\Microsoft\Enrollments\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -force -ea SilentlyContinue  | Out-Null;
+        Remove-Item  -Path 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -force -ea SilentlyContinue  | Out-Null;
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'EdgePolicy' -Force -ea SilentlyContinue | Out-Null;
+    } else {
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'EdgePolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;        
+    }
+}
+
 #region DevCDR
 
 Function Get-DevcdrEP {
@@ -896,8 +972,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU4Tnd/07wj3odpK7Tu9Q4fw1e
-# sZagggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUD1Ii+TyZV1wJRYrvloDl0RjE
+# jbmgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -962,12 +1038,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ9
-# IuEEsChF6vfhOujSJHJsV/yimzANBgkqhkiG9w0BAQEFAASCAQAEnSK1XlhNrNIf
-# PcOQxDQXLJVYp3/1Ydsc27QR3JFOAMhpWdZjp0xqAyhcw91h/UxRSDEGeBY87CO0
-# YJSQNuIdR3Pa/p63VpgrWzH5SZxEhHEE2DcO/tT7WjHhWdhwmVHwmmAIrQDonNb5
-# VqCTKcIPDYkwpJDltEHXFSQIQH+HeBwtiwsTNoxIMFPMnOrOz8knJEq1EqeJbElH
-# nkwcABi7c22/bWY+MWwQv5ne3u1grTjVEqMBMDrpjIIS3rPRIlffQOZpiZD1HRCQ
-# ZXwbWBdLEDyGn0koe3ev9iEVwpA82Ap1JEjr8O8huexSkQkUSEdQFlJcxyw30Ni5
-# Owzb2p7r
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQQ
+# EsCTB5C5p5sUjmO06IDaVmhGcTANBgkqhkiG9w0BAQEFAASCAQAHfDej0UD5ytJz
+# ZutNGdrz8ULU+kGtVrY+l21KO3AU1u/jxjm6wSsiOEjzzbhXsUADwG/hWi0u7DBR
+# GLAlULxon7BPlWBIxhba03ic7IgfvjOasxbCcWeu5+4koEExq37gkIRXqgJ21xIQ
+# F0rpiuurQSRd8WyxGv4jjSwKwxNx5RhJzgD30S6MOcr8vmkdAsnGaN6n2JgLzPzH
+# dJPL12iTqi8Ht6rFwADseDYuoIRrrbiEVjEzmwdaFtSSmFEUBnYsICkp4RdwVy9M
+# a5vhucleYDC7L8+qHiBHVqsiB+Ls0dhCbracuUMLxk8eVireCoDHVPdq7QrRI3FV
+# YpXf+E1u
 # SIG # End signature block
