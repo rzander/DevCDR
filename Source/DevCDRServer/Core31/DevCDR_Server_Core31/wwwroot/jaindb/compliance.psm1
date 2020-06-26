@@ -664,7 +664,7 @@ Function Test-AppLocker {
     }
 }
 
-Function Set-EdgeChromium ($HomePageURL = "", $RestrictUserDomain = "", $PolicyRevision = 0, $Force = $false) {
+Function Set-EdgeChromium ($HomePageURL = "", $RestrictUserDomain = "", $Google = $true, $PolicyRevision = 0, $Force = $false) {
 
     <#
         .Description
@@ -701,7 +701,8 @@ Function Set-EdgeChromium ($HomePageURL = "", $RestrictUserDomain = "", $PolicyR
         Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'RestoreOnStartup' -Value 4 -ea SilentlyContinue 
     
         #Configure the home page URL
-        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Name 'HomepageLocation' -Value "$($HomePageURL)" -ea SilentlyContinue 
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'HomepageLocation' -Value "$($HomePageURL)" -ea SilentlyContinue 
+        #Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Name 'HomepageLocation' -Value "$($HomePageURL)" -ea SilentlyContinue 
     
         #Set the new tab page as the home page
         Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'HomepageIsNewTabPage' -Value 0 -ea SilentlyContinue 
@@ -723,6 +724,13 @@ Function Set-EdgeChromium ($HomePageURL = "", $RestrictUserDomain = "", $PolicyR
         #Prevent Desktop Shortcut creation upon install default
         Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\EdgeUpdate' -Name 'CreateDesktopShortcutDefault' -Value 0 -ea SilentlyContinue 
 
+        if ($Google) {
+            #Set Google as Search Provider
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'DefaultSearchProviderEnabled' -Value 1 -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'DefaultSearchProviderName' -Value 'Google' -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'DefaultSearchProviderSearchURL' -Value '{google:baseURL}search?q={searchTerms}&{google:RLZ}{google:originalQueryForSuggestion}{google:assistedQueryStats}{google:searchFieldtrialParameter}{google:searchClient}{google:sourceId}ie={inputEncoding}' -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'DefaultSearchProviderSuggestURL' -Value '{google:baseURL}complete/search?output=chrome&q={searchTerms}' -ea SilentlyContinue 
+        }
     }
 
     #remove Policy
@@ -734,9 +742,258 @@ Function Set-EdgeChromium ($HomePageURL = "", $RestrictUserDomain = "", $PolicyR
         Remove-Item  -Path 'HKLM:\SOFTWARE\Microsoft\Enrollments\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -force -ea SilentlyContinue  | Out-Null;
         Remove-Item  -Path 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -force -ea SilentlyContinue  | Out-Null;
         Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'EdgePolicy' -Force -ea SilentlyContinue | Out-Null;
-    } else {
+    }
+    else {
         if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
         New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'EdgePolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;        
+    }
+}
+
+Function Set-OneDrive($KFM = $true, $FilesOnDemand = $true, $RemovePolicy = $false, $PolicyRevision = 0, $Force = $false) {
+    <#
+        .Description
+        Configure OneDrive...
+    #>
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).OneDrivePolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
+        #Create the key if missing 
+        If ((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive') -eq $false ) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -force -ea SilentlyContinue } 
+                        
+        if ($KFM) {
+            #Device must be AAD Joined
+            if ((Get-ItemProperty "HKLM:SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\*\" -ea SilentlyContinue).TenantId) {
+                $tenantid = (Get-ItemProperty "HKLM:SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\*\" -ea SilentlyContinue).TenantId
+
+                Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'KFMSilentOptIn' -Value "$($tenantid)" -ea SilentlyContinue 
+                Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'KFMSilentOptInWithNotification' -Value 0 -ea SilentlyContinue 
+            }
+        }
+        
+        if ($FilesOnDemand) {
+            Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'FilesOnDemandEnabled' -Value 1 -ea SilentlyContinue 
+        }
+        else {
+            #Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'FilesOnDemandEnabled' -Value 0 -ea SilentlyContinue 
+            Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'FilesOnDemandEnabled' -ea SilentlyContinue 
+        }
+    }
+
+    if ($RemovePolicy) {
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'OneDrivePolicy' -Force -ea SilentlyContinue | Out-Null;
+        Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'SilentAccountConfig' -ea SilentlyContinue 
+        Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'KFMSilentOptIn' -ea SilentlyContinue 
+        Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'KFMSilentOptInWithNotification' -ea SilentlyContinue 
+        Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'FilesOnDemandEnabled' -ea SilentlyContinue 
+    }
+    else {
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        
+
+        if ($tenantid) {
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'OneDrivePolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;    
+        }
+        else {
+            if (-NOT $KFM) {
+                New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'OneDrivePolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;    
+            }
+        }
+    }
+}
+
+Function Set-BitLocker($Drive = "C:" , $EncryptionMethod = "XtsAes128", $EnforceNewKey = $false, $PolicyRevision = 0, $Force = $false) {
+
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).BitLockerPolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
+        Remove-Item "HKLM:\Software\Policies\Microsoft\FVE" -recurse -force -ea SilentlyContinue
+        Enable-BitLocker -MountPoint "$($Drive)" -EncryptionMethod $EncryptionMethod -UsedSpaceOnly -SkipHardwareTest -RecoveryPasswordProtector -ea SilentlyContinue > out-nul
+
+        if ($EnforceNewKey) {
+            $BLV = Get-BitLockerVolume -MountPoint "$($Drive)"
+            $BLV.KeyProtector | Where-Object { $_.KeyProtectorType -eq "RecoveryPassword" } | ForEach-Object {
+                Remove-BitLockerKeyProtector -MountPoint "$($Drive)" -KeyProtectorId $_.KeyProtectorId > out-nul
+            }
+            Add-BitLockerKeyProtector -MountPoint "$($Drive)" -RecoveryPasswordProtector > out-nul
+        }
+    }
+
+    if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+    New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'BitLockerPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
+}
+
+Function Set-AppLocker($XMLFile = "-", $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false) {
+    if ($RemovePolicy) {
+        $policy = @"
+<AppLockerPolicy Version="1">
+  <RuleCollection Type="Exe" EnforcementMode="NotConfigured" />
+  <RuleCollection Type="Msi" EnforcementMode="NotConfigured" />
+  <RuleCollection Type="Script" EnforcementMode="NotConfigured" />
+  <RuleCollection Type="Dll" EnforcementMode="NotConfigured" />
+  <RuleCollection Type="Appx" EnforcementMode="NotConfigured" />
+</AppLockerPolicy>
+"@
+        $policy > $env:TEMP\Policy.xml
+        Set-AppLockerPolicy -XMLPolicy $env:TEMP\Policy.xml
+        Remove-Item $env:TEMP\Policy.xml -Force
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'AppLockerPolicy' -Force -ea SilentlyContinue | Out-Null;
+    }
+    else {
+        if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).AppLockerPolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
+            if (Test-Path $XMLFile) {
+                Set-AppLockerPolicy -XMLPolicy $XMLFile
+            }
+            else {
+                $policy = @"
+    <AppLockerPolicy Version="1">
+    <RuleCollection Type="Appx" EnforcementMode="Enabled">
+      <FilePublisherRule Id="a9e18c21-ff8f-43cf-b9fc-db40eed693ba" Name="(Standardregel) Alle signierten App-Pakete" Description="Ermöglicht Mitgliedern der Gruppe &quot;Jeder&quot; das Ausführen von signierten App-Paketen." UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePublisherCondition PublisherName="*" ProductName="*" BinaryName="*">
+            <BinaryVersionRange LowSection="0.0.0.0" HighSection="*" />
+          </FilePublisherCondition>
+        </Conditions>
+      </FilePublisherRule>
+    </RuleCollection>
+    <RuleCollection Type="Dll" EnforcementMode="Enabled" />
+    <RuleCollection Type="Exe" EnforcementMode="Enabled">
+      <FilePublisherRule Id="27afe9b3-7225-4ae9-a1b6-2a4efc5519ae" Name="Signiert von *" Description="" UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePublisherCondition PublisherName="*" ProductName="*" BinaryName="*">
+            <BinaryVersionRange LowSection="*" HighSection="*" />
+          </FilePublisherCondition>
+        </Conditions>
+        <Exceptions>
+          <FilePublisherCondition PublisherName="O=GOOGLE INC, L=MOUNTAIN VIEW, S=CALIFORNIA, C=US" ProductName="*" BinaryName="*">
+            <BinaryVersionRange LowSection="*" HighSection="*" />
+          </FilePublisherCondition>
+          <FilePublisherCondition PublisherName="O=TEAMVIEWER GMBH, L=GOEPPINGEN, S=BADEN-WUERTTEMBERG, C=DE" ProductName="*" BinaryName="*">
+            <BinaryVersionRange LowSection="*" HighSection="*" />
+          </FilePublisherCondition>
+          <FilePathCondition Path="\\*" />
+        </Exceptions>
+      </FilePublisherRule>
+      <FilePathRule Id="921cc481-6e17-4653-8f75-050b80acca20" Name="(Standardregel) Alle Dateien im Ordner &quot;Programme&quot;" Description="Ermöglicht Mitgliedern der Gruppe &quot;Jeder&quot; das Ausführen von Anwendungen, die sich im Ordner &quot;Programme&quot; befinden" UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="%PROGRAMFILES%\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="a61c8b2c-a319-4cd0-9690-d2177cad7b51" Name="(Standardregel) Alle Dateien im Ordner &quot;Windows&quot;" Description="Ermöglicht Mitgliedern der Gruppe &quot;Jeder&quot; das Ausführen von Anwendungen, die sich im Ordner &quot;Windows&quot; befinden" UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="eab7d1ff-c8f6-4c50-a891-b411ae84be13" Name="%WINDIR%\Tasks\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\Tasks\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="fd686d83-a829-4351-8ff4-27c7de5755d2" Name="(Standardregel) Alle Dateien" Description="Ermöglicht Mitgliedern der lokalen Administratorgruppe das Ausführen aller Anwendungen" UserOrGroupSid="S-1-5-32-544" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="53391d4e-21eb-4f28-874b-a40248b3e1d1" Name="%WINDIR%\System32\FxsTmp\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\System32\FxsTmp\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="9fe862ac-614f-496a-8d34-11606c0ff069" Name="%WINDIR%\System32\spool\drivers\color\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\System32\spool\drivers\color\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="80456a54-4115-487c-a869-028f96c442b2" Name="%WINDIR%\Registration\CRMLog\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\Registration\CRMLog\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="4dc5c5e2-48f6-4d4b-9d1d-a41ace5f9a08" Name="%WINDIR%\tracing\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\tracing\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="8e37698c-e67d-47df-a1af-94e9ca12207c" Name="%WINDIR%\System32\Microsoft\Crypto\RSA\MachineKeys\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\System32\Microsoft\Crypto\RSA\MachineKeys\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="d5cdbf2c-3eeb-4621-8b7d-4f2e85b82228" Name="%WINDIR%\SysWOW64\FxsTmp\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\SysWOW64\FxsTmp\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="159da158-3314-4c53-9355-1c3d5a500de4" Name="%WINDIR%\SysWOW64\Tasks\Microsoft\Windows\PLA\System\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\SysWOW64\Tasks\Microsoft\Windows\PLA\System\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="3472aff6-4985-447e-b1cb-651ed9d1be3c" Name="%WINDIR%\CCM\Logs\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\CCM\Logs\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="bb01fb31-81bb-44ce-9de2-4bcddb64a500" Name="%WINDIR%\CCM\Inventory\noidmifs\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\CCM\Inventory\noidmifs\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="39b889d9-9c06-4c6f-85a6-524cb25678be" Name="%WINDIR%\CCM\SystemTemp\AppVTempData\AppVCommandOutput\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\CCM\SystemTemp\AppVTempData\AppVCommandOutput\*" />
+        </Conditions>
+      </FilePathRule>
+    </RuleCollection>
+    <RuleCollection Type="Msi" EnforcementMode="Enabled">
+      <FilePublisherRule Id="b7af7102-efde-4369-8a89-7a6a392d1473" Name="(Standardregel) Alle digital signierten Windows Installer-Dateien" Description="Ermöglicht Mitgliedern der Gruppe &quot;Jeder&quot; das Ausführen von digital signierten Windows Installer-Dateien" UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePublisherCondition PublisherName="*" ProductName="*" BinaryName="*">
+            <BinaryVersionRange LowSection="0.0.0.0" HighSection="*" />
+          </FilePublisherCondition>
+        </Conditions>
+      </FilePublisherRule>
+      <FilePathRule Id="5b290184-345a-4453-b184-45305f6d9a54" Name="(Standardregel) Alle Windows Installer-Dateien unter &quot;%systemdrive%\Windows\Installer&quot;" Description="Ermöglicht Mitgliedern der Gruppe &quot;Jeder&quot; das Ausführen aller Windows Installer-Dateien, die sich unter &quot;%systemdrive%\Windows\Installer&quot; befinden." UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\Installer\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="64ad46ff-0d71-4fa0-a30b-3f3d30c5433d" Name="(Standardregel) Alle Windows Installer-Dateien" Description="Ermöglicht Mitgliedern der lokalen Administratorgruppe das Ausführen aller Windows Installer-Dateien" UserOrGroupSid="S-1-5-32-544" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="*.*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="a87e4136-ec32-4dc1-bdde-6a582c5a0260" Name="%WINDIR%\ccmcache\*" Description="" UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\ccmcache\*" />
+        </Conditions>
+      </FilePathRule>
+    </RuleCollection>
+    <RuleCollection Type="Script" EnforcementMode="AuditOnly">
+      <FilePathRule Id="06dce67b-934c-454f-a263-2515c8796a5d" Name="(Standardregel) Alle Skripts im Ordner &quot;Programme&quot;" Description="Ermöglicht Mitgliedern der Gruppe &quot;Jeder&quot; das Ausführen von Skripts, die sich im Ordner &quot;Programme&quot; befinden" UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="%PROGRAMFILES%\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="9428c672-5fc3-47f4-808a-a0011f36dd2c" Name="(Standardregel) Alle Skripts im Ordner &quot;Windows&quot;" Description="Ermöglicht Mitgliedern der Gruppe &quot;Jeder&quot; das Ausführen von Skripts, die sich im Ordner &quot;Windows&quot; befinden" UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="ed97d0cb-15ff-430f-b82c-8d7832957725" Name="(Standardregel) Alle Skripts" Description="Ermöglicht Mitgliedern der lokalen Administratorgruppe das Ausführen aller Skripts" UserOrGroupSid="S-1-5-32-544" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="*" />
+        </Conditions>
+      </FilePathRule>
+    </RuleCollection>
+  </AppLockerPolicy>
+"@
+                $policy > $env:TEMP\Policy.xml
+                Set-AppLockerPolicy -XMLPolicy $env:TEMP\Policy.xml
+                Remove-Item $env:TEMP\Policy.xml -Force
+            }
+
+            Set-Service "AppIDSvc" -StartupType Automatic -ea SilentlyContinue
+            Start-Service "AppIDSVC"
+        }
+
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'AppLockerPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;  
     }
 }
 
@@ -972,8 +1229,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUD1Ii+TyZV1wJRYrvloDl0RjE
-# jbmgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUstSXVqdwqFyOt2bisV8C8Y6I
+# dZugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1038,12 +1295,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQQ
-# EsCTB5C5p5sUjmO06IDaVmhGcTANBgkqhkiG9w0BAQEFAASCAQAHfDej0UD5ytJz
-# ZutNGdrz8ULU+kGtVrY+l21KO3AU1u/jxjm6wSsiOEjzzbhXsUADwG/hWi0u7DBR
-# GLAlULxon7BPlWBIxhba03ic7IgfvjOasxbCcWeu5+4koEExq37gkIRXqgJ21xIQ
-# F0rpiuurQSRd8WyxGv4jjSwKwxNx5RhJzgD30S6MOcr8vmkdAsnGaN6n2JgLzPzH
-# dJPL12iTqi8Ht6rFwADseDYuoIRrrbiEVjEzmwdaFtSSmFEUBnYsICkp4RdwVy9M
-# a5vhucleYDC7L8+qHiBHVqsiB+Ls0dhCbracuUMLxk8eVireCoDHVPdq7QrRI3FV
-# YpXf+E1u
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQr
+# KqkYS/Gg4S3lno4mD/sRNqugPTANBgkqhkiG9w0BAQEFAASCAQA2WiSBBFGuGMe0
+# rvb9BHPaTZmXuMLlRuDF7N0pZdE5rz6SL8k8R9GY0ABdq4KDzebQKrjQU9om2ZVm
+# 1FiHIhdG+977+LAX6EO3tAcY2Mn0o4OvDjMILpg+YkdZHnLlUSUE0kZ/vKcWbJLu
+# CpkGAOkybasooV8tCAnBgTlgKnlK5vLLLKSaqS6wTAR1NgK7GS5AsIyn8YNCAM6v
+# mN5u9kE49adsMU/Sx17ocRVU1ny9h3eAIXq8kVS8wFAnzbk8Wx4YTBLpbwEgRn8e
+# FFXnHo5Wg2Y8UH6VM3KUyt9oILSTt4rZyeBqT0nB2caR95cljpyTWdMoHmwnIbxE
+# gZqYLY5Y
 # SIG # End signature block

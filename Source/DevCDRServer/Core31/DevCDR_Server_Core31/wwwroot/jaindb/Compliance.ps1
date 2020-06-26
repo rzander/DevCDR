@@ -1,11 +1,12 @@
 ﻿Import-Module Compliance
+
 Test-OSVersion
 Test-Nuget
 Test-OneGetProvider("1.7.1.3")
-Test-DevCDRAgent("2.0.1.36")
+Test-DevCDRAgent("2.0.1.39")
 #Test-Administrators 
 Set-LocalAdmin -disableAdmin $false -randomizeAdmin $true
-#Test-LocalAdmin
+Test-LocalAdmin
 Test-WOL
 Test-FastBoot
 Test-DeliveryOptimization
@@ -56,11 +57,12 @@ if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVir
 
 Test-Software
 
-#Set CommercialID for UpdateAnalytics
-#if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection") -ne $true) { New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection" -force -ea SilentlyContinue };
-#New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' -Name 'CommercialId' -Value "9ec9bb7c-070c-4c0e-98f1-bdab73f0d673" -PropertyType String -Force -ea SilentlyContinue;
-#New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' -Name 'AllowTelemetry' -Value 1 -PropertyType DWord -Force -ea SilentlyContinue;
-#New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' -Name 'AllowDeviceNameInTelemetry' -Value 1 -PropertyType DWord -Force -ea SilentlyContinue;
+#Edge Chromium Settings...
+#Set-EdgeChromium -HomePageURL "https://ruckzuck.tools" [-RestrictUserDomain "zander.ch"] [-Force $true] [-PolicyRevision 99]
+
+#OneDrive Settings
+#Set-OneDrvice [-KFM $true] [-FilesOnDemand $true] [-RemovePolicy $false] [-Force $true] [-PolicyRevision 99]
+
 
 $global:chk.Add("Computername", $env:computername)
 $global:chk | ConvertTo-Json
