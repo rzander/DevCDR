@@ -200,11 +200,8 @@ $object | ConvertTo-Json
     <Setting Name="HardwareID" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="RootCA" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">DeviceCommander</Value>
-    </Setting>
     <Setting Name="CustomerID" Type="System.String" Scope="Application">
-      <Value Profile="(Default)" />
+      <Value Profile="(Default)">DEMO</Value>
     </Setting>
   </Settings>
 </SettingsFile>

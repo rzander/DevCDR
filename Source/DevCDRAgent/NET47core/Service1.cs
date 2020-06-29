@@ -981,6 +981,8 @@ namespace DevCDRAgent
                                     {
                                         if (cert.Issuer.Split('=')[1] == "DeviceCommander")
                                             store.Remove(cert);
+                                        if (cert.Issuer.Split('=')[1] == "ROMAWO")
+                                            store.Remove(cert);
                                     }
                                 }
                                 catch (Exception ex)
@@ -1079,6 +1081,8 @@ namespace DevCDRAgent
                                             try
                                             {
                                                 if (cert.Issuer.Split('=')[1] == "DeviceCommander")
+                                                    store.Remove(cert);
+                                                if (cert.Issuer.Split('=')[1] == "ROMAWO")
                                                     store.Remove(cert);
                                             }
                                             catch { }
@@ -1357,13 +1361,13 @@ namespace DevCDRAgent
                                     {
                                         if (xAgent.Exists && xAgent.Valid && xAgent.HasPrivateKey && !string.IsNullOrEmpty(xAgent.Signature))
                                         {
-                                            //If the rot has changed...
-                                            if (string.IsNullOrEmpty(xAgent.RootCA))
-                                            {
-                                                Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + Properties.Settings.Default.RootCA);
-                                                connection.InvokeAsync("GetCert", Properties.Settings.Default.RootCA, false).Wait(5000); //request root cert
-                                                Thread.Sleep(2500);
-                                            }
+                                            //If the root has changed...
+                                            //if (string.IsNullOrEmpty(xAgent.RootCA))
+                                            //{
+                                            //    Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + Properties.Settings.Default.RootCA);
+                                            //    connection.InvokeAsync("GetCert", Properties.Settings.Default.RootCA, false).Wait(5000); //request root cert
+                                            //    Thread.Sleep(2500);
+                                            //}
 
                                             //If the IssuingCA has changed...
                                             if (string.IsNullOrEmpty(xAgent.IssuingCA))
@@ -1426,16 +1430,16 @@ namespace DevCDRAgent
                                             }
                                             try
                                             {
-                                                if (string.IsNullOrEmpty(xAgent.RootCA))
-                                                {
-                                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + Properties.Settings.Default.RootCA);
-                                                    connection.InvokeAsync("GetCert", Properties.Settings.Default.RootCA, false).Wait(5000); //request root cert
-                                                    Thread.Sleep(2500);
-                                                }
+                                                //if (string.IsNullOrEmpty(xAgent.RootCA))
+                                                //{
+                                                //    Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for: " + Properties.Settings.Default.RootCA);
+                                                //    connection.InvokeAsync("GetCert", Properties.Settings.Default.RootCA, false).Wait(5000); //request root cert
+                                                //    Thread.Sleep(2500);
+                                                //}
 
-                                                if (string.IsNullOrEmpty(xAgent.IssuingCA))
+                                                if (string.IsNullOrEmpty(xAgent.IssuingCA) || string.IsNullOrEmpty(xAgent.RootCA))
                                                 {
-                                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + xAgent.Certificate.Issuer.Split('=')[1]);
+                                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for: " + xAgent.Certificate.Issuer.Split('=')[1]);
                                                     connection.InvokeAsync("GetCert", xAgent.Certificate.Issuer.Split('=')[1], false).Wait(5000); //request issuer cert
                                                     Thread.Sleep(2500);
                                                 }
@@ -1518,7 +1522,7 @@ namespace DevCDRAgent
 
                 connection.On<string>("setCert", (s1) =>
                 {
-                    if (s1.Length > 67)
+                    if (s1.Length > 512)
                     {
                         Trace.WriteLine(DateTime.Now.ToString() + "\t Certificate received... ");
                     }
@@ -1547,10 +1551,31 @@ namespace DevCDRAgent
                         {
                             SignatureVerification.addCertToStore(cert, StoreName.My, StoreLocation.LocalMachine);
                             Trace.WriteLine(DateTime.Now.ToString() + "\t Machine Certificate Installed... ");
+                            if(!cert.Verify())
+                            {
+                                try
+                                {
+                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + cert.Issuer.Split('=')[1]);
+                                    connection.InvokeAsync("GetCert", cert.Issuer.Split('=')[1], false).Wait(1000); //request root cert
+                                    Thread.Sleep(1500);
+                                }
+                                catch { }
+                            }
                         }
                         else
                         {
                             SignatureVerification.addCertToStore(cert, StoreName.Root, StoreLocation.LocalMachine);
+                            if (!cert.Verify())
+                            {
+                                try
+                                {
+                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + cert.Issuer.Split('=')[1]);
+                                    connection.InvokeAsync("GetCert", cert.Issuer.Split('=')[1], false).Wait(1000); //request root cert
+                                    Thread.Sleep(1500);
+                                }
+                                catch { }
+
+                            }
                         }
 
                         xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID);
@@ -1888,13 +1913,13 @@ namespace DevCDRAgent
                             {
                                 try
                                 {
-                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + Properties.Settings.Default.RootCA);
-                                    connection.InvokeAsync("GetCert", Properties.Settings.Default.RootCA, false).Wait(1000); //request root cert
-                                    Thread.Sleep(1500);
-
                                     Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + xAgent.Certificate.Issuer.Split('=')[1]);
                                     connection.InvokeAsync("GetCert", xAgent.Certificate.Issuer.Split('=')[1], false).Wait(1000); //request issuer cert
                                     Thread.Sleep(1500);
+
+                                    //Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + Properties.Settings.Default.RootCA);
+                                    //connection.InvokeAsync("GetCert", Properties.Settings.Default.RootCA, false).Wait(1000); //request root cert
+                                    //Thread.Sleep(1500);
                                 }
                                 catch (Exception ex)
                                 {
