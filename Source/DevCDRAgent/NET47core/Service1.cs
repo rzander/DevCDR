@@ -1612,7 +1612,8 @@ namespace DevCDRAgent
 
                         Random rnd = new Random();
                         tReInit.Interval = rnd.Next(5000, Properties.Settings.Default.StatusDelay * 2); //wait max 10s to ReInit
-                    } else
+                    } 
+                    else
                     {
                         //no valid cert received
                         Hostname = Environment.MachineName + "_NOCERT";

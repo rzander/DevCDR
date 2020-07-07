@@ -201,7 +201,7 @@ $object | ConvertTo-Json
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="CustomerID" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">DEMO</Value>
+      <Value Profile="(Default)" />
     </Setting>
   </Settings>
 </SettingsFile>
