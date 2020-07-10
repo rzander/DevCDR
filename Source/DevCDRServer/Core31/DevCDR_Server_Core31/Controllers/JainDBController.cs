@@ -82,6 +82,9 @@ namespace DevCDRServer.Controllers
             return View("About");
         }
 
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [Authorize]
         [Route("diff")]
         [HttpGet]
@@ -272,6 +275,9 @@ namespace DevCDRServer.Controllers
             return View("DiffFrame");
         }
 
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [HttpGet]
         [BasicAuthenticationAttribute()]
         [Route("full")]
@@ -335,6 +341,9 @@ namespace DevCDRServer.Controllers
             return null;
         }
 
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [Authorize]
         [HttpGet]
         [Route("GetHistory/{id}")]
@@ -413,6 +422,9 @@ namespace DevCDRServer.Controllers
 
         }
 
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [Authorize]
         [Route("inv")]
         [HttpGet]
@@ -694,6 +706,9 @@ namespace DevCDRServer.Controllers
             return Inv(id, name, index, blockType);
         }
 
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [Authorize]
         [Route("invjson")]
         [HttpGet]
@@ -735,6 +750,9 @@ namespace DevCDRServer.Controllers
             return View("InvJson");
         }
 
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [TokenAuthentication]
         [Route("invjsonframe")]
         [HttpGet]
@@ -776,6 +794,9 @@ namespace DevCDRServer.Controllers
             return View("InvJsonFrame");
         }
 
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [HttpGet]
         [BasicAuthenticationAttribute()]
         [Route("query")]
@@ -827,6 +848,9 @@ namespace DevCDRServer.Controllers
             return null;
         }
 
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [HttpGet]
         [BasicAuthenticationAttribute()]
         [Route("queryAll")]
@@ -869,6 +893,9 @@ namespace DevCDRServer.Controllers
             return null;
         }
 
+#if DEBUG
+        [AllowAnonymous]
+#endif
         [HttpGet]
         [BasicAuthenticationAttribute()]
         [Route("totalDeviceCount")]
@@ -955,21 +982,8 @@ namespace DevCDRServer.Controllers
 
             return "";
         }
-#if DEBUG
-        [AllowAnonymous]
-#endif
-#if DEBUG
-        [AllowAnonymous]
-#endif
-#if DEBUG
-        [AllowAnonymous]
-#endif
-#if DEBUG
-        [AllowAnonymous]
-#endif
-#if DEBUG
-        [AllowAnonymous]
-#endif
+
+
         //[BasicAuthenticationAttribute()]
         //[HttpGet]
         //[Route("export")]

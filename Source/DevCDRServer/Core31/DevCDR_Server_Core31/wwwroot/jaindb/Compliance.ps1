@@ -3,7 +3,7 @@
 Test-OSVersion
 Test-Nuget
 Test-OneGetProvider("1.7.1.3")
-Test-DevCDRAgent("2.0.1.39")
+Test-DevCDRAgent("2.0.1.40")
 #Test-Administrators 
 Set-LocalAdmin -disableAdmin $false -randomizeAdmin $true
 Test-LocalAdmin

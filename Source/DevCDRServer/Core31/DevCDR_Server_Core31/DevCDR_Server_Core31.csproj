@@ -13,9 +13,9 @@
     <ApplicationIcon>wwwroot\favicon.ico</ApplicationIcon>
     <OutputType>WinExe</OutputType>
     <StartupObject>DevCDR.Program</StartupObject>
-    <AssemblyVersion>2.1.0.3</AssemblyVersion>
+    <AssemblyVersion>2.1.1.0</AssemblyVersion>
     <WebProject_DirectoryAccessLevelKey>0</WebProject_DirectoryAccessLevelKey>
-    <FileVersion>2.1.0.3</FileVersion>
+    <FileVersion>2.1.1.0</FileVersion>
     <Version>2.1.0</Version>
     <DockerTargetOS>Linux</DockerTargetOS>
     <UserSecretsId>93ce79d7-2e37-460b-bc67-a091d9b812b5</UserSecretsId>

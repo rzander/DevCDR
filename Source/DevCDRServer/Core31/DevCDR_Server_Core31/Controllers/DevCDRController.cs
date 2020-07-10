@@ -31,7 +31,7 @@ namespace DevCDRServer.Controllers
         private IMemoryCache _cache;
         private WebClient webclient = new WebClient();
         public DevCDR.Extensions.AzureLogAnalytics AzureLog = new DevCDR.Extensions.AzureLogAnalytics("","","");
-
+        public static string RootName = (Environment.GetEnvironmentVariable("rootKey") ?? "DeviceCommander");
         public DevCDRController(IHubContext<Default> hubContext, IWebHostEnvironment env, IMemoryCache memoryCache)
         {
             _hubContext = hubContext;
@@ -213,7 +213,10 @@ namespace DevCDRServer.Controllers
                 try
                 {
                     if (X509AgentCert.publicCertificates.Count == 0)
-                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+                    {
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceComamnder", false).Result))); //root
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(RootName, false).Result))); //root
+                    }
 
                     var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
                     if (!X509AgentCert.publicCertificates.Contains(xIssuing))
@@ -255,7 +258,10 @@ namespace DevCDRServer.Controllers
                 try
                 {
                     if (X509AgentCert.publicCertificates.Count == 0)
-                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+                    {
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceComamnder", false).Result))); //root
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(RootName, false).Result))); //root
+                    }
 
                     var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
                     if (!X509AgentCert.publicCertificates.Contains(xIssuing))
@@ -317,7 +323,10 @@ namespace DevCDRServer.Controllers
                 try
                 {
                     if (X509AgentCert.publicCertificates.Count == 0)
-                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+                    {
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceComamnder", false).Result))); //root
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(RootName, false).Result))); //root
+                    }
 
                     var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
                     if (!X509AgentCert.publicCertificates.Contains(xIssuing))
@@ -573,7 +582,10 @@ namespace DevCDRServer.Controllers
                 try
                 {
                     if (X509AgentCert.publicCertificates.Count == 0)
-                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+                    {
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceComamnder", false).Result))); //root
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(RootName, false).Result))); //root
+                    }
 
                     var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
                     if (!X509AgentCert.publicCertificates.Contains(xIssuing))
@@ -626,7 +638,7 @@ namespace DevCDRServer.Controllers
         //    try
         //    {
         //        if (X509AgentCert.publicCertificates.Count == 0)
-        //            X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+        //            X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(RootName, false).Result))); //root
 
         //        var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
         //        if (!X509AgentCert.publicCertificates.Contains(xIssuing))
@@ -696,7 +708,10 @@ namespace DevCDRServer.Controllers
             try
             {
                 if (X509AgentCert.publicCertificates.Count == 0)
-                    X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+                {
+                    X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceComamnder", false).Result))); //root
+                    X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(RootName, false).Result))); //root
+                }
 
                 var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
                 if (!X509AgentCert.publicCertificates.Contains(xIssuing))
