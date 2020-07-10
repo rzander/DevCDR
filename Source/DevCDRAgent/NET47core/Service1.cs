@@ -2339,10 +2339,14 @@ namespace DevCDRAgent
                                         {
                                             string sEndPoint = xAgent.EndpointURL.Replace("/chat", "");
                                             HttpContent oCont = new StringContent(jLog.ToString());
-                                            oWebClient.PostAsync(sEndPoint + "/devcdr/createalert?signature=" + xAgent.Signature, oCont);
+                                            oWebClient.PostAsync(sEndPoint + "/devcdr/createalert?signature=" + xAgent.Signature, oCont).Wait(3000);
+                                            Trace.WriteLine(DateTime.Now.ToString() + "\t Alert created:" + sEndPoint + ";" + jLog.ToString());
                                         }
                                     }
-                                    catch { }
+                                    catch(Exception ex)
+                                    {
+                                        Trace.WriteLine(DateTime.Now.ToString() + "\t ERROR: unable to create alert.. " + ex.Message);
+                                    }
                                 }
                                 else
                                 {
