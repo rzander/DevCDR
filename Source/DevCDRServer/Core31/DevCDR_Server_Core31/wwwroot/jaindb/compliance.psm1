@@ -997,6 +997,50 @@ Function Set-AppLocker($XMLFile = "-", $PolicyRevision = 0, $Force = $false, $Re
     }
 }
 
+Function Set-WindowsUpdate($DeferFeatureUpdateDays = 7, $DeferQualityUpdateDays = 3, $RecommendedUpdates = $true, $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false) {
+    <#
+        .Description
+        Configure Windows Updates...
+    #>
+
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).WUAPolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
+
+        Remove-Item -Path HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX -recurse -force -ea SilentlyContinue  | Out-Null
+        Remove-Item -Path HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate -recurse -force -ea SilentlyContinue  | Out-Null
+
+        If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -force -ea SilentlyContinue | Out-Null } 
+        If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -force -ea SilentlyContinue | Out-Null } 
+
+        #Feature Updates
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferFeatureUpdates' -Value 1 -ea SilentlyContinue 
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'BranchReadinessLevel' -Value 16 -ea SilentlyContinue 
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferFeatureUpdatesPeriodInDays' -Value $DeferFeatureUpdateDays -ea SilentlyContinue 
+
+        #Quality Updates
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdates' -Value 1 -ea SilentlyContinue 
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdatesPeriodInDays' -Value $DeferQualityUpdateDays -ea SilentlyContinue 
+
+        #Enable Recommended Updates
+        if ($RecommendedUpdates) {
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name 'IncludeRecommendedUpdates' -Value 1 -ea SilentlyContinue 
+        }
+        else {
+            Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name 'IncludeRecommendedUpdates' -Value 1 -ea SilentlyContinue  | Out-Null;
+        }
+
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'WUAPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
+    }
+
+    if ($RemovePolicy) {
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'WUAPolicy' -Force -ea SilentlyContinue | Out-Null;
+        Remove-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -recurse -force -ea SilentlyContinue  | Out-Null;
+        Remove-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -recurse -force -ea SilentlyContinue  | Out-Null;
+    }
+
+
+}
+
 #region DevCDR
 
 Function Get-DevcdrEP {
@@ -1229,8 +1273,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUstSXVqdwqFyOt2bisV8C8Y6I
-# dZugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5LQE2rURFbILOs+7oVFCAwoA
+# V9agggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1295,12 +1339,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQr
-# KqkYS/Gg4S3lno4mD/sRNqugPTANBgkqhkiG9w0BAQEFAASCAQA2WiSBBFGuGMe0
-# rvb9BHPaTZmXuMLlRuDF7N0pZdE5rz6SL8k8R9GY0ABdq4KDzebQKrjQU9om2ZVm
-# 1FiHIhdG+977+LAX6EO3tAcY2Mn0o4OvDjMILpg+YkdZHnLlUSUE0kZ/vKcWbJLu
-# CpkGAOkybasooV8tCAnBgTlgKnlK5vLLLKSaqS6wTAR1NgK7GS5AsIyn8YNCAM6v
-# mN5u9kE49adsMU/Sx17ocRVU1ny9h3eAIXq8kVS8wFAnzbk8Wx4YTBLpbwEgRn8e
-# FFXnHo5Wg2Y8UH6VM3KUyt9oILSTt4rZyeBqT0nB2caR95cljpyTWdMoHmwnIbxE
-# gZqYLY5Y
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSM
+# FdzL68AnqUXqPQYi19VhCUla0TANBgkqhkiG9w0BAQEFAASCAQC567HtWWTEBka6
+# +b4z7YebdoaiPwGGnGbKji38KBn0768GP7jEEQ5HJ63sunehOArkgGA1SV4aJ3FV
+# +a/zInhjJIxGsz9gA0u8au5zrHE6hBCe6kV1Yt2NFCzxNiT8SxfjK586VI/8tmdR
+# BlHudj/kQKJTCdT8YkzZu36XFf5M3CtinZKyCS5FOORDLgWy6GYniPOP3ilOOXEk
+# L/6sBibPCl393ei54556yXLItZj8fZid390LJ9F9CS1RTJyL1bCnfY+HSrNxeAT9
+# JUwNZlBtu8Cxgb2hWptvEHjOPeOdivS5pII97l4tuxqTMrEI8HPZc5ttUPCUJJTh
+# ewkFSe7u
 # SIG # End signature block
