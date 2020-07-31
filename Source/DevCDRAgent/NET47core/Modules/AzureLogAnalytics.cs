@@ -20,7 +20,7 @@ namespace DevCDRAgent.Modules
         }
         public AzureLogAnalytics(string tennantid)
         {
-            string sKeys = GetRegValue("software\\itnetX\\WriteAnalyticsLogs", tennantid, true);
+            string sKeys = GetRegValue("software\\romawo\\WriteAnalyticsLogs", tennantid, true);
             if (!string.IsNullOrEmpty(sKeys))
             {
                 try

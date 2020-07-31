@@ -9,6 +9,7 @@ using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Win32;
 using System.IO;
+using System.Configuration;
 
 namespace DevCDRAgent
 {
@@ -99,7 +100,20 @@ namespace DevCDRAgent
                             //In case of config File corruption, delete all old config Files
                             foreach (string sDir in Directory.GetDirectories(Environment.ExpandEnvironmentVariables("%LOCALAPPDATA%\\Zander_Tools"), "DevCDRAgentCore*", SearchOption.TopDirectoryOnly))
                             {
-                                Directory.Delete(sDir, true);
+                                try
+                                {
+                                    Directory.Delete(sDir, true);
+                                }
+                                catch { }
+                            }
+                            //In case of config File corruption, delete all old config Files
+                            foreach (string sDir in Directory.GetDirectories(Environment.ExpandEnvironmentVariables("%LOCALAPPDATA%\\Zander_-_Tools"), "DevCDRAgentCore*", SearchOption.TopDirectoryOnly))
+                            {
+                                try
+                                {
+                                    Directory.Delete(sDir, true);
+                                }
+                                catch { }
                             }
                         }
                         break;

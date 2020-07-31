@@ -276,7 +276,7 @@ namespace DevCDRAgent
         protected override void OnStart(string[] args)
         {
             
-            if (Properties.Settings.Default.CustomerID == "DEMO" && File.Exists("c:\\remove-me.txt"))
+            if ((Properties.Settings.Default.CustomerID == "DEMO" ||  string.IsNullOrEmpty(Properties.Settings.Default.CustomerID)) && File.Exists("c:\\remove-me.txt"))
             {
                 OFF(true);
                 return;
@@ -407,10 +407,6 @@ namespace DevCDRAgent
                 isconnected = false;
                 Console.WriteLine(ex.Message);
                 Trace.WriteLine("\tError: " + ex.Message + " " + DateTime.Now.ToString());
-
-                Properties.Settings.Default.ConnectionErrors++;
-                Properties.Settings.Default.Save();
-                Properties.Settings.Default.Reload();
 
                 //Only fallback if we have internet...
                 if (IsConnectedToInternet())
@@ -1198,8 +1194,8 @@ namespace DevCDRAgent
                             lock (_locker)
                             {
                                 oScan.GetSWRepository().Wait(60000);
-                                oScan.SWScan().Wait(60000);
-                                oScan.CheckUpdates(null).Wait(60000);
+                                oScan.SWScanAsync().Wait(60000);
+                                oScan.CheckUpdatesAsync(null).Wait(60000);
                             }
 
 
@@ -1249,8 +1245,8 @@ namespace DevCDRAgent
 
 
                                 oScan.GetSWRepository().Wait(30000);
-                                oScan.SWScan().Wait(30000);
-                                oScan.CheckUpdates(null).Wait(30000);
+                                oScan.SWScanAsync().Wait(30000);
+                                oScan.CheckUpdatesAsync(null).Wait(30000);
 
 
                                 List<string> lSW = new List<string>();
