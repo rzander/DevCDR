@@ -30,7 +30,7 @@ namespace DevCDRServer.Controllers
         private readonly IWebHostEnvironment _env;
         private IMemoryCache _cache;
         private WebClient webclient = new WebClient();
-        public DevCDR.Extensions.AzureLogAnalytics AzureLog = new DevCDR.Extensions.AzureLogAnalytics("","","");
+        public DevCDR.Extensions.AzureLogAnalytics AzureLog = new DevCDR.Extensions.AzureLogAnalytics("", "", "");
         public static string RootName = (Environment.GetEnvironmentVariable("rootKey") ?? "DeviceCommander");
         public DevCDRController(IHubContext<Default> hubContext, IWebHostEnvironment env, IMemoryCache memoryCache)
         {
@@ -57,6 +57,8 @@ namespace DevCDRServer.Controllers
                 }
             }
         }
+        public static string lastalert = "";
+        private readonly object __lockObj = new object();
 
         [AllowAnonymous]
         public ActionResult Dashboard()
@@ -123,7 +125,7 @@ namespace DevCDRServer.Controllers
                 ViewBag.ExtMenu = true;
             }
 
-            if(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
             {
                 ViewBag.Location = "Internal IP";
             }
@@ -229,7 +231,7 @@ namespace DevCDRServer.Controllers
                 if (oSig.Exists && oSig.Valid)
                 {
                     string sScript = GetScriptAsync(oSig.CustomerID, filename).Result;
-                    
+
                     if (string.IsNullOrEmpty(sScript))
                         sScript = GetScriptAsync("DEMO", filename).Result;
 
@@ -289,9 +291,9 @@ namespace DevCDRServer.Controllers
                 }
                 else
                 {
-                    if(oSig.Expired) //allow if cert is expired in the last 7 days
+                    if (oSig.Expired) //allow if cert is expired in the last 7 days
                     {
-                        if((DateTime.UtcNow - oSig.Certificate.NotAfter).TotalDays < 7)
+                        if ((DateTime.UtcNow - oSig.Certificate.NotAfter).TotalDays < 7)
                         {
                             string sScript = GetOSDAsync(oSig.CustomerID, OS).Result;
 
@@ -438,7 +440,7 @@ namespace DevCDRServer.Controllers
 
             _cache.TryGetValue(customerid + filename, out Res);
 
-            if(!string.IsNullOrEmpty(Res))
+            if (!string.IsNullOrEmpty(Res))
             {
                 return Res;
             }
@@ -454,7 +456,7 @@ namespace DevCDRServer.Controllers
                     {
                         Res = await client.GetStringAsync($"{sURL}&customerid={customerid}&file={filename}");
 
-                        if(!string.IsNullOrEmpty(Res))
+                        if (!string.IsNullOrEmpty(Res))
                         {
                             var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(5)); //cache hash for x Seconds
                             _cache.Set(customerid + filename, Res, cacheEntryOptions);
@@ -503,7 +505,7 @@ namespace DevCDRServer.Controllers
                         if (!string.IsNullOrEmpty(Res))
                         {
                             var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(15));
-                            _cache.Set("osd" +customerid + os, Res, cacheEntryOptions);
+                            _cache.Set("osd" + customerid + os, Res, cacheEntryOptions);
                         }
                     }
 
@@ -575,6 +577,19 @@ namespace DevCDRServer.Controllers
         [AllowAnonymous]
         public ActionResult CreateAlert(string data, string signature)
         {
+            if (string.IsNullOrEmpty(data))
+            {
+                using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
+                    data = reader.ReadToEndAsync().Result;
+            }
+
+            lock (__lockObj)
+            {
+                if (data != lastalert)
+                    lastalert = data;
+                else return null;
+            }
+
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
             {
                 X509AgentCert oSig = new X509AgentCert(signature);
@@ -610,16 +625,33 @@ namespace DevCDRServer.Controllers
                         sURL = Environment.GetEnvironmentVariable("fnDevCDR");
                         sURL = sURL.Replace("{fn}", "fnSendMail");
 
-                        if (string.IsNullOrEmpty(data))
-                        {
-                            using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
-                                data = reader.ReadToEndAsync().Result;
-                        }
-
                         using (HttpClient client = new HttpClient())
                         {
-                            StringContent oData = new StringContent(data, Encoding.UTF8, "application/json");
-                            var oPost = client.PostAsync($"{sURL}&to={jCust["contact"].ToString()}&subject=Alert", new StringContent(data));
+                            //check if data is JSON...
+                            if (data.TrimStart().StartsWith('{'))
+                            {
+                                JObject oJData = JObject.Parse(data);
+                                data = oJData.ToString(Formatting.Indented); //Format JSON
+                                data = data.TrimStart('{');
+                                data = data.TrimEnd('}');
+                                data = "Threat details:<br>" + data;
+                                if (oJData["DefenderEventID"].Value<int>() == 1117)
+                                {
+                                    data = "A Threat was cleaned successfully by Windows-Defender !<br>" + data;
+                                } else
+                                {
+                                    data = "A Threat was detected in your environment !<br>" + data;
+                                }
+                                data = data.Replace("\n", "<br>");
+                                data = data.Replace("\t", "");
+                                //data = data.Replace(",", "<br>");
+                                data = data + "<br><br>Threat-Alert was generated at ROMAWO.com";
+                            }
+
+
+
+                            StringContent oData = new StringContent(data, Encoding.UTF8, "text/html");
+                            var oPost = client.PostAsync($"{sURL}&to={jCust["contact"].ToString()}&subject=Threat-Alert%21%21%21", new StringContent(data));
                             oPost.Wait(5000);
                             return new OkResult();
                         }
@@ -786,7 +818,7 @@ namespace DevCDRServer.Controllers
                 MemberInfo[] memberInfos = xType.GetMember("jData", BindingFlags.Public | BindingFlags.Static);
 
                 jData = ((FieldInfo)memberInfos[0]).GetValue(new JArray()) as JArray;
-                if(!string.IsNullOrEmpty(Group))
+                if (!string.IsNullOrEmpty(Group))
                     jData = new JArray(jData.SelectTokens($"$.[?(@.Groups=='{ Group }')]"));
             }
             catch { }
@@ -1057,7 +1089,7 @@ namespace DevCDRServer.Controllers
             var tItems = new JainDBController(_env, _cache).Query("$select=@MAC");
             JArray jMacs = tItems.Result;
 
-            foreach(var jTok in jMacs.SelectTokens("..@MAC"))
+            foreach (var jTok in jMacs.SelectTokens("..@MAC"))
             {
                 if (jTok.Type == JTokenType.String)
                     lResult.Add(jTok.Value<string>());

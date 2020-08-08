@@ -177,6 +177,7 @@ function Test-DevCDRAgent($AgentVersion = "2.0.1.36") {
     $global:chk.Add("DevCDRAgent", (get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion )
 }
 
+#depreciated Test-LocalAdmin
 function Test-Administrators {
     <#
         .Description
@@ -263,6 +264,7 @@ function Test-LocalAdmin {
     $global:chk.Add("Admins", $locAdmin.Count)
 }
 
+#depreciated by Set-WOL
 function Test-WOL {
     <#
         .Description
@@ -310,6 +312,7 @@ function Test-WOL {
     #$global:chk.Add("WOL", $bRes)
 }
 
+#depreciated by Set-FastBoot
 function Test-FastBoot($Value = 0) {
     <#
         .Description
@@ -323,6 +326,7 @@ function Test-FastBoot($Value = 0) {
     $global:chk.Add("FastBoot", $Value)
 }
 
+#depreciated by Set-DeliveryOptimization
 function Test-DeliveryOptimization {
     <#
         .Description
@@ -375,6 +379,7 @@ function Test-Software {
         if ($updates) { $global:chk.Add("RZUpdates", "") } else { $global:chk.Add("RZUpdates", "") }   
     }
 }
+
 function Update-Software {
     <#
         .Description
@@ -997,7 +1002,7 @@ Function Set-AppLocker($XMLFile = "-", $PolicyRevision = 0, $Force = $false, $Re
     }
 }
 
-Function Set-WindowsUpdate($DeferFeatureUpdateDays = 7, $DeferQualityUpdateDays = 3, $RecommendedUpdates = $true, $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false) {
+Function Set-WindowsUpdate($DeferFeatureUpdateDays = 7, $DeferQualityUpdateDays = 3, $RecommendedUpdates = $false, $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false) {
     <#
         .Description
         Configure Windows Updates...
@@ -1005,31 +1010,33 @@ Function Set-WindowsUpdate($DeferFeatureUpdateDays = 7, $DeferQualityUpdateDays 
 
     if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).WUAPolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
 
-        Remove-Item -Path HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX -recurse -force -ea SilentlyContinue  | Out-Null
-        Remove-Item -Path HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate -recurse -force -ea SilentlyContinue  | Out-Null
+        if (-NOT $RemovePolicy) {
+            Remove-Item -Path 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX' -recurse -force -ea SilentlyContinue  | Out-Null
+            Remove-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -recurse -force -ea SilentlyContinue  | Out-Null
 
-        If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -force -ea SilentlyContinue | Out-Null } 
-        If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -force -ea SilentlyContinue | Out-Null } 
+            If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -force -ea SilentlyContinue | Out-Null } 
+            If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -force -ea SilentlyContinue | Out-Null } 
 
-        #Feature Updates
-        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferFeatureUpdates' -Value 1 -ea SilentlyContinue 
-        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'BranchReadinessLevel' -Value 16 -ea SilentlyContinue 
-        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferFeatureUpdatesPeriodInDays' -Value $DeferFeatureUpdateDays -ea SilentlyContinue 
+            #Feature Updates
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferFeatureUpdates' -Value 1 -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'BranchReadinessLevel' -Value 16 -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferFeatureUpdatesPeriodInDays' -Value $DeferFeatureUpdateDays -ea SilentlyContinue 
 
-        #Quality Updates
-        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdates' -Value 1 -ea SilentlyContinue 
-        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdatesPeriodInDays' -Value $DeferQualityUpdateDays -ea SilentlyContinue 
+            #Quality Updates
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdates' -Value 1 -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdatesPeriodInDays' -Value $DeferQualityUpdateDays -ea SilentlyContinue 
 
-        #Enable Recommended Updates
-        if ($RecommendedUpdates) {
-            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name 'IncludeRecommendedUpdates' -Value 1 -ea SilentlyContinue 
+            #Enable Recommended (Preview) Updates
+            if ($RecommendedUpdates) {
+                Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name 'IncludeRecommendedUpdates' -Value 1 -ea SilentlyContinue 
+            }
+            else {
+                Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name 'IncludeRecommendedUpdates' -ea SilentlyContinue  | Out-Null;
+            }
+
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'WUAPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
         }
-        else {
-            Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name 'IncludeRecommendedUpdates' -Value 1 -ea SilentlyContinue  | Out-Null;
-        }
-
-        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
-        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'WUAPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
     }
 
     if ($RemovePolicy) {
@@ -1037,8 +1044,143 @@ Function Set-WindowsUpdate($DeferFeatureUpdateDays = 7, $DeferQualityUpdateDays 
         Remove-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -recurse -force -ea SilentlyContinue  | Out-Null;
         Remove-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -recurse -force -ea SilentlyContinue  | Out-Null;
     }
+}
+
+Function Set-Defender($ASR = $true, $NetworkProtection = $true, $PUA = $true, $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false) {
+    <#
+        .Description
+        Configure Windows Defender...
+    #>
+
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).DefenderPolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
+
+        if ($ASR) {
+            Set-MpPreference -AttackSurfaceReductionOnlyExclusions "C:\Windows", "C:\Program Files", "C:\Program Files (x86)", "C:\ProgramData\Microsoft\Windows Defender"
+            Set-MpPreference -AttackSurfaceReductionRules_Ids BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550, D4F940AB-401B-4EFC-AADC-AD5F3C50688A, 3B576869-A4EC-4529-8536-B80A7769E899, 75668C1F-73B5-4CF0-BB93-3ECF5CB7CC84, D3E037E1-3EB8-44C8-A917-57927947596D, 5BEB7EFE-FD9A-4556-801D-275E5FFC04CC, 92E97FA1-2EDF-4476-BDD6-9DD0B4DDDC7B, 01443614-cd74-433a-b99e-2ecdc07bfc25, c1db55ab-c21a-4637-bb3f-a12568109d35, d1e49aac-8f56-4280-b9ba-993a6d77406c, 2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4, 26190899-1602-49e8-8b27-eb1d0a1ce869, 7674ba52-37eb-4a4f-a9a1-f0f9a1619a2c, e6db77e5-3df2-4cf1-b95a-636979351e5b, 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2  -AttackSurfaceReductionRules_Actions Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, AuditMode
+        }
+
+        if ($NetworkProtection) {
+            Set-MpPreference -EnableNetworkProtection Enabled
+        }
+        else {
+            Set-MpPreference -EnableNetworkProtection Disabled
+        }
+
+        if ($PUA) {
+            Set-MpPreference -PUAProtection Enabled
+        }
+        else {
+            Set-MpPreference -PUAProtection Disabled
+        }
+
+        Set-MpPreference -DisableArchiveScanning $false
+        Set-MpPreference -DisableAutoExclusions $false
+        Set-MpPreference -DisableBehaviorMonitoring $false
+        Set-MpPreference -DisableBlockAtFirstSeen $false
+        Set-MpPreference -DisableCatchupFullScan $true
+        Set-MpPreference -DisableCatchupQuickScan $true
+        Set-MpPreference -DisableEmailScanning $true
+        Set-MpPreference -DisableIOAVProtection $false
+        Set-MpPreference -DisablePrivacyMode $false
+        Set-MpPreference -DisableRealtimeMonitoring $false
+        Set-MpPreference -DisableRemovableDriveScanning $true
+        Set-MpPreference -DisableRestorePoint $true
+        Set-MpPreference -DisableScanningMappedNetworkDrivesForFullScan $true
+        Set-MpPreference -DisableScanningNetworkFiles $false
+        Set-MpPreference -DisableScriptScanning $false
+
+        Set-MpPreference -MAPSReporting 1
+        Set-MpPreference -RandomizeScheduleTaskTimes $true
+        Set-MpPreference -ScanAvgCPULoadFactor 50
+        Set-MpPreference -ScanOnlyIfIdleEnabled $true
 
 
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'DefenderPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
+    }
+
+    if ($RemovePolicy) {
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'DefenderPolicy' -Force -ea SilentlyContinue | Out-Null;
+    }
+
+
+}
+
+function Set-WOL {
+    <#
+        .Description
+        Enable WOL on NetworkAdapters
+    #>
+    $bRes = $false
+    $niclist = Get-NetAdapter | Where-Object { ($_.MediaConnectionState -eq "Connected") -and (($_.name -match "Ethernet") -or ($_.name -match "local area connection")) }
+    $niclist | ForEach-Object { 
+        $nic = $_
+        $nicPowerWake = Get-WmiObject MSPower_DeviceWakeEnable -Namespace root\wmi | Where-Object { $_.instancename -match [regex]::escape($nic.PNPDeviceID) }
+        If ($nicPowerWake.Enable -eq $true) { }
+        Else {
+            try {
+                $nicPowerWake.Enable = $True
+                $nicPowerWake.psbase.Put() 
+                $bRes = $true;
+            }
+            catch { }
+        }
+        $nicMagicPacket = Get-WmiObject MSNdis_DeviceWakeOnMagicPacketOnly -Namespace root\wmi | Where-Object { $_.instancename -match [regex]::escape($nic.PNPDeviceID) }
+        If ($nicMagicPacket.EnableWakeOnMagicPacketOnly -eq $true) { }
+        Else {
+            try {
+                $nicMagicPacket.EnableWakeOnMagicPacketOnly = $True
+                $nicMagicPacket.psbase.Put()
+                $bRes = $true;
+            }
+            catch { }
+        }
+    }
+
+    
+    #Enable WOL broadcasts
+    if ((Get-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue).count -gt 1) {
+        #Cleanup WOl Rules
+        Remove-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue
+    }
+    if ((Get-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue).count -eq 0) {
+        #Add WOL Rule
+        New-NetFirewallRule -DisplayName "WOL" -Direction Outbound -RemotePort 9 -Protocol UDP -Action Allow
+    }
+
+    #if ($null -eq $global:chk) { $global:chk = @{ } }
+    #if ($global:chk.ContainsKey("WOL")) { $global:chk.Remove("WOL") }
+    #$global:chk.Add("WOL", $bRes)
+}
+
+function Set-FastBoot($Value = 0) {
+    <#
+        .Description
+        Disable FastBoot
+    #>
+
+    New-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' -Name 'HiberbootEnabled' -Value $Value -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("FastBoot")) { $global:chk.Remove("FastBoot") }
+    $global:chk.Add("FastBoot", $Value)
+}
+
+function Set-DeliveryOptimization {
+    <#
+        .Description
+        restrict Peer Selection on DeliveryOptimization
+    #>
+
+    #Create the key if missing 
+    If ((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization') -eq $false ) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -force -ea SilentlyContinue } 
+
+    #Enable Setting and Restrict to local Subnet only
+    Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -Name 'DORestrictPeerSelectionBy' -Value 1 -ea SilentlyContinue 
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("DO")) { $global:chk.Remove("DO") }
+    $global:chk.Add("DO", 1)
 }
 
 #region DevCDR
@@ -1273,8 +1415,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5LQE2rURFbILOs+7oVFCAwoA
-# V9agggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU/IDeFhxvBiQNy/TjtccuBrtX
+# mbCgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1339,12 +1481,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSM
-# FdzL68AnqUXqPQYi19VhCUla0TANBgkqhkiG9w0BAQEFAASCAQC567HtWWTEBka6
-# +b4z7YebdoaiPwGGnGbKji38KBn0768GP7jEEQ5HJ63sunehOArkgGA1SV4aJ3FV
-# +a/zInhjJIxGsz9gA0u8au5zrHE6hBCe6kV1Yt2NFCzxNiT8SxfjK586VI/8tmdR
-# BlHudj/kQKJTCdT8YkzZu36XFf5M3CtinZKyCS5FOORDLgWy6GYniPOP3ilOOXEk
-# L/6sBibPCl393ei54556yXLItZj8fZid390LJ9F9CS1RTJyL1bCnfY+HSrNxeAT9
-# JUwNZlBtu8Cxgb2hWptvEHjOPeOdivS5pII97l4tuxqTMrEI8HPZc5ttUPCUJJTh
-# ewkFSe7u
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSc
+# 1Hyt+k6UELTOTwN5YNilgFYI/zANBgkqhkiG9w0BAQEFAASCAQAg/ykTI6xieYgq
+# 7vlg46isi2I7p4VWOJTVmzAT+Bqo/6IaBnOZfoeY0cTYxLxUfQEgfuOlaxnYJlf5
+# wN9zZWo3qavg6dDLvQcoMDKUsTKyIWTPYq6OKX4iOtGtfibp6Gr50rn50wPYTxZ8
+# YouG1L+9YM3dzxkQyFsm+5abar9usKDk4u62J7qjz3upvvfscuxrbsg/cw9B1G8q
+# UxducjK9iHJs5XXtDjM/J0IE5VYHFnqhGmeq25QPWrTUeqXUBB8oi+mpKfjvRz4I
+# /fxovGtlcMyDPSaEUJVx3iJFhHziFlbN+C/VyORKKT8mtTmWhg/rElKaI+oe6D9t
+# WnrUqETK
 # SIG # End signature block
