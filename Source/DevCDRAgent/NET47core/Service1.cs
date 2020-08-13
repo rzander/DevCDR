@@ -505,6 +505,23 @@ namespace DevCDRAgent
             }
             catch { }
 
+            //Cleanup RuckZuck CustomerID
+            try
+            {
+                var RZPol = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\RuckZuck", true);
+                RZPol.DeleteValue("CustomerID", false);
+                RZPol.DeleteValue("Broadcast", false);
+            }
+            catch { }
+
+            //Cleanup ROMAWO policies and settings
+            try
+            {
+                var RZPol = Registry.LocalMachine.OpenSubKey("SOFTWARE", true);
+                RZPol.DeleteSubKeyTree("romawo", false);
+            }
+            catch { }
+
             try
             {
                 //Trace.WriteLine(DateTime.Now.ToString() + "\t Set Customer: " + s1);
