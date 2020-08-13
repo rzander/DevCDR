@@ -12,6 +12,9 @@ Get a free instance:
 
 > Installation Manual on [Wiki](https://github.com/rzander/DevCDR/wiki/Deploy-to-Azure)
 
+if you want to get DevCDR as a managed Service, have a look at: https://romawo.com/  
+![](https://romawo.com/images/ROMAWO_Header_green_72.png)
+
 ## Features
 * interactive Web frontend 
 * run PowerShell activities and custom commands in realtime
