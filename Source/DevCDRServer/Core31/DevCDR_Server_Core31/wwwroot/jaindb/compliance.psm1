@@ -1183,6 +1183,29 @@ function Set-DeliveryOptimization {
     $global:chk.Add("DO", 1)
 }
 
+function Set-RuckZuck($Customer = "ROMAWO", $Broadcast = 0, $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false) {
+    <#
+        .Description
+        configure RuckZuck customerID; RuckZuck will configre the Repository Server based on the customerid
+    #>
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).RuckZuckPolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
+
+        if (-NOT $RemovePolicy) {
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\Policies\RuckZuck") -ne $true) { New-Item "HKLM:\SOFTWARE\Policies\RuckZuck" -force -ea SilentlyContinue };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\RuckZuck' -Name 'Broadcast' -Value $Broadcast -PropertyType DWord -Force -ea SilentlyContinue;
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\RuckZuck' -Name 'CustomerID' -Value $Customer -PropertyType String -Force -ea SilentlyContinue;
+
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'RuckZuckPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
+        }
+    }
+
+    if ($RemovePolicy) {
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'RuckZuckPolicy' -Force -ea SilentlyContinue | Out-Null;
+        Remove-Item -Path 'HKLM:\SOFTWARE\Policies\RuckZuck' -recurse -force -ea SilentlyContinue  | Out-Null;
+    }
+}
+
 #region DevCDR
 
 Function Get-DevcdrEP {
@@ -1415,8 +1438,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU/IDeFhxvBiQNy/TjtccuBrtX
-# mbCgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUA5BB2qSOvFdRMCZuYg4j4Z9u
+# f2CgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1481,12 +1504,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSc
-# 1Hyt+k6UELTOTwN5YNilgFYI/zANBgkqhkiG9w0BAQEFAASCAQAg/ykTI6xieYgq
-# 7vlg46isi2I7p4VWOJTVmzAT+Bqo/6IaBnOZfoeY0cTYxLxUfQEgfuOlaxnYJlf5
-# wN9zZWo3qavg6dDLvQcoMDKUsTKyIWTPYq6OKX4iOtGtfibp6Gr50rn50wPYTxZ8
-# YouG1L+9YM3dzxkQyFsm+5abar9usKDk4u62J7qjz3upvvfscuxrbsg/cw9B1G8q
-# UxducjK9iHJs5XXtDjM/J0IE5VYHFnqhGmeq25QPWrTUeqXUBB8oi+mpKfjvRz4I
-# /fxovGtlcMyDPSaEUJVx3iJFhHziFlbN+C/VyORKKT8mtTmWhg/rElKaI+oe6D9t
-# WnrUqETK
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRh
+# Cy5ZGE34zxo+JhLVXJ0tVYWm7zANBgkqhkiG9w0BAQEFAASCAQCJGiBrSw/3eq9u
+# Tx/K5usqz1x7noWD1pA/+lA0Zv/GLRG5Z32ZcET9MPfxhKLiPoVtLk+H8cxdqsu0
+# vDLe7/C8C8LXMaa3XhecMq3vjXjCh5BCZRpQ6JgYECUk8fSwEaezddu6yE56WGHZ
+# /sfWfqIQ4qlh0i4WmCJnuydEG+gwkGi4sBRa2/f6ceSDxEFwFmHafXC1NMxpJMyj
+# cXaTfuGx96BpB5dhAasiQlSBg5WLHVlnLkGpG7su4fIMtGteaoEHaUYPIjrmEN+G
+# 2lhvOK7egXz+PLr2pDb+jvra5FG0LGZz6ILppe5q0jo3eojTpE+1FWRbJSwfgW7h
+# LK9dzp5i
 # SIG # End signature block
