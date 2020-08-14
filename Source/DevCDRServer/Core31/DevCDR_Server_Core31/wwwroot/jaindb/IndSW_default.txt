@@ -1,6 +1,7 @@
 ﻿7-Zip 19.00 (x64)
 7-Zip 19.00 (x64 edition)
 Active Directory Authentication Library for SQL Server
+Adobe Acrobat DC
 Adobe Acrobat Reader DC
 Adobe Acrobat Reader DC - Deutsch
 Adobe Acrobat Reader DC MUI
@@ -10,13 +11,15 @@ Google Chrome
 Greenshot 1.2.10.6
 Intel(R) Management Engine Components
 Intel(R) Processor Graphics
-Java 8 Update 251
-Java 8 Update 251 (64-bit)
+Java 8 Update 261
+Java 8 Update 261 (64-bit)
 KeePass 2.45
 LastPass (uninstall only)
 Local Administrator Password Solution
 LocalAdminWMIProvider
 Logitech Options
+Microsoft 365 Apps for Business - de-de
+Microsoft 365 Apps for business - en-us
 Microsoft .NET Framework 4.5 Multi-Targeting Pack
 Microsoft .NET Framework 4.5.1 Multi-Targeting Pack
 Microsoft .NET Framework 4.5.1 Multi-Targeting Pack (ENU)
@@ -52,6 +55,7 @@ Microsoft Surface Dock Updater
 Microsoft System CLR Types for SQL Server 2014
 Microsoft System CLR Types for SQL Server 2017
 Microsoft System CLR Types for SQL Server vNext CTP1.6
+Microsoft Teams
 Microsoft Visio Professional 2016 - de-de
 Microsoft Visio Professional 2016 - en-us
 Microsoft Visual C++ 2005 Redistributable
@@ -68,6 +72,8 @@ Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.40664
 Microsoft Visual C++ 2013 Redistributable (x86) - 12.0.40664
 Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.26.28720
 Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.26.28720
+Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.27.29016
+Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.27.29016
 Microsoft Visual Studio 2010 Tools for Office Runtime (x64)
 Microsoft Visual Studio 2015 Shell (Isolated)
 Microsoft Visual Studio Code
@@ -89,8 +95,11 @@ Samsung Printer Live Update
 Skype Meetings App
 Snagit 2018
 Snagit 2019
+Snagit 2020
+Sonos
 Sonos Controller
 Teams Machine-Wide Installer
+TeamViewer
 TeamViewer 15
 Visual Studio Professional 2017
 Visual Studio Professional 2019

@@ -794,13 +794,8 @@ namespace DevCDRServer.Controllers
             return View("InvJsonFrame");
         }
 
-#if DEBUG
-        [AllowAnonymous]
-#endif
-        [HttpGet]
-        [BasicAuthenticationAttribute()]
-        [Route("query")]
-        public async System.Threading.Tasks.Task<JArray> Query(string sParams = "")
+
+        internal async System.Threading.Tasks.Task<JArray> Query(string sParams = "")
         {
             DateTime dStart = DateTime.Now;
 
@@ -823,7 +818,7 @@ namespace DevCDRServer.Controllers
                     string qsel = (query["$select"] ?? "").Replace(',', ';');
                     string qexc = (query["$exclude"] ?? "").Replace(',', ';');
                     string qwhe = (query["$where"] ?? "").Replace(',', ';');
-                    return await jDB.QueryAsync(qpath, qsel, qexc, qwhe);
+                    return   await jDB.QueryAsync(qpath, qsel, qexc, qwhe);
                 }
                 else
                 {
@@ -848,13 +843,16 @@ namespace DevCDRServer.Controllers
             return null;
         }
 
-#if DEBUG
-        [AllowAnonymous]
-#endif
         [HttpGet]
         [BasicAuthenticationAttribute()]
-        [Route("queryAll")]
-        public JArray QueryAll()
+        [Route("query")]
+        public string QueryString(string sParams = "")
+        {
+            JArray jRes = Query(sParams).Result;
+            return jRes.ToString();
+        }
+
+        internal async System.Threading.Tasks.Task<JArray> QueryAll()
         {
             string sPath = Path.Combine(_env.WebRootPath, "jaindb");
             jDB.FilePath = sPath;
@@ -869,7 +867,7 @@ namespace DevCDRServer.Controllers
                 string qsel = (query["$select"] ?? "").Replace(',', ';');
                 string qexc = (query["$exclude"] ?? "").Replace(',', ';');
                 string qwhe = (query["$where"] ?? "").Replace(',', ';');
-                return jDB.QueryAllAsync(qpath, qsel, qexc, qwhe).Result;
+                return await jDB.QueryAllAsync(qpath, qsel, qexc, qwhe);
             }
             else
             {
@@ -891,6 +889,17 @@ namespace DevCDRServer.Controllers
             }
 
             return null;
+        }
+
+#if DEBUG
+        [AllowAnonymous]
+#endif
+        [HttpGet]
+        [BasicAuthenticationAttribute()]
+        [Route("queryAll")]
+        public string QueryAllString()
+        {
+            return QueryAll().Result.ToString();
         }
 
 #if DEBUG
