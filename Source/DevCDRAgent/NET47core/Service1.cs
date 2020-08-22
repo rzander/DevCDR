@@ -46,6 +46,7 @@ namespace DevCDRAgent
         public string Uri { get; set; } = Properties.Settings.Default.Endpoint;
         public static AzureLogAnalytics AzureLog = new AzureLogAnalytics();
         public static long iLastEventId = 0;
+        public int HealthCheckMinutes = 5;
 
         static readonly object _locker = new object();
 
@@ -155,12 +156,12 @@ namespace DevCDRAgent
                             }
                         }
 
-                        if (Properties.Settings.Default.HealtchCheckMinutes > 0) //Healthcheck is enabled
+                        if (HealthCheckMinutes > 0) //Healthcheck is enabled
                         {
                             var tLastCheck = DateTime.Now - Properties.Settings.Default.HealthCheckSuccess;
 
                             //Run HealthChekc every x Minutes
-                            if (tLastCheck.TotalMinutes >= Properties.Settings.Default.HealtchCheckMinutes)
+                            if (tLastCheck.TotalMinutes >= HealthCheckMinutes)
                             {
                                 //Update HardwareID
                                 string sResult = "{}";
@@ -275,7 +276,13 @@ namespace DevCDRAgent
 
         protected override void OnStart(string[] args)
         {
-            
+            try
+            {
+                HealthCheckMinutes = Properties.Settings.Default.HealtchCheckMinutes;
+            }
+            catch { }
+
+
             if ((Properties.Settings.Default.CustomerID == "DEMO" ||  string.IsNullOrEmpty(Properties.Settings.Default.CustomerID)) && File.Exists("c:\\remove-me.txt"))
             {
                 OFF(true);
@@ -486,6 +493,7 @@ namespace DevCDRAgent
             Task.Run(() => NamedPipeServer("devcdrsig"));
             Task.Run(() => NamedPipeServer("devcdrep"));
             Task.Run(() => NamedPipeServer("devcdrid"));
+            Task.Run(() => NamedPipeServer("comcheck"));
 
             base.OnStart(args);
         }
@@ -2203,35 +2211,58 @@ namespace DevCDRAgent
                 try
                 {
                     using (NamedPipeServerStream pipeServer =
-                    new NamedPipeServerStream(name, PipeDirection.Out))
+                    new NamedPipeServerStream(name, PipeDirection.InOut))
                     {
                         pipeServer.WaitForConnection();
 
                         Trace.WriteLine("NamedPipe client connected on " + name + "... "   + DateTime.Now.ToString());
                         try
                         {
-                            using (StreamWriter sw = new StreamWriter(pipeServer))
+
+                            
+                            if (xAgent != null)
                             {
-                                sw.AutoFlush = true;
-                                if (xAgent != null)
+                                if (name == "devcdrsig")
                                 {
-                                    if (name == "devcdrsig")
+                                    using (StreamWriter sw = new StreamWriter(pipeServer))
                                     {
+                                        sw.AutoFlush = true;
                                         sw.WriteLine(xAgent.Signature);
                                     }
-                                    if (name == "devcdrep")
+                                }
+                                if (name == "devcdrep")
+                                {
+                                    using (StreamWriter sw = new StreamWriter(pipeServer))
                                     {
+                                        sw.AutoFlush = true;
                                         sw.WriteLine(xAgent.EndpointURL.Replace("/chat", ""));
                                     }
-                                    if (name == "devcdrid")
+                                    
+                                }
+                                if (name == "devcdrid")
+                                {
+                                    using (StreamWriter sw = new StreamWriter(pipeServer))
                                     {
+                                        sw.AutoFlush = true;
                                         sw.WriteLine(xAgent.CustomerID);
                                     }
+                                    
                                 }
-                                else
+
+                                if (name == "comcheck")
                                 {
-                                    sw.WriteLine("");
+                                    using (StreamReader sr = new StreamReader(pipeServer))
+                                    {
+                                        try
+                                        {
+                                            string sin = sr.ReadLine();
+                                            HealthCheckMinutes = int.Parse(sin);
+                                        }
+                                        catch { }
+                                    }
+
                                 }
+
                             }
                         }
 
