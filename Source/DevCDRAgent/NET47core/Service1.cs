@@ -47,6 +47,7 @@ namespace DevCDRAgent
         public static AzureLogAnalytics AzureLog = new AzureLogAnalytics();
         public static long iLastEventId = 0;
         public int HealthCheckMinutes = 5;
+        EventLogWatcher watcher;
 
         static readonly object _locker = new object();
 
@@ -313,7 +314,7 @@ namespace DevCDRAgent
             try
             {
                 //Register for Defender EventLogs
-                EventLogWatcher watcher = new EventLogWatcher("Microsoft-Windows-Windows Defender/Operational");
+                watcher = new EventLogWatcher("Microsoft-Windows-Windows Defender/Operational");
                 watcher.EventRecordWritten -= EventLogEventRead;
                 watcher.EventRecordWritten += EventLogEventRead;
                 watcher.Enabled = true;
@@ -330,90 +331,125 @@ namespace DevCDRAgent
             }
             connection = new HubConnectionBuilder().WithUrl(Uri).Build();
 
+            connection.Reconnected += async (error) =>
+            {
+                try
+                {
+                    isconnected = true;
+                    Random rnd = new Random();
+                    tReInit.Interval = 5000 + rnd.Next(1, 10000); //randomize ReInit intervall
+
+                    if (string.IsNullOrEmpty(xAgent.Signature))
+                        await connection.SendAsync("Init", Hostname);
+                    else
+                    {
+                        await connection.SendAsync("InitCert", Hostname, xAgent.Signature);
+                    }
+                }
+                catch { }
+            };
+
             connection.Closed += async (error) =>
             {
+                isconnected = false;
                 if (!isstopping)
                 {
                     try
                     {
-                        await Task.Delay(new Random().Next(0, 5) * 1000); // wait 0-5s
-                        await connection.StartAsync();
-                        isconnected = true;
-                        Console.WriteLine("Connected with " + Uri);
-                        Properties.Settings.Default.LastConnection = DateTime.Now;
-                        Properties.Settings.Default.ConnectionErrors = 0;
-                        Properties.Settings.Default.Save();
-                        Properties.Settings.Default.Reload();
-                        Connect();
-
-                        //Send cached AV Threats
-                        string sDir = Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection");
-                        if(Directory.Exists(sDir))
-                        {
-                            foreach(string sFile in Directory.GetFiles(sDir, "*.json"))
-                            {
-                                try
-                                {
-                                    if (isconnected)
-                                    {
-                                        string sThreat = File.ReadAllText(sFile);
-                                        AzureLog.Post(sThreat, "Defender");
-                                        File.Delete(sFile);
-                                    }
-                                }
-                                catch { }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        isconnected = false;
-                        Console.WriteLine(ex.Message);
-                        Trace.WriteLine("\tError: " + ex.Message + " " + DateTime.Now.ToString());
                         Random rnd = new Random();
-                        tReInit.Interval = 10000 + rnd.Next(1, 90000); //randomize ReInit intervall
-                        Program.MinimizeFootprint();
+                        tReInit.Interval = 5000 + rnd.Next(1, 10000); //randomize ReInit intervall
+                        Trace.WriteLine(DateTime.Now.ToString() + "\tWarning: Connection lost... " );
+                        Trace.Flush();
                     }
+                    catch { }
+                    //try
+                    //{
+                    //    await Task.Delay(new Random().Next(0, 5) * 1000); // wait 0-5s
+                    //    await connection.StartAsync();
+                    //    isconnected = true;
+                    //    Console.WriteLine("Connected with " + Uri);
+                    //    Properties.Settings.Default.LastConnection = DateTime.Now;
+                    //    Properties.Settings.Default.ConnectionErrors = 0;
+                    //    Properties.Settings.Default.Save();
+                    //    Properties.Settings.Default.Reload();
+                    //    Connect();
+
+                    //    //Send cached AV Threats
+                    //    string sDir = Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection");
+                    //    if(Directory.Exists(sDir))
+                    //    {
+                    //        foreach(string sFile in Directory.GetFiles(sDir, "*.json"))
+                    //        {
+                    //            try
+                    //            {
+                    //                if (isconnected)
+                    //                {
+                    //                    string sThreat = File.ReadAllText(sFile);
+                    //                    AzureLog.Post(sThreat, "Defender");
+                    //                    File.Delete(sFile);
+                    //                }
+                    //            }
+                    //            catch { }
+                    //        }
+                    //    }
+                    //}
+                    //catch (Exception ex)
+                    //{
+                    //    isconnected = false;
+                    //    Console.WriteLine(ex.Message);
+                    //    Trace.WriteLine("\tError: " + ex.Message + " " + DateTime.Now.ToString());
+                    //    Random rnd = new Random();
+                    //    tReInit.Interval = 10000 + rnd.Next(1, 90000); //randomize ReInit intervall
+                    //    Program.MinimizeFootprint();
+                    //}
+                }
+                else
+                {
+                    return; //service is stopping...
                 }
             };
 
             try
             {
-                connection.StartAsync().Wait();
-                isconnected = true;
-                Console.WriteLine("Connected with " + Uri);
-                Trace.WriteLine("Connected with " + Uri + " " + DateTime.Now.ToString());
-                Properties.Settings.Default.LastConnection = DateTime.Now;
-                Properties.Settings.Default.ConnectionErrors = 0;
-                Properties.Settings.Default.Save();
-                Properties.Settings.Default.Reload();
-
-                Task.Run(() => Connect());
-
-                //Send cached AV Threats
-                string sDir = Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection");
-                if (Directory.Exists(sDir))
+                if (connection.StartAsync().Wait(5000))
                 {
-                    foreach (string sFile in Directory.GetFiles(sDir, "*.json"))
+                    isconnected = true;
+                    Console.WriteLine("Connected with " + Uri);
+                    Trace.WriteLine(DateTime.Now.ToString() + "\tConnected with " + Uri );
+                    Properties.Settings.Default.LastConnection = DateTime.Now;
+                    Properties.Settings.Default.ConnectionErrors = 0;
+                    Properties.Settings.Default.Save();
+                    Properties.Settings.Default.Reload();
+
+                    Task.Run(() => Connect());
+
+                    //Send cached AV Threats
+                    string sDir = Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection");
+                    if (Directory.Exists(sDir))
                     {
-                        try
+                        foreach (string sFile in Directory.GetFiles(sDir, "*.json"))
                         {
-                            if (isconnected)
+                            try
                             {
-                                string sThreat = File.ReadAllText(sFile);
-                                AzureLog.Post(sThreat, "Defender");
-                                File.Delete(sFile);
+                                if (isconnected)
+                                {
+                                    string sThreat = File.ReadAllText(sFile);
+                                    AzureLog.Post(sThreat, "Defender");
+                                    File.Delete(sFile);
+                                }
                             }
+                            catch { }
                         }
-                        catch { }
                     }
                 }
+                else
+                    isconnected = false;
             }
             catch (Exception ex)
             {
                 isconnected = false;
                 Console.WriteLine(ex.Message);
-                Trace.WriteLine("\tError: " + ex.Message + " " + DateTime.Now.ToString());
+                Trace.WriteLine(DateTime.Now.ToString() + "\tError: " + ex.Message + " " );
 
                 //Only fallback if we have internet...
                 if (IsConnectedToInternet())
@@ -2205,7 +2241,7 @@ namespace DevCDRAgent
             //$pipe.Dispose()
             //$sig
 
-            Trace.WriteLine("Starting NamedPipeServer " + name + " ... " + DateTime.Now.ToString());
+            Trace.WriteLine(DateTime.Now.ToString() + "\t Starting NamedPipeServer " + name + " ... " );
             while (true)
             {
                 try
@@ -2215,7 +2251,7 @@ namespace DevCDRAgent
                     {
                         pipeServer.WaitForConnection();
 
-                        Trace.WriteLine("NamedPipe client connected on " + name + "... "   + DateTime.Now.ToString());
+                        Trace.WriteLine(DateTime.Now.ToString() + "\t NamedPipe client connected on " + name + "... " );
                         try
                         {
 
@@ -2275,9 +2311,16 @@ namespace DevCDRAgent
 
                     }
                 }
-                catch
+                catch(Exception ex)
                 {
-                    Thread.Sleep(5000);
+                    if (ex.Message.ToLower().StartsWith("all pipe instances are busy"))
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        Thread.Sleep(5000);
+                    }
                 }
             }
         }

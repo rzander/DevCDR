@@ -56,7 +56,7 @@ namespace DevCDRAgent
             }
             catch { }
 
-            Trace.WriteLine("Starting DevCDRAgent... " + DateTime.Now.ToString());
+            Trace.WriteLine(DateTime.Now.ToString() + "\t Starting DevCDRAgent... " );
             Trace.Indent();
             Trace.Flush();
 
@@ -90,7 +90,7 @@ namespace DevCDRAgent
                             Service1 ConsoleApp = new Service1(Environment.ExpandEnvironmentVariables(parameter));
                             ConsoleApp.Start(null);
                             MinimizeFootprint();
-                            Trace.WriteLine("Started... " + DateTime.Now.ToString());
+                            Trace.WriteLine(DateTime.Now.ToString() + "\t Started... " );
                             Console.WriteLine("Press ENTER to terminate...");
                             Console.ReadLine();
                             ConsoleApp.Stop();
