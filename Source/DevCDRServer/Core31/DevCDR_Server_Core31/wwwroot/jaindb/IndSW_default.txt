@@ -88,7 +88,7 @@ NVIDIA Graphics Driver 391.40
 NVIDIA Update 31.1.10.0
 paint.net
 Printix Client
-PuTTY release 0.73 (64-bit)
+PuTTY release 0.74 (64-bit)
 Remote Desktop Connection Manager
 RuckZuck provider for OneGet
 Samsung Printer Live Update
@@ -103,6 +103,7 @@ TeamViewer
 TeamViewer 15
 Visual Studio Professional 2017
 Visual Studio Professional 2019
+Visual Studio Professional 2020
 VLC media player
 Windows Assessment and Deployment Kit - Windows 10
 ZyWALL SecuExtender

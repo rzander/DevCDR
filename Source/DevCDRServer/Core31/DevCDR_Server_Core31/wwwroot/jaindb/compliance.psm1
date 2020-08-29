@@ -1191,9 +1191,9 @@ function Set-RuckZuck($Customer = "ROMAWO", $Broadcast = 0, $PolicyRevision = 0,
     if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).RuckZuckPolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
 
         if (-NOT $RemovePolicy) {
-            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\Policies\RuckZuck") -ne $true) { New-Item "HKLM:\SOFTWARE\Policies\RuckZuck" -force -ea SilentlyContinue };
-            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\RuckZuck' -Name 'Broadcast' -Value $Broadcast -PropertyType DWord -Force -ea SilentlyContinue;
-            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\RuckZuck' -Name 'CustomerID' -Value $Customer -PropertyType String -Force -ea SilentlyContinue;
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\Policies\RuckZuck") -ne $true) { New-Item "HKLM:\SOFTWARE\Policies\RuckZuck" -force -ea SilentlyContinue | Out-Null };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\RuckZuck' -Name 'Broadcast' -Value $Broadcast -PropertyType DWord -Force -ea SilentlyContinue | Out-Null
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\RuckZuck' -Name 'CustomerID' -Value $Customer -PropertyType String -Force -ea SilentlyContinue | Out-Null
 
             if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
             New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'RuckZuckPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
@@ -1263,6 +1263,23 @@ Function Get-DevcdrID {
     catch { }
 
     return ""
+}
+
+Function Set-DevcdrComplianceIntervall($Minutes = 5) {
+    <#
+        .Description
+        Set DeviceCommander HCompliance Check Intervall
+    #>
+    try {
+        $pipe = new-object System.IO.Pipes.NamedPipeClientStream '.', 'comcheck', 'Out'
+        $pipe.Connect(5000)
+        $sw = new-object System.IO.StreamWriter $pipe
+        $sw.WriteLine($Minutes)
+        $sw.Flush()
+    }
+    catch { }
+
+    return
 }
 #endregion
 
@@ -1438,8 +1455,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUA5BB2qSOvFdRMCZuYg4j4Z9u
-# f2CgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUackckmeNagEBtVs6GCnyxij6
+# 2JugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1504,12 +1521,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRh
-# Cy5ZGE34zxo+JhLVXJ0tVYWm7zANBgkqhkiG9w0BAQEFAASCAQCJGiBrSw/3eq9u
-# Tx/K5usqz1x7noWD1pA/+lA0Zv/GLRG5Z32ZcET9MPfxhKLiPoVtLk+H8cxdqsu0
-# vDLe7/C8C8LXMaa3XhecMq3vjXjCh5BCZRpQ6JgYECUk8fSwEaezddu6yE56WGHZ
-# /sfWfqIQ4qlh0i4WmCJnuydEG+gwkGi4sBRa2/f6ceSDxEFwFmHafXC1NMxpJMyj
-# cXaTfuGx96BpB5dhAasiQlSBg5WLHVlnLkGpG7su4fIMtGteaoEHaUYPIjrmEN+G
-# 2lhvOK7egXz+PLr2pDb+jvra5FG0LGZz6ILppe5q0jo3eojTpE+1FWRbJSwfgW7h
-# LK9dzp5i
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTk
+# h9aDLl50YLFOBTO82YYSa9LIJjANBgkqhkiG9w0BAQEFAASCAQDUELIP/iAH84b8
+# SnuJUy8ux2DgxND3ogx9yQBOwhxw6qxWFMLYzFuVTapPTptn/LLfTvZdQYxxQ3wd
+# VlFnXz7ci1eShOxMLjOlfW4VxIaNqrWHI+qAbXTChXtnVrz0tUPxGCh/icL4jJVK
+# V0zK29Oj7yf6RLvhJgd/AivMDGAa7rZrLX4jMgX8D6VTy6Tn2xN4Ld8VImNYExDJ
+# r9FiWV1bGtLwTdxkwFg8zTDAeOFcJMKpvd8E+0Q5NMdZHp14Zps1OZ/tkg8d8fr/
+# U5UWAJrNjLj14iLDmG500AYVymfmbQeuWKp/d4ibt7MaBuQOvQypA5iPK2EUM05M
+# GNU4Lghn
 # SIG # End signature block

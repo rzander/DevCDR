@@ -49,7 +49,7 @@ namespace DevCDRServer
             List<string> lResult = new List<string>();
             foreach (var oItem in _connections.Keys)
             {
-                lResult.Add(oItem.ToString());
+                lResult.Add(oItem.ToString().ToLower());
             }
 
             return lResult;

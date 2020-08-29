@@ -35,11 +35,14 @@ namespace DevCDRServer
         {
             //string sEndPoint = Context.GetHttpContext().Request.GetEncodedUrl().ToLower().Split("/chat")[0];
 
-            name = name.ToUpper();
+            name = name.ToLower();
             _connections.Remove(name, ""); //Remove existing Name
             _connections.Add(name, Context.ConnectionId); //Add Name
 
-            IP2LocationURL = Environment.GetEnvironmentVariable("IP2LocationURL") ?? "";
+            if (string.IsNullOrEmpty(IP2LocationURL))
+            {
+                IP2LocationURL = Environment.GetEnvironmentVariable("IP2LocationURL") ?? "";
+            }
 
             lClients.Remove(name);
             lClients.Add(name);
@@ -76,7 +79,7 @@ namespace DevCDRServer
 
                 if (oSig.Exists && oSig.Valid)
                 {
-                    name = name.ToUpper();
+                    name = name.ToLower();
                     _connections.Remove(name, ""); //Remove existing Name
                     _connections.Add(name, Context.ConnectionId); //Add Name
 
@@ -112,7 +115,7 @@ namespace DevCDRServer
                     //Just for the case that something is wrong with the certificates...
                     if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AllowAll")))
                     {
-                        name = name.ToUpper();
+                        name = name.ToLower();
                         _connections.Remove(name, ""); //Remove existing Name
                         _connections.Add(name, Context.ConnectionId); //Add Name
 
@@ -139,7 +142,7 @@ namespace DevCDRServer
             else
             {
                 //No external CertAuthority defined... start classic mode:
-                name = name.ToUpper();
+                name = name.ToLower();
                 _connections.Remove(name, ""); //Remove existing Name
                 _connections.Add(name, Context.ConnectionId); //Add Name
 
@@ -466,6 +469,8 @@ namespace DevCDRServer
 
         public async void Status(string name, string Status)
         {
+            name = name.ToLower();
+
             if (string.IsNullOrEmpty(AzureLog.WorkspaceId))
             {
                 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Log-WorkspaceID")) && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Log-SharedKey")))
@@ -503,17 +508,23 @@ namespace DevCDRServer
 
                 if (jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").Count() == 0) //Prevent Duplicates
                 {
+                    J1.Add("ConnectionId", Context.ConnectionId);
+
                     lock (jData)
                     {
                         jData.Add(J1);
                     }
                     bChange = true;
-                    AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
+                    _connections.Add(name, Context.ConnectionId);
+
+                    await Clients.Group("web").SendAsync("newData", "add", ""); //Enforce PageUpdate
+
                     if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
                     {
-                        J1.Add("ConnectionId", Context.ConnectionId);
                         await setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
                     }
+
+                    AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
                 }
                 else
                 {
@@ -545,6 +556,7 @@ namespace DevCDRServer
             }
             catch (Exception ex)
             {
+                bChange = true;
                 ex.Message.ToString();
             }
 
@@ -563,6 +575,7 @@ namespace DevCDRServer
 
         public async void Status2(string name, string Status, string signature)
         {
+            name = name.ToLower();
             X509AgentCert oSig = new X509AgentCert(signature, true); //do not validate signature for performance 
 
             if (string.IsNullOrEmpty(AzureLog.WorkspaceId))
@@ -599,18 +612,19 @@ namespace DevCDRServer
                 if (string.IsNullOrEmpty(J1.GetValue("Hostname").Value<string>()))
                     return;
 
-                if (jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").Count() == 0) //Prevent Duplicates
+                if (jData.SelectTokens("[?(@.id == '" + J1.GetValue("id") + "')]").Count() == 0) //Prevent Duplicates
                 {
+                    J1.Add("ConnectionId", Context.ConnectionId);
                     lock (jData)
                     {
                         jData.Add(J1);
                     }
                     bChange = true;
+                    _connections.Add(name, Context.ConnectionId); //Add Device
+                    await Clients.Group("web").SendAsync("newData", "add", ""); //Enforce PageUpdate
                     AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
                     if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
                     {
-                        J1.Add("ConnectionId", Context.ConnectionId);
-
                         if (!string.IsNullOrEmpty(oSig.CustomerID))
                             await setStatusAsync(oSig.CustomerID, oSig.DeviceID, J1.ToString());
                         else
@@ -619,45 +633,60 @@ namespace DevCDRServer
                 }
                 else
                 {
+                    var jTemp = JObject.Parse(jData.SelectTokens("[?(@.id == '" + J1.GetValue("id") + "')]", false).First().ToString());
 
+                    await Clients.Group("web").SendAsync("newData", jTemp.ToString(), ""); //Enforce PageUpdate
                     //Changes ?
-                    if (jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").First().ToString(Formatting.None) != J1.ToString(Formatting.None))
+                    if ((jTemp["ScriptResult"].Value<string>().ToLower() != J1["ScriptResult"].Value<string>().ToLower()) || (jTemp["Version"].Value<string>().ToLower() != J1["Version"].Value<string>().ToLower()))
                     {
                         lock (jData)
                         {
-                            jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").First().Replace(J1);
+                            jData.SelectTokens("[?(@.id == '" + J1.GetValue("id") + "')]", false).First().Replace(J1);
                             bChange = true;
                         }
                     }
 
+                    //if (jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]").First().ToString(Formatting.None).ToLower() != J1.ToString(Formatting.None).ToLower())
+                    //{
+                    //    await Clients.Group("web").SendAsync("newData", "change", jData.ToString()); //Enforce PageUpdate
+                    //    lock (jData)
+                    //    {
+                    //        jData.SelectTokens("[?(@.Hostname == '" + J1.GetValue("Hostname") + "')]", false).First().Replace(J1);
+                    //        bChange = true;
+                    //    }
+                    //    await Clients.Group("web").SendAsync("newData", "done", jData.ToString()); //Enforce PageUpdate
+                    //}
+
                     if (bChange)
                     {
-                        Task.Run(() =>
-                        {
-                            AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
+                        _ = Task.Run(() =>
+                          {
+                              AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
 
-                            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-                            {
-                                J1.Add("ConnectionId", Context.ConnectionId);
-                                if (!string.IsNullOrEmpty(oSig.CustomerID))
-                                    setStatusAsync(oSig.CustomerID, J1.GetValue("id").ToString(), J1.ToString());
-                                else
-                                    setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
-                            }
-                        });
+                              if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+                              {
+                                  if (!string.IsNullOrEmpty(oSig.CustomerID))
+                                      setStatusAsync(oSig.CustomerID, J1.GetValue("id").ToString(), J1.ToString()).Wait(2000);
+                                  else
+                                      setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString()).Wait(2000);
+                              }
+                          });
+
+                       
                     }
                 }
             }
             catch (Exception ex)
             {
                 ex.Message.ToString();
+                bChange = true; //update on error...
             }
 
             if (bChange)
             {
                 try
                 {
-                    await Clients.Group("web").SendAsync("newData", name, jData.ToString()); //Enforce PageUpdate
+                    await Clients.Group("web").SendAsync("newData", name, ""); //Enforce PageUpdate
                 }
                 catch (Exception ex)
                 {
@@ -668,7 +697,7 @@ namespace DevCDRServer
 
         public void RunPS(string who, string message)
         {
-            foreach (var connectionId in _connections.GetConnections(who.ToUpper()))
+            foreach (var connectionId in _connections.GetConnections(who.ToLower()))
             {
                 Clients.Client(connectionId).SendAsync("runPS", message);
             }
@@ -681,7 +710,7 @@ namespace DevCDRServer
                 sender = Context.ConnectionId;
             }
 
-            foreach (var connectionId in _connections.GetConnections(who.ToUpper()))
+            foreach (var connectionId in _connections.GetConnections(who.ToLower()))
             {
                 Clients.Client(connectionId).SendAsync("getPS", ps, sender);
             }
@@ -694,7 +723,7 @@ namespace DevCDRServer
                 sender = Context.ConnectionId;
             }
 
-            foreach (var connectionId in _connections.GetConnections(who.ToUpper()))
+            foreach (var connectionId in _connections.GetConnections(who.ToLower()))
             {
                 Clients.Client(connectionId).SendAsync("version", "");
             }
@@ -702,7 +731,7 @@ namespace DevCDRServer
 
         public static string GetID(string who)
         {
-            foreach (var connectionId in _connections.GetConnections(who.ToUpper()))
+            foreach (var connectionId in _connections.GetConnections(who.ToLower()))
             {
                 return connectionId;
             }
@@ -743,14 +772,15 @@ namespace DevCDRServer
             //}
 
             //await Groups.AddToGroupAsync(Context.ConnectionId, "SignalR Users");
+            await Clients.Group("web").SendAsync("newData", Context.ConnectionId, "OnConnected"); //Enforce PageUpdate
             await base.OnConnectedAsync();
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)
         {
-            string name = Context.User.Identity.Name;
+            //string name = Context.User.Identity.Name;
 
-            _connections.Remove(name, Context.ConnectionId);
+            _connections.Remove("", Context.ConnectionId);
 
             lClients = _connections.GetNames();
 
@@ -760,11 +790,15 @@ namespace DevCDRServer
                 {
                     foreach (var oObj in jData.Children().ToArray())
                     {
-                        if (!lClients.Contains(oObj.Value<string>("Hostname")))
+                        try
                         {
-                            int ix = jData.IndexOf(jData.SelectToken("[?(@.Hostname == '" + ((dynamic)oObj).Hostname + "')]"));
-                            jData.RemoveAt(ix);
+                            if (!lClients.Contains(oObj.Value<string>("Hostname").ToLower()))
+                            {
+                                int ix = jData.IndexOf(jData.SelectToken("[?(@.Hostname == '" + ((dynamic)oObj).Hostname + "')]"));
+                                jData.RemoveAt(ix);
+                            }
                         }
+                        catch { }
                     }
                 }
                 else
