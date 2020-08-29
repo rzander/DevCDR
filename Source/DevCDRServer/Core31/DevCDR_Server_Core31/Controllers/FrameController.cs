@@ -96,6 +96,9 @@ namespace DevCDRServer.Controllers
                 return new ContentResult();
 
             List<string> lHostnames = new List<string>();
+            
+            string customerid = Request.Query["customerid"];
+
             foreach (var oRow in oParams["rows"])
             {
                 try
@@ -168,7 +171,7 @@ namespace DevCDRServer.Controllers
                     runUserCmd(lHostnames, sInstance, "", "");
                     break;
                 case "WOL":
-                    sendWOL(lHostnames, sInstance, GetAllMACAddresses());
+                    sendWOL(lHostnames, sInstance, GetAllMACAddresses(), customerid);
                     break;
                 case "Compliance":
                     if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
@@ -701,16 +704,20 @@ namespace DevCDRServer.Controllers
 
         internal List<string> GetAllMACAddresses()
         {
+            string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
             List<string> lResult = new List<string>();
-            var tItems = new JainDBController(_env, _cache).Query("$select=@MAC");
-            JArray jMacs = tItems.Result;
-
-            foreach (var jTok in jMacs.SelectTokens("..@MAC"))
+            if (string.IsNullOrEmpty(sURL))
             {
-                if (jTok.Type == JTokenType.String)
-                    lResult.Add(jTok.Value<string>());
-                if (jTok.Type == JTokenType.Array)
-                    lResult.AddRange(jTok.Values<string>().ToList());
+                var tItems = new JainDBController(_env, _cache).Query("$select=@MAC");
+                JArray jMacs = tItems.Result;
+
+                foreach (var jTok in jMacs.SelectTokens("..@MAC"))
+                {
+                    if (jTok.Type == JTokenType.String)
+                        lResult.Add(jTok.Value<string>());
+                    if (jTok.Type == JTokenType.Array)
+                        lResult.AddRange(jTok.Values<string>().ToList());
+                }
             }
 
             return lResult;
@@ -927,27 +934,69 @@ namespace DevCDRServer.Controllers
             }
         }
 
-        internal void sendWOL(List<string> Hostnames, string sInstance, List<string> MAC)
+        internal void sendWOL(List<string> Hostnames, string sInstance, List<string> MAC, string customerid = "")
         {
+            string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+
             foreach (string sHost in Hostnames)
             {
                 SetResult(sInstance, sHost, "triggered:" + "WakeUp devices..."); //Update Status
             }
             _hubContext.Clients.Group("web").SendAsync("newData", "HUB", "sendWOL"); //Enforce PageUpdate
 
+            JArray jWOL = new JArray();
+            if (!string.IsNullOrEmpty(sURL))
+            {
+                sURL = sURL.Replace("{fn}", "fnGetFile");
+                HttpClient oClient = new HttpClient();
+                var stringWOL = oClient.GetStringAsync($"{sURL}&customerid={customerid}&file=WOLSummary.json").Result;
+                if (!string.IsNullOrEmpty(stringWOL))
+                {
+                    try
+                    {
+                        jWOL = JArray.Parse(stringWOL);
+                    }
+                    catch { }
+                }
+            }
+
             foreach (string sHost in Hostnames)
             {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                try
                 {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2002, Description = $"WakeUp all devices" });
-                    _hubContext.Clients.Client(sID).SendAsync("wol", string.Join(';', MAC));
+                    if (string.IsNullOrEmpty(sHost))
+                        continue;
+
+                    //Get ConnectionID from HostName
+                    string sID = GetID(sInstance, sHost);
+
+                    if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                    {
+
+                        if (string.IsNullOrEmpty(sURL))
+                        {
+                            _hubContext.Clients.Client(sID).SendAsync("wol", string.Join(';', MAC));
+                        }
+                        else
+                        {
+                            string subnetid = (jWOL.Children<JObject>().Where(t => t["name"].Value<string>().ToLower() == sHost.ToLower()).First())["subnetid"].Value<string>();
+                            _hubContext.Clients.Group("web").SendAsync("newData", "wol", subnetid); //Enforce PageUpdate
+                            foreach (var oDevice in jWOL.Children<JObject>().Where(t => t["subnetid"].Value<string>() == subnetid))
+                            {
+                                try
+                                {
+                                    MAC.Add(oDevice["mac"].Value<string>());
+                                }
+                                catch { }
+                            }
+
+                            _hubContext.Clients.Client(sID).SendAsync("wol", string.Join(';', MAC));
+                        }
+
+                        AzureLog.PostAsync(new { Computer = sHost, EventID = 2002, Description = $"WakeUp all devices" });
+                    }
                 }
+                catch { }
             }
         }
 

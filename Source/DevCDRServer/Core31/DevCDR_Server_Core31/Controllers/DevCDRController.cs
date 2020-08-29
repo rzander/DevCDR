@@ -1421,8 +1421,33 @@ namespace DevCDRServer.Controllers
             }
         }
 
-        internal void sendWOL(List<string> Hostnames, string sInstance, List<string> MAC)
+        internal void sendWOL(List<string> Hostnames, string sInstance, List<string> MAC, string customerid = "")
         {
+            string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+
+
+
+            JArray jWOL = new JArray();
+            if (!string.IsNullOrEmpty(sURL))
+            {
+                if (string.IsNullOrEmpty(customerid))
+                {
+                    return;
+                }
+                    
+                sURL = sURL.Replace("{fn}", "fnGetFile");
+                HttpClient oClient = new HttpClient();
+                var stringWOL = oClient.GetStringAsync($"{sURL}&customerid={customerid}&file=WOLSummary.json").Result;
+                if (!string.IsNullOrEmpty(stringWOL))
+                {
+                    try
+                    {
+                        jWOL = JArray.Parse(stringWOL);
+                    }
+                    catch { }
+                }
+            } 
+
             foreach (string sHost in Hostnames)
             {
                 SetResult(sInstance, sHost, "triggered:" + "WakeUp devices..."); //Update Status
@@ -1431,17 +1456,42 @@ namespace DevCDRServer.Controllers
 
             foreach (string sHost in Hostnames)
             {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                try
                 {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2002, Description = $"WakeUp all devices" });
-                    _hubContext.Clients.Client(sID).SendAsync("wol", string.Join(';', MAC));
+                    if (string.IsNullOrEmpty(sHost))
+                        continue;
+
+                    //Get ConnectionID from HostName
+                    string sID = GetID(sInstance, sHost);
+
+                    if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                    {
+                        if (string.IsNullOrEmpty(sURL))
+                        {
+                            if (MAC.Count > 0)
+                            {
+                                _hubContext.Clients.Client(sID).SendAsync("wol", string.Join(';', MAC));
+                            }
+                        }
+                        else
+                        {
+                            string subnetid = (jWOL.Children<JObject>().Where(t => t["name"].Value<string>().ToLower() == sHost.ToLower()).First())["subnetid"].Value<string>();
+                            foreach (var oDevice in jWOL.Children<JObject>().Where(t => t["subnetid"].Value<string>() == subnetid))
+                            {
+                                try
+                                {
+                                    MAC.Add(oDevice["mac"].Value<string>());
+                                }
+                                catch { }
+                            }
+
+                            _hubContext.Clients.Client(sID).SendAsync("wol", string.Join(';', MAC));
+                        }
+
+                        AzureLog.PostAsync(new { Computer = sHost, EventID = 2002, Description = $"WakeUp all devices" });
+                    }
                 }
+                catch { }
             }
         }
 

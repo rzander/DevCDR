@@ -114,6 +114,7 @@
         var lastReload = new Date();
 
         connection.on("newData", (Name, Status) => {
+            //console.log(Status);
             //1s queue but 10s max
             if ((new Date() - lastReload) < 10000) { clearTimeout(tTimer); } else { lastReload = new Date(); iCount = 0 };
             //load first request
@@ -128,7 +129,7 @@
 
         connection.start()
             .then(() => {
-                console.log('Connection started!');
+                //console.log('Connection started!');
                 connection.invoke('JoinGroup', 'web');
             })
         //connection.invoke("JoinGroup", "web").catch(err => console.error(err.toString()));
@@ -136,7 +137,7 @@
     });
 
     function reloadData() {
-        console.log("reload Data");
+        //console.log("reload Data");
         var table = $('#test').DataTable();
         table.ajax.reload();
     }

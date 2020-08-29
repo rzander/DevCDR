@@ -564,7 +564,7 @@ namespace DevCDRServer
             {
                 try
                 {
-                    await Clients.Group("web").SendAsync("newData", name, jData.ToString()); //Enforce PageUpdate
+                    await Clients.Group("web").SendAsync("newData", name, ""); //Enforce PageUpdate
                 }
                 catch (Exception ex)
                 {
