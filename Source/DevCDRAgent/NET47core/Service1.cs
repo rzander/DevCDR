@@ -325,7 +325,7 @@ namespace DevCDRAgent
             {
                 try
                 {
-                    connection.DisposeAsync().Wait(1000);
+                 connection.DisposeAsync().Wait(1000);
                 }
                 catch { }
             }
@@ -1599,7 +1599,7 @@ namespace DevCDRAgent
                         {
                             try
                             {
-                                cert = new X509Certificate2(Convert.FromBase64String(s1), Properties.Settings.Default.HardwareID);
+                                cert = new X509Certificate2(Convert.FromBase64String(s1), Properties.Settings.Default.HardwareID, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.PersistKeySet);
                             }
                             catch { }
                         }
@@ -1971,6 +1971,9 @@ namespace DevCDRAgent
                             {
                                 try
                                 {
+                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Certificate is valid:" + xAgent.Valid.ToString());
+                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Certificate has PrivateKey:" + xAgent.HasPrivateKey.ToString());
+                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Signature:" + xAgent.Signature);
                                     Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + xAgent.Certificate.Issuer.Split('=')[1]);
                                     connection.InvokeAsync("GetCert", xAgent.Certificate.Issuer.Split('=')[1], false).Wait(1000); //request issuer cert
                                     Thread.Sleep(1500);

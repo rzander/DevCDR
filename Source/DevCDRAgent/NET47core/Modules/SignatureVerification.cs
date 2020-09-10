@@ -262,7 +262,6 @@ namespace DevCDRAgent.Modules
                                 {
                                     throw new Exception("No valid cert was found");
                                 }
-
                                 sig = Convert.ToBase64String(key.SignData(Encoding.Default.GetBytes(DeviceID), HashAlgorithmName.SHA256));
                             }
                         }
