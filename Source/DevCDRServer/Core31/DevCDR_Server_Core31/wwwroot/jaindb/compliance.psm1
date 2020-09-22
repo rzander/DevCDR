@@ -807,15 +807,20 @@ Function Set-OneDrive($KFM = $true, $FilesOnDemand = $true, $RemovePolicy = $fal
 Function Set-BitLocker($Drive = "C:" , $EncryptionMethod = "XtsAes128", $EnforceNewKey = $false, $PolicyRevision = 0, $Force = $false) {
 
     if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).BitLockerPolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
-        Remove-Item "HKLM:\Software\Policies\Microsoft\FVE" -recurse -force -ea SilentlyContinue
-        Enable-BitLocker -MountPoint "$($Drive)" -EncryptionMethod $EncryptionMethod -UsedSpaceOnly -SkipHardwareTest -RecoveryPasswordProtector -ea SilentlyContinue > out-nul
+        #only enable BitLocker if TPM is present
+        if (Get-Tpm) {
+            Remove-Item "HKLM:\Software\Policies\Microsoft\FVE" -recurse -force -ea SilentlyContinue
+            Enable-BitLocker -MountPoint "$($Drive)" -EncryptionMethod $EncryptionMethod -UsedSpaceOnly -SkipHardwareTest -RecoveryPasswordProtector -ea SilentlyContinue > out-nul
 
-        if ($EnforceNewKey) {
-            $BLV = Get-BitLockerVolume -MountPoint "$($Drive)"
-            $BLV.KeyProtector | Where-Object { $_.KeyProtectorType -eq "RecoveryPassword" } | ForEach-Object {
-                Remove-BitLockerKeyProtector -MountPoint "$($Drive)" -KeyProtectorId $_.KeyProtectorId > out-nul
+            if ($EnforceNewKey) {
+                $BLV = Get-BitLockerVolume -MountPoint "$($Drive)"
+                $BLV.KeyProtector | Where-Object { $_.KeyProtectorType -eq "RecoveryPassword" } | ForEach-Object {
+                    Remove-BitLockerKeyProtector -MountPoint "$($Drive)" -KeyProtectorId $_.KeyProtectorId -ea SilentlyContinue > out-nul
+                }
+                Add-BitLockerKeyProtector -MountPoint "$($Drive)" -RecoveryPasswordProtector -ea SilentlyContinue > out-nul
             }
-            Add-BitLockerKeyProtector -MountPoint "$($Drive)" -RecoveryPasswordProtector > out-nul
+
+            Add-BitLockerKeyProtector -MountPoint "$($Drive)" -TpmProtector -ea SilentlyContinue
         }
     }
 
@@ -1455,8 +1460,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUackckmeNagEBtVs6GCnyxij6
-# 2JugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHikVodU2WeLFB+1sZ3UcNWuF
+# HsugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1521,12 +1526,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTk
-# h9aDLl50YLFOBTO82YYSa9LIJjANBgkqhkiG9w0BAQEFAASCAQDUELIP/iAH84b8
-# SnuJUy8ux2DgxND3ogx9yQBOwhxw6qxWFMLYzFuVTapPTptn/LLfTvZdQYxxQ3wd
-# VlFnXz7ci1eShOxMLjOlfW4VxIaNqrWHI+qAbXTChXtnVrz0tUPxGCh/icL4jJVK
-# V0zK29Oj7yf6RLvhJgd/AivMDGAa7rZrLX4jMgX8D6VTy6Tn2xN4Ld8VImNYExDJ
-# r9FiWV1bGtLwTdxkwFg8zTDAeOFcJMKpvd8E+0Q5NMdZHp14Zps1OZ/tkg8d8fr/
-# U5UWAJrNjLj14iLDmG500AYVymfmbQeuWKp/d4ibt7MaBuQOvQypA5iPK2EUM05M
-# GNU4Lghn
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBT+
+# 9N5XTw4WBiWkgzS5zDYp007b9TANBgkqhkiG9w0BAQEFAASCAQAowx2kEPS0pW7F
+# 8TOUO62QtThRqU0xXhrAZYvLxQ4qvqR4blXJoW3+ykBJ3grux/eF/h5IENrPA2b1
+# qA5rTfeddSnuhz8+30kk8mPJ2Ij77OQ+k2snwruvS6SiwwpjIQ6giax+jHrB3wtA
+# Kda77CGSoIz9LhLLNId3aSsK1siWactkmjirieeeHtTAOv43Xmx7YRVQnyoVGU77
+# xJK75k4yzewXRsyZtHQ52t5Bhy8LG7K5gIbS45NtmebUwmJOslsh5QuQpIC78vtH
+# tm8l/WrYyK0nZW/VYiubSOwk5VjQm/cF559qJB+aDo0oHYmesHRctZVoGuVQVtnD
+# AAOUwgbG
 # SIG # End signature block
