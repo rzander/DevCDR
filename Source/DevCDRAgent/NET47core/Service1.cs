@@ -346,7 +346,9 @@ namespace DevCDRAgent
                         await connection.SendAsync("InitCert", Hostname, xAgent.Signature);
                     }
                 }
-                catch { }
+                catch {
+                    isconnected = false;
+                }
             };
 
             connection.Closed += async (error) =>
@@ -411,45 +413,56 @@ namespace DevCDRAgent
 
             try
             {
-                if (connection.StartAsync().Wait(5000))
+                if (IsConnectedToInternet())
                 {
-                    isconnected = true;
-                    Console.WriteLine("Connected with " + Uri);
-                    Trace.WriteLine(DateTime.Now.ToString() + "\tConnected with " + Uri );
-                    Properties.Settings.Default.LastConnection = DateTime.Now;
-                    Properties.Settings.Default.ConnectionErrors = 0;
-                    Properties.Settings.Default.Save();
-                    Properties.Settings.Default.Reload();
-
-                    Task.Run(() => Connect());
-
-                    //Send cached AV Threats
-                    string sDir = Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection");
-                    if (Directory.Exists(sDir))
+                    if (connection.StartAsync().Wait(5000))
                     {
-                        foreach (string sFile in Directory.GetFiles(sDir, "*.json"))
+                        isconnected = true;
+                        Console.WriteLine("Connected with " + Uri);
+                        Trace.WriteLine(DateTime.Now.ToString() + "\tConnected with " + Uri);
+                        Properties.Settings.Default.LastConnection = DateTime.Now;
+                        Properties.Settings.Default.ConnectionErrors = 0;
+                        Properties.Settings.Default.Save();
+                        Properties.Settings.Default.Reload();
+
+                        Task.Run(() => Connect());
+
+                        //Send cached AV Threats
+                        string sDir = Path.Combine(Environment.ExpandEnvironmentVariables("%TEMP%"), "AVDetection");
+                        if (Directory.Exists(sDir))
                         {
-                            try
+                            foreach (string sFile in Directory.GetFiles(sDir, "*.json"))
                             {
-                                if (isconnected)
+                                try
                                 {
-                                    string sThreat = File.ReadAllText(sFile);
-                                    AzureLog.Post(sThreat, "Defender");
-                                    File.Delete(sFile);
+                                    if (isconnected)
+                                    {
+                                        string sThreat = File.ReadAllText(sFile);
+                                        AzureLog.Post(sThreat, "Defender");
+                                        File.Delete(sFile);
+                                    }
                                 }
+                                catch { }
                             }
-                            catch { }
                         }
                     }
+                    else
+                        isconnected = false;
                 }
                 else
+                {
                     isconnected = false;
+                }
             }
             catch (Exception ex)
             {
                 isconnected = false;
                 Console.WriteLine(ex.Message);
                 Trace.WriteLine(DateTime.Now.ToString() + "\tError: " + ex.Message + " " );
+
+                Properties.Settings.Default.ConnectionErrors++;
+
+                Trace.WriteLine(DateTime.Now.ToString() + "\tError Count: " + Properties.Settings.Default.ConnectionErrors.ToString() + " ");
 
                 //Only fallback if we have internet...
                 if (IsConnectedToInternet())
@@ -517,9 +530,12 @@ namespace DevCDRAgent
                 {
                     //No Internet, lets ignore connection errors...
                     Properties.Settings.Default.ConnectionErrors = 0;
-                    Properties.Settings.Default.Save();
-                    Properties.Settings.Default.Reload();
+                    //Properties.Settings.Default.Save();
+                    //Properties.Settings.Default.Reload();
                 }
+
+                Properties.Settings.Default.Save();
+                Properties.Settings.Default.Reload();
 
                 Random rnd = new Random();
                 tReInit.Interval = 120000 + rnd.Next(1, 30000); //randomize ReInit intervall
@@ -897,6 +913,7 @@ namespace DevCDRAgent
                     }
                     catch (Exception ex)
                     {
+                        lConnectCount++;
                         Trace.Write(DateTime.Now.ToString() + " ERROR: " + ex.Message);
                     }
                 });
@@ -2243,8 +2260,8 @@ namespace DevCDRAgent
             //$sr.Dispose()
             //$pipe.Dispose()
             //$sig
-
-            Trace.WriteLine(DateTime.Now.ToString() + "\t Starting NamedPipeServer " + name + " ... " );
+            
+            //Trace.WriteLine(DateTime.Now.ToString() + "\t Starting NamedPipeServer " + name + " ... ");
             while (true)
             {
                 try
@@ -2715,7 +2732,7 @@ namespace DevCDRAgent
                     catch { }
                 }
             }
-
+            
             return false;
         }
     }
