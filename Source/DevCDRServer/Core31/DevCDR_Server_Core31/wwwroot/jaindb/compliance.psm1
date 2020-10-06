@@ -599,6 +599,10 @@ Function Test-ASR {
         if ($null -eq $global:chk) { $global:chk = @{ } }
         if ($global:chk.ContainsKey("ASR")) { $global:chk.Remove("ASR") }
         $global:chk.Add("ASR", $i )
+    } else {
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("ASR")) { $global:chk.Remove("ASR") }
+        $global:chk.Add("ASR", 0)
     }
 }
 
@@ -805,10 +809,10 @@ Function Set-OneDrive($KFM = $true, $FilesOnDemand = $true, $RemovePolicy = $fal
 }
 
 Function Set-BitLocker($Drive = "C:" , $EncryptionMethod = "XtsAes128", $EnforceNewKey = $false, $PolicyRevision = 0, $Force = $false) {
+    if (Get-Tpm -ea SilentlyContinue) {
+        if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).BitLockerPolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
+            #only enable BitLocker if TPM is present
 
-    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).BitLockerPolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
-        #only enable BitLocker if TPM is present
-        if (Get-Tpm) {
             Remove-Item "HKLM:\Software\Policies\Microsoft\FVE" -recurse -force -ea SilentlyContinue
             Enable-BitLocker -MountPoint "$($Drive)" -EncryptionMethod $EncryptionMethod -UsedSpaceOnly -SkipHardwareTest -RecoveryPasswordProtector -ea SilentlyContinue > out-nul
 
@@ -822,10 +826,10 @@ Function Set-BitLocker($Drive = "C:" , $EncryptionMethod = "XtsAes128", $Enforce
 
             Add-BitLockerKeyProtector -MountPoint "$($Drive)" -TpmProtector -ea SilentlyContinue
         }
-    }
 
-    if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
-    New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'BitLockerPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'BitLockerPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null; 
+    }  
 }
 
 Function Set-AppLocker($XMLFile = "-", $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false) {
@@ -1460,8 +1464,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHikVodU2WeLFB+1sZ3UcNWuF
-# HsugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUCvcuqaF0ap/RCljKc/DdauU1
+# t1KgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1526,12 +1530,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBT+
-# 9N5XTw4WBiWkgzS5zDYp007b9TANBgkqhkiG9w0BAQEFAASCAQAowx2kEPS0pW7F
-# 8TOUO62QtThRqU0xXhrAZYvLxQ4qvqR4blXJoW3+ykBJ3grux/eF/h5IENrPA2b1
-# qA5rTfeddSnuhz8+30kk8mPJ2Ij77OQ+k2snwruvS6SiwwpjIQ6giax+jHrB3wtA
-# Kda77CGSoIz9LhLLNId3aSsK1siWactkmjirieeeHtTAOv43Xmx7YRVQnyoVGU77
-# xJK75k4yzewXRsyZtHQ52t5Bhy8LG7K5gIbS45NtmebUwmJOslsh5QuQpIC78vtH
-# tm8l/WrYyK0nZW/VYiubSOwk5VjQm/cF559qJB+aDo0oHYmesHRctZVoGuVQVtnD
-# AAOUwgbG
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSI
+# N42Egtxb+0R0beKN85Dkw9Yg3DANBgkqhkiG9w0BAQEFAASCAQAwyl/5MHXxpgjn
+# s20Tq//jdwRjCXD7FfXGhJFimAPWSPdD3zLTe0OK9uUGUbGrpFLGxmv2PJJvn1Aa
+# o6JC5IxKfWnMyX3Bl7gaTCdY94016AmdI6FUvHqeyeg1zwKOQQ++58dckGpo7Be/
+# w06DP9xzhO37IjrIDbiK+6R48b58nhY6BBKIRlZhKx99P5UrFu7KzG3RO3tJECbY
+# DiaZrXCpkd1KPVeF0glQdo+5MO7rJTuQ39gq+KUkyos/6OnwL6vDXQplBUpdV05w
+# seryULq71jo6FM2jiAnfWWkiU/CRF7ErrjODGKcaYzUQCkMru1iVAIzQrC1bXV8E
+# sZVPO3nm
 # SIG # End signature block

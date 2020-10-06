@@ -7,7 +7,7 @@ Set-LogAnalytics -WorkspaceID "eb75cdf5-9d17-420a-8fab-3cea2a277aa3" -SharedKey 
 Test-OSVersion
 Test-Nuget
 Test-OneGetProvider("1.7.1.3")
-Test-DevCDRAgent("2.0.1.44")
+Test-DevCDRAgent("2.0.1.46")
 #Test-Administrators 
 Set-LocalAdmin -disableAdmin $false -randomizeAdmin $true
 Test-LocalAdmin

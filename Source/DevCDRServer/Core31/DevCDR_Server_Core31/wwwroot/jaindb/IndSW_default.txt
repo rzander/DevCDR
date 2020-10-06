@@ -26,6 +26,13 @@ Microsoft .NET Framework 4.5.1 Multi-Targeting Pack (ENU)
 Microsoft .NET Framework 4.5.1 SDK
 Microsoft .NET Framework 4.5.2 Multi-Targeting Pack
 Microsoft .NET Framework 4.5.2 Multi-Targeting Pack (ENU)
+Microsoft .NET Framework 4.6 Targeting Pack
+Microsoft .NET Framework 4.6.1 SDK
+Microsoft .NET Framework 4.6.1 Targeting Pack (ENU)
+Microsoft .NET Framework 4.6.1 Targeting Pack
+Microsoft .NET Framework 4.7 SDK
+Microsoft .NET Framework 4.7 Targeting Pack (ENU)
+Microsoft .NET Framework 4.7 Targeting Pack
 Microsoft ASP.NET MVC 2
 Microsoft Azure Information Protection
 Microsoft Azure Storage Explorer version 1.10.1
@@ -46,14 +53,23 @@ Microsoft Project Professional 2016 - de-de
 Microsoft Project Professional 2016 - en-us
 Microsoft Silverlight
 Microsoft SQL Server 2012 Native Client 
-Microsoft SQL Server 2014 Management Objects 
+Microsoft SQL Server 2014 Management Objects
+Microsoft SQL Server 2016
+Microsoft SQL Server 2016 LocalDB
+Microsoft SQL Server 2016 Management Objects (x64)
+Microsoft SQL Server 2016 Management Objects
+Microsoft SQL Server 2016 T-SQL Language Service
+Microsoft SQL Server 2016 T-SQL ScriptDom
+Microsoft SQL Server 2017 T-SQL Language Service
 Microsoft SQL Server 2017
-Microsoft SQL Server 2017 Policies 
-Microsoft SQL Server 2017 T-SQL Language Service 
+Microsoft SQL Server 2017 Policies
+Microsoft SQL Server 2017 T-SQL Language Service
 Microsoft SQL Server Data-Tier Application Framework (x86)
+Microsoft SQL Server Management Studio - 18.6
 Microsoft Surface Dock Updater
 Microsoft System CLR Types for SQL Server 2014
 Microsoft System CLR Types for SQL Server 2017
+Microsoft System CLR Types for SQL Server 2019 CTP2.2
 Microsoft System CLR Types for SQL Server vNext CTP1.6
 Microsoft Teams
 Microsoft Visio Professional 2016 - de-de
@@ -74,6 +90,8 @@ Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.26.28720
 Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.26.28720
 Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.27.29016
 Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.27.29016
+Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.27.29112
+Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.27.29112
 Microsoft Visual Studio 2010 Tools for Office Runtime (x64)
 Microsoft Visual Studio 2015 Shell (Isolated)
 Microsoft Visual Studio Code
@@ -81,14 +99,20 @@ Microsoft Visual Studio Installer
 Microsoft Visual Studio Tools for Applications 2015
 Microsoft Visual Studio Tools for Applications 2015 Language Support
 Microsoft Web Deploy 4.0
+Microsoft Web Platform Installer 5.1
+Microsoft Windows Desktop Runtime - 3.1.8 (x64)
 Mozilla Maintenance Service
 Notepad++ (32-bit x86)
 Notepad++ (64-bit x64)
 NVIDIA Graphics Driver 391.40
 NVIDIA Update 31.1.10.0
 paint.net
+PowerShell 7-x64
+PowerToys (Preview) 
 Printix Client
 PuTTY release 0.74 (64-bit)
+Realtek High Definition Audio Driver
+Remote Desktop
 Remote Desktop Connection Manager
 RuckZuck provider for OneGet
 Samsung Printer Live Update
@@ -106,4 +130,5 @@ Visual Studio Professional 2019
 Visual Studio Professional 2020
 VLC media player
 Windows Assessment and Deployment Kit - Windows 10
+Windows 10 Update Assistant
 ZyWALL SecuExtender
