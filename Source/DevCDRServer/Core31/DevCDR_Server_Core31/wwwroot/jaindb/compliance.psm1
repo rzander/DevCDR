@@ -599,7 +599,8 @@ Function Test-ASR {
         if ($null -eq $global:chk) { $global:chk = @{ } }
         if ($global:chk.ContainsKey("ASR")) { $global:chk.Remove("ASR") }
         $global:chk.Add("ASR", $i )
-    } else {
+    }
+    else {
         if ($null -eq $global:chk) { $global:chk = @{ } }
         if ($global:chk.ContainsKey("ASR")) { $global:chk.Remove("ASR") }
         $global:chk.Add("ASR", 0)
@@ -825,8 +826,23 @@ Function Set-BitLocker($Drive = "C:" , $EncryptionMethod = "XtsAes128", $Enforce
             }
 
             Add-BitLockerKeyProtector -MountPoint "$($Drive)" -TpmProtector -ea SilentlyContinue
+
+            $KeyPresent = $false
+            (Get-BitLockerVolume c:).KeyProtector | Where-Object { $_.KeyProtectorType -eq "RecoveryPassword" }  | ForEach-Object { 
+                $PW = $_.RecoveryPassword 
+                $KeyPresent = $true
+                if (Test-Logging) {
+                    Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1002; Description = "BitLockerKey:" + $PW; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDR" -TenantID "ROMAWO"
+                }
+            }
         }
 
+        if ($KeyPresent ) {
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'BitLockerPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null; 
+        }
+    }
+    else {
         if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
         New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'BitLockerPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null; 
     }  
@@ -1011,7 +1027,7 @@ Function Set-AppLocker($XMLFile = "-", $PolicyRevision = 0, $Force = $false, $Re
     }
 }
 
-Function Set-WindowsUpdate($DeferFeatureUpdateDays = 7, $DeferQualityUpdateDays = 3, $RecommendedUpdates = $false, $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false) {
+Function Set-WindowsUpdate($DeferFeatureUpdateDays = 60, $DeferQualityUpdateDays = 7, $RecommendedUpdates = $false, $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false) {
     <#
         .Description
         Configure Windows Updates...
@@ -1464,8 +1480,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUCvcuqaF0ap/RCljKc/DdauU1
-# t1KgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8n8XnQeP7bXYipd4WmfeYovL
+# KPKgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1530,12 +1546,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSI
-# N42Egtxb+0R0beKN85Dkw9Yg3DANBgkqhkiG9w0BAQEFAASCAQAwyl/5MHXxpgjn
-# s20Tq//jdwRjCXD7FfXGhJFimAPWSPdD3zLTe0OK9uUGUbGrpFLGxmv2PJJvn1Aa
-# o6JC5IxKfWnMyX3Bl7gaTCdY94016AmdI6FUvHqeyeg1zwKOQQ++58dckGpo7Be/
-# w06DP9xzhO37IjrIDbiK+6R48b58nhY6BBKIRlZhKx99P5UrFu7KzG3RO3tJECbY
-# DiaZrXCpkd1KPVeF0glQdo+5MO7rJTuQ39gq+KUkyos/6OnwL6vDXQplBUpdV05w
-# seryULq71jo6FM2jiAnfWWkiU/CRF7ErrjODGKcaYzUQCkMru1iVAIzQrC1bXV8E
-# sZVPO3nm
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTV
+# HGFvgmz0X7kjs5B8y7IgRWIlzTANBgkqhkiG9w0BAQEFAASCAQAU9TWpxOljvfwU
+# xSi23oo+3ef3tFq7/Rlot39KUx22sqvvNm+bEdYK30C7TShhORakBdzkw8op0knS
+# hYT4wg4gNaEa0hvYxOJFZHMPtUs9h5fAOZMKQTQoE4Ss5h/PF6mgZWI5hOBfum9s
+# 8PWB5gqQbPkUXjNHEBAbHf05qiCJTx3rsBqolFsIaPgO2m/al/V/9cZc+O28VjHG
+# CwfUrZt4B9vDi2ykeqV3o6IL5xEo51I3VGgmv4iPOXAtsTnAcaQAIyT2oi51LgxA
+# 7u14O1RT2Ob7+vfffTtCrrFCH47uZgfBVGV9NQIs42pJOZbNDwb0lbsaSYfdEWI6
+# dfpcdBqm
 # SIG # End signature block
