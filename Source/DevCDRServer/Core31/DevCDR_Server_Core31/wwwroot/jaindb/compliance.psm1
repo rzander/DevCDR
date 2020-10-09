@@ -191,7 +191,8 @@ function Test-Administrators {
             $localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
             $Group = [ADSI]"WinNT://localhost/$LocalGroup, group"
             $members = $Group.psbase.Invoke("Members")
-            $members | ForEach-Object { $_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -like "S-1-12-1-*" } | ForEach-Object { Remove-LocalGroupMember -Name $localgroup $_ } 
+            #$members | ForEach-Object { $_.GetType().InvokeMember("ADSPath", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -notlike "WinNT://S-1-12-1-*" } | ForEach-Object { $Group.Remove($_) } 
+            $members | ForEach-Object { $_.GetType().InvokeMember("ADSPath", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -notlike "WinNT://S-1-12-1-*" } | ForEach-Object { try { $Group.Remove($_) }catch {} }
             $bRes = $true;
         }
     } 
@@ -1480,8 +1481,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8n8XnQeP7bXYipd4WmfeYovL
-# KPKgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQULmcFDUEvv68VWLk9fK00QDVZ
+# xlugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1546,12 +1547,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTV
-# HGFvgmz0X7kjs5B8y7IgRWIlzTANBgkqhkiG9w0BAQEFAASCAQAU9TWpxOljvfwU
-# xSi23oo+3ef3tFq7/Rlot39KUx22sqvvNm+bEdYK30C7TShhORakBdzkw8op0knS
-# hYT4wg4gNaEa0hvYxOJFZHMPtUs9h5fAOZMKQTQoE4Ss5h/PF6mgZWI5hOBfum9s
-# 8PWB5gqQbPkUXjNHEBAbHf05qiCJTx3rsBqolFsIaPgO2m/al/V/9cZc+O28VjHG
-# CwfUrZt4B9vDi2ykeqV3o6IL5xEo51I3VGgmv4iPOXAtsTnAcaQAIyT2oi51LgxA
-# 7u14O1RT2Ob7+vfffTtCrrFCH47uZgfBVGV9NQIs42pJOZbNDwb0lbsaSYfdEWI6
-# dfpcdBqm
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTH
+# sbEtaJEX3FrI+oryhFneP6pmyTANBgkqhkiG9w0BAQEFAASCAQBQM4vzf7HyzJPt
+# LRyLGKgKa06XXyJhJE4o+DfZcb1ZCd9k0RtlMqnvyFvJVEz4zzZhkFtm2XkmLmAK
+# xW7nwGkAEuxc2cl2pBfZHamPTCtfoEUGW/6Uo0jWWPs4K+zPnMXL9225YU/hSh8d
+# M9OhRRzxakKrBy+pZbzaJSoKJWugeMTWPX4Xi/1FDWdBftUQyA1OzknlX+6wRoLX
+# wor3+rkXE3US39byWPeAsl0vQutvnGBYavSHifCAEMm0tv3TNNOpJoVeLtW/12im
+# BAqynh24oWJt0cXuXLUp4Ur9q32oNwYw00GK4L3zDOzn0jQAZEDPpjgs+ybvwOhT
+# EBFmAQi4
 # SIG # End signature block

@@ -975,7 +975,7 @@ namespace DevCDRServer.Controllers
         //#if DEBUG
         //        [AllowAnonymous]
         //#endif
-        [AllowAnonymous]
+        //[AllowAnonymous]
         [HttpPost]
         public object Command()
         {
@@ -1498,7 +1498,7 @@ namespace DevCDRServer.Controllers
         //#if DEBUG
         //        [AllowAnonymous]
         //#endif
-        [AllowAnonymous]
+        //[AllowAnonymous]
         [HttpPost]
         public object RunPSCommand()
         {
@@ -1616,7 +1616,7 @@ namespace DevCDRServer.Controllers
         //#if DEBUG
         //        [AllowAnonymous]
         //#endif
-        [AllowAnonymous]
+        //[AllowAnonymous]
         [HttpPost]
         public object RunPSAsy()
         {
@@ -1675,7 +1675,7 @@ namespace DevCDRServer.Controllers
         //#if DEBUG
         //        [AllowAnonymous]
         //#endif
-        [AllowAnonymous]
+        //[AllowAnonymous]
         [HttpPost]
         public object RunPSFile()
         {

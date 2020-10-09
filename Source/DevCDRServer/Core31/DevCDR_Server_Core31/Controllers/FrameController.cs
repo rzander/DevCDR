@@ -24,7 +24,7 @@ using System.Threading.Tasks;
 
 namespace DevCDRServer.Controllers
 {
-    [TokenAuthentication]
+    //[TokenAuthentication]
     public class FrameController : Controller
     {
         public DevCDR.Extensions.AzureLogAnalytics AzureLog = new DevCDR.Extensions.AzureLogAnalytics("", "", "");
@@ -220,18 +220,37 @@ namespace DevCDRServer.Controllers
             };
         }
 
-        [TokenAuthentication]
+        //[TokenAuthentication]
         //[Authorize]
-        public ActionResult GetRZCatalog(string Instance = "Default")
+        [AllowAnonymous]
+        public ActionResult GetRZCatalog(string Instance = "Default" , string customerid = "")
         {
-            List<string> lRZCat = new List<string>();
-            try
+            if (string.IsNullOrEmpty(customerid))
             {
-                string sCat = SWResults("");
-                JArray oCat = JArray.Parse(sCat);
-                lRZCat = JArray.Parse(sCat).SelectTokens("..ShortName").Values<string>().OrderBy(t => t).ToList();
+                customerid = Request.Query["customerid"];
+                customerid = customerid ?? Request.Query["amp;customerid"];
             }
-            catch { }
+
+            if (string.IsNullOrEmpty(customerid))
+            {
+                string sCust = Request.Cookies["DEVCDRCUST"] ?? "";
+                if (!string.IsNullOrEmpty(sCust))
+                {
+                    customerid = sCust;
+                }
+            }
+
+            List<string> lRZCat = new List<string>();
+            if (!string.IsNullOrEmpty(customerid))
+            {
+                try
+                {
+                    string sCat = SWResults("", customerid);
+                    JArray oCat = JArray.Parse(sCat);
+                    lRZCat = JArray.Parse(sCat).SelectTokens("..ShortName").Values<string>().OrderBy(t => t).ToList();
+                }
+                catch { }
+            }
 
             return new ContentResult
             {
@@ -315,10 +334,11 @@ namespace DevCDRServer.Controllers
             }
             return View();
         }
+
+
         [TokenAuthentication]
-        //[Authorize]
         [HttpPost]
-        public object RunPSAsync()
+        public ActionResult RunPSAsy()
         {
             string sParams = "";
             //Load response
@@ -1024,17 +1044,33 @@ namespace DevCDRServer.Controllers
 
             return new ContentResult();
         }
-        internal string SWResults(string Searchstring)
+
+        internal string SWResults(string Searchstring, string customerid = "9qz")
         {
             string sCatFile = @"/App_Data/rzcat.json";
             string sResult = "";
             string sURL = "https://ruckzuck.tools";
 
+            try
+            {
+                if (_cache.TryGetValue("RZ" + customerid + Searchstring.Trim(), out sResult))
+                {
+                    if (sResult.StartsWith("[") & sResult.Length > 64)
+                        return sResult;
+                }
+                else
+                {
+                    sResult = "";
+                }
+            }
+            catch { }
+
             sCatFile = Path.Combine(_env.WebRootPath, "rzcat.json");
 
             try
             {
-                if (string.IsNullOrEmpty(Searchstring))
+                //Do not cache catalogs with customer id's
+                if (string.IsNullOrEmpty(Searchstring) && !string.IsNullOrEmpty(customerid))
                 {
                     if (System.IO.File.Exists(sCatFile))
                     {
@@ -1048,28 +1084,78 @@ namespace DevCDRServer.Controllers
                         }
                     }
                 }
-                else
-                {
 
-                }
+                if (string.IsNullOrEmpty(customerid))
+                    customerid = "";
 
-                HttpClient oClient = new HttpClient();
-                oClient.DefaultRequestHeaders.Accept.Clear();
-                oClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                var response = oClient.GetStringAsync(sURL + "/rest/v2/getcatalog");
-                response.Wait(10000); //10s max.
-                if (response.IsCompleted)
+                using (HttpClient oClient = new HttpClient())
                 {
-                    sResult = response.Result;
-                    if (sResult.StartsWith("[") & sResult.Length > 64)
+                    string sNewUrl = "";
+
+                    if (customerid.ToLower().StartsWith("9qz"))
                     {
-                        if (string.IsNullOrEmpty(Searchstring))
-                            System.IO.File.WriteAllText(sCatFile, sResult);
+                        try
+                        {
+                            if (_cache.TryGetValue("RZURL" + customerid, out sNewUrl))
+                            {
+                                if (sNewUrl.StartsWith("https"))
+                                {
+                                    sURL = sNewUrl;
+                                }
+                            }
+                            else
+                            {
+                                oClient.DefaultRequestHeaders.Accept.Clear();
+                                oClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                                var responseURL = oClient.GetStringAsync(sURL + "/rest/v2/geturl?customerid=" + customerid);
+                                responseURL.Wait(10000); //10s max.
+                                if (responseURL.IsCompleted)
+                                {
+                                    sNewUrl = responseURL.Result;
+                                    if (sNewUrl.ToLower().StartsWith("https"))
+                                    {
+                                        try
+                                        {
+                                            var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(15));
+                                            _cache.Set("RZURL" + customerid, sNewUrl.ToLower(), cacheEntryOptions);
+                                        }
+                                        catch { }
 
-                        return sResult;
+                                        sURL = sNewUrl;
+                                    }
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+
+
+                    oClient.DefaultRequestHeaders.Accept.Clear();
+                    oClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    var response = oClient.GetStringAsync(sURL + "/rest/v2/getcatalog?customerid=" + customerid);
+                    response.Wait(10000); //10s max.
+                    if (response.IsCompleted)
+                    {
+                        sResult = response.Result;
+                        if (sResult.StartsWith("[") & sResult.Length > 64)
+                        {
+                            if (!customerid.ToLower().StartsWith("9qz"))
+                            {
+                                if (string.IsNullOrEmpty(Searchstring))
+                                    System.IO.File.WriteAllText(sCatFile, sResult);
+                            }
+
+                            try
+                            {
+                                var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(5));
+                                _cache.Set("RZ" + customerid + Searchstring.Trim(), sResult, cacheEntryOptions);
+                            }
+                            catch { }
+
+                            return sResult;
+                        }
                     }
                 }
-
 
             }
             catch (Exception ex)
