@@ -4,7 +4,7 @@
         test if logging is enabled
     #>
 
-    if (Get-Module -ListAvailable -Name WriteAnalyticsLog) { return $true } else { return $false }
+    if (Get-Module -ListAvailable -Name WriteAnalyticsLog) { return WriteAnalyticsLog\Test-Logging  -TenantID "ROMAWO" } else { return $false }
 }
 
 function Test-Nuget {
@@ -177,6 +177,7 @@ function Test-DevCDRAgent($AgentVersion = "2.0.1.36") {
     $global:chk.Add("DevCDRAgent", (get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion )
 }
 
+#depreciated Test-LocalAdmin
 function Test-Administrators {
     <#
         .Description
@@ -190,7 +191,8 @@ function Test-Administrators {
             $localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
             $Group = [ADSI]"WinNT://localhost/$LocalGroup, group"
             $members = $Group.psbase.Invoke("Members")
-            $members | ForEach-Object { $_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -like "S-1-12-1-*" } | ForEach-Object { Remove-LocalGroupMember -Name $localgroup $_ } 
+            #$members | ForEach-Object { $_.GetType().InvokeMember("ADSPath", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -notlike "WinNT://S-1-12-1-*" } | ForEach-Object { $Group.Remove($_) } 
+            $members | ForEach-Object { $_.GetType().InvokeMember("ADSPath", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -notlike "WinNT://S-1-12-1-*" } | ForEach-Object { try { $Group.Remove($_) }catch {} }
             $bRes = $true;
         }
     } 
@@ -220,7 +222,7 @@ function Set-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
                     (Get-LocalUser | Where-Object { $_.SID -like "S-1-5-21-*-500" }) | Set-LocalUser -Password (ConvertTo-SecureString -String $pw -AsPlainText -Force)
 
                     if (Test-Logging) {
-                        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "AdminPW:" + $pw; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDR" -TennantID "DevCDR"
+                        Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1001; Description = "AdminPW:" + $pw; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDR" -TenantID "DevCDR"
                     }
                 }
             }
@@ -263,6 +265,7 @@ function Test-LocalAdmin {
     $global:chk.Add("Admins", $locAdmin.Count)
 }
 
+#depreciated by Set-WOL
 function Test-WOL {
     <#
         .Description
@@ -310,6 +313,7 @@ function Test-WOL {
     #$global:chk.Add("WOL", $bRes)
 }
 
+#depreciated by Set-FastBoot
 function Test-FastBoot($Value = 0) {
     <#
         .Description
@@ -323,6 +327,7 @@ function Test-FastBoot($Value = 0) {
     $global:chk.Add("FastBoot", $Value)
 }
 
+#depreciated by Set-DeliveryOptimization
 function Test-DeliveryOptimization {
     <#
         .Description
@@ -375,6 +380,7 @@ function Test-Software {
         if ($updates) { $global:chk.Add("RZUpdates", "") } else { $global:chk.Add("RZUpdates", "") }   
     }
 }
+
 function Update-Software {
     <#
         .Description
@@ -396,7 +402,7 @@ function Update-Software {
     $SWList | ForEach-Object { 
         if ($updates.PackageFilename -contains $_) { 
             if (Test-Logging) {
-                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 2000; Description = "RuckZuck updating: $($_)"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDR" -TennantID "DevCDR"
+                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 2000; Description = "RuckZuck updating: $($_)"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDR" -TenantID "DevCDR"
             }
             "Updating: " + $_ ;
             Install-Package -ProviderName RuckZuck "$($_)" -ea SilentlyContinue
@@ -595,6 +601,11 @@ Function Test-ASR {
         if ($global:chk.ContainsKey("ASR")) { $global:chk.Remove("ASR") }
         $global:chk.Add("ASR", $i )
     }
+    else {
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("ASR")) { $global:chk.Remove("ASR") }
+        $global:chk.Add("ASR", 0)
+    }
 }
 
 Function Test-Firewall {
@@ -664,6 +675,699 @@ Function Test-AppLocker {
     }
 }
 
+Function Set-EdgeChromium {
+    <#
+        .Description
+        Configure Edge Chromium...
+    #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [String]
+        $HomePageURL = "",
+        [parameter(Mandatory = $false)]
+        [String]
+        $RestrictUserDomain = "",
+        [parameter(Mandatory = $false)]
+        [bool]
+        $Google = $true,
+        [parameter(Mandatory = $false)]
+        [int]
+        $PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
+
+
+    #Fake MDM
+    #https://hitco.at/blog/apply-edge-policies-for-non-domain-joined-devices/
+    if ($HomePageURL -and (Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts' -ea SilentlyContinue).count -eq 0) {
+        
+        #  # Fake MDM-Enrollment - Key 1 of 2 - let a Win10 v1809, v1903, v1909 Machine "feel" MDM-Managed
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\Microsoft\Enrollments\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF") -ne $true) { New-Item "HKLM:\SOFTWARE\Microsoft\Enrollments\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF" -force -ea SilentlyContinue | Out-Null };
+
+        #  # Fake MDM-Enrollment - Key 2 of 2 - let a Win10 v1809, v1903, v1909 Machine "feel" MDM-Managed
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF") -ne $true) { New-Item "HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Enrollments\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'EnrollmentState' -Value 0x00000001  -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Enrollments\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'EnrollmentType' -Value 0x00000000  -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Enrollments\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'IsFederated' -Value 0 -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'Flags' -Value 14089087 -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'AcctUId' -Value '0x000000000000000000000000000000000000000000000000000000000000000000000000' -PropertyType String -Force -ea SilentlyContinue | Out-Null;
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'RoamingCount' -Value 0 -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'SslClientCertReference' -Value 'MY;User;0000000000000000000000000000000000000000' -PropertyType String -Force -ea SilentlyContinue | Out-Null;
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'ProtoVer' -Value '1.2' -PropertyType String -Force -ea SilentlyContinue | Out-Null;
+    }
+
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).EdgePolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+        #Create the key if missing 
+        If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Edge') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Edge' -force -ea SilentlyContinue | Out-Null } 
+        If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -force -ea SilentlyContinue | Out-Null } 
+        If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended\RestoreOnStartupURLs') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended\RestoreOnStartupURLs' -force -ea SilentlyContinue | Out-Null } 
+        If ((Test-Path 'HKLM:\Software\Policies\Microsoft\EdgeUpdate') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\EdgeUpdate' -force -ea SilentlyContinue | Out-Null } 
+    
+        #Action to take on startup
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'RestoreOnStartup' -Value 4 -ea SilentlyContinue 
+    
+        #Configure the home page URL
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'HomepageLocation' -Value "$($HomePageURL)" -ea SilentlyContinue 
+        #Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Name 'HomepageLocation' -Value "$($HomePageURL)" -ea SilentlyContinue 
+    
+        #Set the new tab page as the home page
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'HomepageIsNewTabPage' -Value 0 -ea SilentlyContinue 
+    
+        #Show Home button on toolbar
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'ShowHomeButton' -Value 1 -ea SilentlyContinue 
+    
+        #Sites to open when the browser starts
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended\RestoreOnStartupURLs' -Name '1' -Value "$($HomePageURL)" -ea SilentlyContinue 
+    
+        #Hide the First-run experience and splash screen
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Name 'HideFirstRunExperience' -Value 1 -ea SilentlyContinue 
+    
+        if ($RestrictUserDomain) {
+            #Restrict which accounts can be used as Microsoft Edge primary accounts
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Name 'RestrictSigninToPattern' -Value ".*@$($RestrictUserDomain)" -ea SilentlyContinue 
+        }
+
+        #Prevent Desktop Shortcut creation upon install default
+        Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\EdgeUpdate' -Name 'CreateDesktopShortcutDefault' -Value 0 -ea SilentlyContinue 
+
+        if ($Google) {
+            #Set Google as Search Provider
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'DefaultSearchProviderEnabled' -Value 1 -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'DefaultSearchProviderName' -Value 'Google' -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'DefaultSearchProviderSearchURL' -Value '{google:baseURL}search?q={searchTerms}&{google:RLZ}{google:originalQueryForSuggestion}{google:assistedQueryStats}{google:searchFieldtrialParameter}{google:searchClient}{google:sourceId}ie={inputEncoding}' -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -Name 'DefaultSearchProviderSuggestURL' -Value '{google:baseURL}complete/search?output=chrome&q={searchTerms}' -ea SilentlyContinue 
+        }
+    }
+
+    #remove Policy
+    if ([string]::IsNullOrEmpty($HomePageURL) -or $Remove.ToBool()) {
+        Remove-Item -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Recurse -force -ea SilentlyContinue  | Out-Null;
+        Remove-Item  -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -force -ea SilentlyContinue  | Out-Null;
+        Remove-Item  -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended\RestoreOnStartupURLs' -force -ea SilentlyContinue  | Out-Null;
+        Remove-Item  -Path 'HKLM:\Software\Policies\Microsoft\EdgeUpdate' -force -ea SilentlyContinue  | Out-Null;
+        Remove-Item  -Path 'HKLM:\SOFTWARE\Microsoft\Enrollments\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -force -ea SilentlyContinue  | Out-Null;
+        Remove-Item  -Path 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -force -ea SilentlyContinue  | Out-Null;
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'EdgePolicy' -Force -ea SilentlyContinue | Out-Null;
+    }
+    else {
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'EdgePolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;        
+    }
+}
+
+Function Set-OneDrive {
+    <#
+        .Description
+        Configure OneDrive...
+    #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [bool]
+        $KFM = $true,
+        [parameter(Mandatory = $false)]
+        [bool]
+        $FilesOnDemand = $true,
+        [parameter(Mandatory = $false)]
+        [int]
+        $PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
+
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).OneDrivePolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+        #Create the key if missing 
+        If ((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive') -eq $false ) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -force -ea SilentlyContinue } 
+                        
+        if ($KFM) {
+            #Device must be AAD Joined
+            if ((Get-ItemProperty "HKLM:SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\*\" -ea SilentlyContinue).TenantId) {
+                $tenantid = (Get-ItemProperty "HKLM:SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\*\" -ea SilentlyContinue).TenantId
+
+                Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'KFMSilentOptIn' -Value "$($tenantid)" -ea SilentlyContinue 
+                Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'KFMSilentOptInWithNotification' -Value 0 -ea SilentlyContinue 
+            }
+        }
+        
+        if ($FilesOnDemand) {
+            Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'FilesOnDemandEnabled' -Value 1 -ea SilentlyContinue 
+        }
+        else {
+            #Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'FilesOnDemandEnabled' -Value 0 -ea SilentlyContinue 
+            Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'FilesOnDemandEnabled' -ea SilentlyContinue 
+        }
+    }
+
+    if ($Remove.ToBool()) {
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'OneDrivePolicy' -Force -ea SilentlyContinue | Out-Null;
+        Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'SilentAccountConfig' -ea SilentlyContinue 
+        Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'KFMSilentOptIn' -ea SilentlyContinue 
+        Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'KFMSilentOptInWithNotification' -ea SilentlyContinue 
+        Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'FilesOnDemandEnabled' -ea SilentlyContinue 
+    }
+    else {
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        
+
+        if ($tenantid) {
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'OneDrivePolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;    
+        }
+        else {
+            if (-NOT $KFM) {
+                New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'OneDrivePolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;    
+            }
+        }
+    }
+}
+
+Function Set-BitLocker {
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [String]
+        $Drive = "C:",
+        [parameter(Mandatory = $false)]
+        [String]
+        $EncryptionMethod = "XtsAes128",
+        [parameter(Mandatory = $false)]
+        [switch]$EnforceNewKey,
+        [parameter(Mandatory = $false)]
+        [int]
+        $PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force
+    )
+
+    #only enable BitLocker if TPM is present
+    if (Get-Tpm -ea SilentlyContinue) {
+        if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).BitLockerPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+
+            Remove-Item "HKLM:\Software\Policies\Microsoft\FVE" -recurse -force -ea SilentlyContinue
+            Enable-BitLocker -MountPoint "$($Drive)" -EncryptionMethod $EncryptionMethod -UsedSpaceOnly -SkipHardwareTest -RecoveryPasswordProtector -ea SilentlyContinue > out-nul
+
+            if ($EnforceNewKey.ToBool()) {
+                $BLV = Get-BitLockerVolume -MountPoint "$($Drive)"
+                $BLV.KeyProtector | Where-Object { $_.KeyProtectorType -eq "RecoveryPassword" } | ForEach-Object {
+                    Remove-BitLockerKeyProtector -MountPoint "$($Drive)" -KeyProtectorId $_.KeyProtectorId -ea SilentlyContinue > out-nul
+                }
+                Add-BitLockerKeyProtector -MountPoint "$($Drive)" -RecoveryPasswordProtector -ea SilentlyContinue > out-nul
+            }
+
+            Add-BitLockerKeyProtector -MountPoint "$($Drive)" -TpmProtector -ea SilentlyContinue
+
+            $KeyPresent = $false
+            (Get-BitLockerVolume c:).KeyProtector | Where-Object { $_.KeyProtectorType -eq "RecoveryPassword" }  | ForEach-Object { 
+                $PW = $_.RecoveryPassword 
+                $KeyPresent = $true
+                if (Test-Logging) {
+                    Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1002; Description = "BitLockerKey:" + $PW; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDR" -TenantID "ROMAWO"
+                }
+            }
+        }
+
+        if ($KeyPresent ) {
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'BitLockerPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null; 
+        }
+    }
+    else {
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'BitLockerPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null; 
+    }  
+}
+
+Function Set-AppLocker {
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [String]
+        $XMLFile = "_",
+        [parameter(Mandatory = $false)]
+        [int]
+        $PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
+
+    if ($Remove.ToBool()) {
+        $policy = @"
+<AppLockerPolicy Version="1">
+  <RuleCollection Type="Exe" EnforcementMode="NotConfigured" />
+  <RuleCollection Type="Msi" EnforcementMode="NotConfigured" />
+  <RuleCollection Type="Script" EnforcementMode="NotConfigured" />
+  <RuleCollection Type="Dll" EnforcementMode="NotConfigured" />
+  <RuleCollection Type="Appx" EnforcementMode="NotConfigured" />
+</AppLockerPolicy>
+"@
+        $policy > $env:TEMP\Policy.xml
+        Set-AppLockerPolicy -XMLPolicy $env:TEMP\Policy.xml
+        Remove-Item $env:TEMP\Policy.xml -Force
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'AppLockerPolicy' -Force -ea SilentlyContinue | Out-Null;
+    }
+    else {
+        if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).AppLockerPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+            if (Test-Path $XMLFile) {
+                Set-AppLockerPolicy -XMLPolicy $XMLFile
+            }
+            else {
+                $policy = @"
+    <AppLockerPolicy Version="1">
+    <RuleCollection Type="Appx" EnforcementMode="Enabled">
+      <FilePublisherRule Id="a9e18c21-ff8f-43cf-b9fc-db40eed693ba" Name="(Standardregel) Alle signierten App-Pakete" Description="Ermöglicht Mitgliedern der Gruppe &quot;Jeder&quot; das Ausführen von signierten App-Paketen." UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePublisherCondition PublisherName="*" ProductName="*" BinaryName="*">
+            <BinaryVersionRange LowSection="0.0.0.0" HighSection="*" />
+          </FilePublisherCondition>
+        </Conditions>
+      </FilePublisherRule>
+    </RuleCollection>
+    <RuleCollection Type="Dll" EnforcementMode="Enabled" />
+    <RuleCollection Type="Exe" EnforcementMode="Enabled">
+      <FilePublisherRule Id="27afe9b3-7225-4ae9-a1b6-2a4efc5519ae" Name="Signiert von *" Description="" UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePublisherCondition PublisherName="*" ProductName="*" BinaryName="*">
+            <BinaryVersionRange LowSection="*" HighSection="*" />
+          </FilePublisherCondition>
+        </Conditions>
+        <Exceptions>
+          <FilePublisherCondition PublisherName="O=GOOGLE INC, L=MOUNTAIN VIEW, S=CALIFORNIA, C=US" ProductName="*" BinaryName="*">
+            <BinaryVersionRange LowSection="*" HighSection="*" />
+          </FilePublisherCondition>
+          <FilePublisherCondition PublisherName="O=TEAMVIEWER GMBH, L=GOEPPINGEN, S=BADEN-WUERTTEMBERG, C=DE" ProductName="*" BinaryName="*">
+            <BinaryVersionRange LowSection="*" HighSection="*" />
+          </FilePublisherCondition>
+          <FilePathCondition Path="\\*" />
+        </Exceptions>
+      </FilePublisherRule>
+      <FilePathRule Id="921cc481-6e17-4653-8f75-050b80acca20" Name="(Standardregel) Alle Dateien im Ordner &quot;Programme&quot;" Description="Ermöglicht Mitgliedern der Gruppe &quot;Jeder&quot; das Ausführen von Anwendungen, die sich im Ordner &quot;Programme&quot; befinden" UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="%PROGRAMFILES%\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="a61c8b2c-a319-4cd0-9690-d2177cad7b51" Name="(Standardregel) Alle Dateien im Ordner &quot;Windows&quot;" Description="Ermöglicht Mitgliedern der Gruppe &quot;Jeder&quot; das Ausführen von Anwendungen, die sich im Ordner &quot;Windows&quot; befinden" UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="eab7d1ff-c8f6-4c50-a891-b411ae84be13" Name="%WINDIR%\Tasks\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\Tasks\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="fd686d83-a829-4351-8ff4-27c7de5755d2" Name="(Standardregel) Alle Dateien" Description="Ermöglicht Mitgliedern der lokalen Administratorgruppe das Ausführen aller Anwendungen" UserOrGroupSid="S-1-5-32-544" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="53391d4e-21eb-4f28-874b-a40248b3e1d1" Name="%WINDIR%\System32\FxsTmp\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\System32\FxsTmp\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="9fe862ac-614f-496a-8d34-11606c0ff069" Name="%WINDIR%\System32\spool\drivers\color\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\System32\spool\drivers\color\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="80456a54-4115-487c-a869-028f96c442b2" Name="%WINDIR%\Registration\CRMLog\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\Registration\CRMLog\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="4dc5c5e2-48f6-4d4b-9d1d-a41ace5f9a08" Name="%WINDIR%\tracing\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\tracing\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="8e37698c-e67d-47df-a1af-94e9ca12207c" Name="%WINDIR%\System32\Microsoft\Crypto\RSA\MachineKeys\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\System32\Microsoft\Crypto\RSA\MachineKeys\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="d5cdbf2c-3eeb-4621-8b7d-4f2e85b82228" Name="%WINDIR%\SysWOW64\FxsTmp\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\SysWOW64\FxsTmp\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="159da158-3314-4c53-9355-1c3d5a500de4" Name="%WINDIR%\SysWOW64\Tasks\Microsoft\Windows\PLA\System\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\SysWOW64\Tasks\Microsoft\Windows\PLA\System\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="3472aff6-4985-447e-b1cb-651ed9d1be3c" Name="%WINDIR%\CCM\Logs\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\CCM\Logs\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="bb01fb31-81bb-44ce-9de2-4bcddb64a500" Name="%WINDIR%\CCM\Inventory\noidmifs\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\CCM\Inventory\noidmifs\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="39b889d9-9c06-4c6f-85a6-524cb25678be" Name="%WINDIR%\CCM\SystemTemp\AppVTempData\AppVCommandOutput\*" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\CCM\SystemTemp\AppVTempData\AppVCommandOutput\*" />
+        </Conditions>
+      </FilePathRule>
+    </RuleCollection>
+    <RuleCollection Type="Msi" EnforcementMode="Enabled">
+      <FilePublisherRule Id="b7af7102-efde-4369-8a89-7a6a392d1473" Name="(Standardregel) Alle digital signierten Windows Installer-Dateien" Description="Ermöglicht Mitgliedern der Gruppe &quot;Jeder&quot; das Ausführen von digital signierten Windows Installer-Dateien" UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePublisherCondition PublisherName="*" ProductName="*" BinaryName="*">
+            <BinaryVersionRange LowSection="0.0.0.0" HighSection="*" />
+          </FilePublisherCondition>
+        </Conditions>
+      </FilePublisherRule>
+      <FilePathRule Id="5b290184-345a-4453-b184-45305f6d9a54" Name="(Standardregel) Alle Windows Installer-Dateien unter &quot;%systemdrive%\Windows\Installer&quot;" Description="Ermöglicht Mitgliedern der Gruppe &quot;Jeder&quot; das Ausführen aller Windows Installer-Dateien, die sich unter &quot;%systemdrive%\Windows\Installer&quot; befinden." UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\Installer\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="64ad46ff-0d71-4fa0-a30b-3f3d30c5433d" Name="(Standardregel) Alle Windows Installer-Dateien" Description="Ermöglicht Mitgliedern der lokalen Administratorgruppe das Ausführen aller Windows Installer-Dateien" UserOrGroupSid="S-1-5-32-544" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="*.*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="a87e4136-ec32-4dc1-bdde-6a582c5a0260" Name="%WINDIR%\ccmcache\*" Description="" UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\ccmcache\*" />
+        </Conditions>
+      </FilePathRule>
+    </RuleCollection>
+    <RuleCollection Type="Script" EnforcementMode="AuditOnly">
+      <FilePathRule Id="06dce67b-934c-454f-a263-2515c8796a5d" Name="(Standardregel) Alle Skripts im Ordner &quot;Programme&quot;" Description="Ermöglicht Mitgliedern der Gruppe &quot;Jeder&quot; das Ausführen von Skripts, die sich im Ordner &quot;Programme&quot; befinden" UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="%PROGRAMFILES%\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="9428c672-5fc3-47f4-808a-a0011f36dd2c" Name="(Standardregel) Alle Skripts im Ordner &quot;Windows&quot;" Description="Ermöglicht Mitgliedern der Gruppe &quot;Jeder&quot; das Ausführen von Skripts, die sich im Ordner &quot;Windows&quot; befinden" UserOrGroupSid="S-1-1-0" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="%WINDIR%\*" />
+        </Conditions>
+      </FilePathRule>
+      <FilePathRule Id="ed97d0cb-15ff-430f-b82c-8d7832957725" Name="(Standardregel) Alle Skripts" Description="Ermöglicht Mitgliedern der lokalen Administratorgruppe das Ausführen aller Skripts" UserOrGroupSid="S-1-5-32-544" Action="Allow">
+        <Conditions>
+          <FilePathCondition Path="*" />
+        </Conditions>
+      </FilePathRule>
+    </RuleCollection>
+  </AppLockerPolicy>
+"@
+                $policy > $env:TEMP\Policy.xml
+                Set-AppLockerPolicy -XMLPolicy $env:TEMP\Policy.xml
+                Remove-Item $env:TEMP\Policy.xml -Force
+            }
+
+            Set-Service "AppIDSvc" -StartupType Automatic -ea SilentlyContinue
+            Start-Service "AppIDSVC"
+        }
+
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'AppLockerPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;  
+    }
+}
+
+Function Set-WindowsUpdate {
+    <#
+        .Description
+        Configure Windows Updates...
+    #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [int]
+        $DeferFeatureUpdateDays = 60,
+        [parameter(Mandatory = $false)]
+        [int]
+        $DeferQualityUpdateDays = 7,
+        [parameter(Mandatory = $false)]
+        [bool]$RecommendedUpdates = $false,
+        [parameter(Mandatory = $false)]
+        [int]
+        $PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
+
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).WUAPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+
+        if (-NOT $Remove.ToBool()) {
+            Remove-Item -Path 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX' -recurse -force -ea SilentlyContinue  | Out-Null
+            Remove-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -recurse -force -ea SilentlyContinue  | Out-Null
+
+            If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -force -ea SilentlyContinue | Out-Null } 
+            If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -force -ea SilentlyContinue | Out-Null } 
+
+            #Feature Updates
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferFeatureUpdates' -Value 1 -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'BranchReadinessLevel' -Value 16 -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferFeatureUpdatesPeriodInDays' -Value $DeferFeatureUpdateDays -ea SilentlyContinue 
+
+            #Quality Updates
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdates' -Value 1 -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdatesPeriodInDays' -Value $DeferQualityUpdateDays -ea SilentlyContinue 
+
+            #Enable Recommended (Preview) Updates
+            if ($RecommendedUpdates) {
+                Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name 'IncludeRecommendedUpdates' -Value 1 -ea SilentlyContinue 
+            }
+            else {
+                Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name 'IncludeRecommendedUpdates' -ea SilentlyContinue  | Out-Null;
+            }
+
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'WUAPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
+        }
+    }
+
+    if ($Remove.ToBool()) {
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'WUAPolicy' -Force -ea SilentlyContinue | Out-Null;
+        Remove-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -recurse -force -ea SilentlyContinue  | Out-Null;
+        Remove-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -recurse -force -ea SilentlyContinue  | Out-Null;
+    }
+}
+
+Function Set-Defender {
+    <#
+        .Description
+        Configure Windows Defender...
+    #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [bool]$ASR = $true,
+        [parameter(Mandatory = $false)]
+        [bool]$NetworkProtection = $true,
+        [parameter(Mandatory = $false)]
+        [bool]$PUA = $true,
+        [parameter(Mandatory = $false)]
+        [int]$PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
+
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).DefenderPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+
+        if ($ASR) {
+            Set-MpPreference -AttackSurfaceReductionOnlyExclusions "C:\Windows", "C:\Program Files", "C:\Program Files (x86)", "C:\ProgramData\Microsoft\Windows Defender"
+            Set-MpPreference -AttackSurfaceReductionRules_Ids BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550, D4F940AB-401B-4EFC-AADC-AD5F3C50688A, 3B576869-A4EC-4529-8536-B80A7769E899, 75668C1F-73B5-4CF0-BB93-3ECF5CB7CC84, D3E037E1-3EB8-44C8-A917-57927947596D, 5BEB7EFE-FD9A-4556-801D-275E5FFC04CC, 92E97FA1-2EDF-4476-BDD6-9DD0B4DDDC7B, 01443614-cd74-433a-b99e-2ecdc07bfc25, c1db55ab-c21a-4637-bb3f-a12568109d35, d1e49aac-8f56-4280-b9ba-993a6d77406c, 2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4, 26190899-1602-49e8-8b27-eb1d0a1ce869, 7674ba52-37eb-4a4f-a9a1-f0f9a1619a2c, e6db77e5-3df2-4cf1-b95a-636979351e5b, 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2  -AttackSurfaceReductionRules_Actions Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, AuditMode
+        }
+
+        if ($NetworkProtection) {
+            Set-MpPreference -EnableNetworkProtection Enabled
+        }
+        else {
+            Set-MpPreference -EnableNetworkProtection Disabled
+        }
+
+        if ($PUA) {
+            Set-MpPreference -PUAProtection Enabled
+        }
+        else {
+            Set-MpPreference -PUAProtection Disabled
+        }
+
+        Set-MpPreference -DisableArchiveScanning $false
+        Set-MpPreference -DisableAutoExclusions $false
+        Set-MpPreference -DisableBehaviorMonitoring $false
+        Set-MpPreference -DisableBlockAtFirstSeen $false
+        Set-MpPreference -DisableCatchupFullScan $true
+        Set-MpPreference -DisableCatchupQuickScan $true
+        Set-MpPreference -DisableEmailScanning $true
+        Set-MpPreference -DisableIOAVProtection $false
+        Set-MpPreference -DisablePrivacyMode $false
+        Set-MpPreference -DisableRealtimeMonitoring $false
+        Set-MpPreference -DisableRemovableDriveScanning $true
+        Set-MpPreference -DisableRestorePoint $true
+        Set-MpPreference -DisableScanningMappedNetworkDrivesForFullScan $true
+        Set-MpPreference -DisableScanningNetworkFiles $false
+        Set-MpPreference -DisableScriptScanning $false
+
+        Set-MpPreference -MAPSReporting 1
+        Set-MpPreference -RandomizeScheduleTaskTimes $true
+        Set-MpPreference -ScanAvgCPULoadFactor 50
+        Set-MpPreference -ScanOnlyIfIdleEnabled $true
+
+
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'DefenderPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
+    }
+
+    if ($Remove.ToBool()) {
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'DefenderPolicy' -Force -ea SilentlyContinue | Out-Null;
+    }
+
+
+}
+
+function Set-WOL {
+    <#
+        .Description
+        Enable WOL on NetworkAdapters
+    #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [int]$PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
+
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).WOLPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+        $niclist = Get-NetAdapter | Where-Object { ($_.MediaConnectionState -eq "Connected") -and (($_.name -match "Ethernet") -or ($_.name -match "local area connection")) }
+        $niclist | ForEach-Object { 
+            $nic = $_
+            $nicPowerWake = Get-WmiObject MSPower_DeviceWakeEnable -Namespace root\wmi | Where-Object { $_.instancename -match [regex]::escape($nic.PNPDeviceID) }
+            If ($nicPowerWake.Enable -eq $true) { }
+            Else {
+                try {
+                    $nicPowerWake.Enable = $True
+                    $nicPowerWake.psbase.Put() 
+                }
+                catch { }
+            }
+            $nicMagicPacket = Get-WmiObject MSNdis_DeviceWakeOnMagicPacketOnly -Namespace root\wmi | Where-Object { $_.instancename -match [regex]::escape($nic.PNPDeviceID) }
+            If ($nicMagicPacket.EnableWakeOnMagicPacketOnly -eq $true) { }
+            Else {
+                try {
+                    $nicMagicPacket.EnableWakeOnMagicPacketOnly = $True
+                    $nicMagicPacket.psbase.Put()
+                }
+                catch { }
+            }
+        }
+
+    
+        #Enable WOL broadcasts
+        if ((Get-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue).count -gt 1) {
+            #Cleanup WOl Rules
+            Remove-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue
+        }
+        if ((Get-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue).count -eq 0) {
+            #Add WOL Rule
+            New-NetFirewallRule -DisplayName "WOL" -Direction Outbound -RemotePort 9 -Protocol UDP -Action Allow
+        }
+
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'WOLPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null; 
+    }
+
+    if ($Remove.ToBool()) {
+        #Cleanup WOl Rules
+        Remove-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue  
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'WOLPolicy' -Force -ea SilentlyContinue | Out-Null;
+    }
+}
+
+function Set-FastBoot {
+    <#
+        .Description
+        Disable FastBoot
+    #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [int]$PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
+
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).FastBootPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+        New-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' -Name 'HiberbootEnabled' -Value 0 -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
+
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'FastBootPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null; 
+    }
+
+    if ($Remove.ToBool()) {
+        New-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' -Name 'HiberbootEnabled' -Value 1 -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'FastBootPolicy' -Force -ea SilentlyContinue | Out-Null;
+    }
+
+}
+
+function Set-DeliveryOptimization {
+    <#
+        .Description
+        restrict Peer Selection on DeliveryOptimization
+    #>
+
+    #Create the key if missing 
+    If ((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization') -eq $false ) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -force -ea SilentlyContinue } 
+
+    #Enable Setting and Restrict to local Subnet only
+    Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -Name 'DORestrictPeerSelectionBy' -Value 1 -ea SilentlyContinue 
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("DO")) { $global:chk.Remove("DO") }
+    $global:chk.Add("DO", 1)
+}
+
+#($Customer = "ROMAWO", $Broadcast = 0, $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false)
+function Set-RuckZuck {
+    <#
+        .Description
+        configure RuckZuck customerID; RuckZuck will configre the Repository Server based on the customerid
+    #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [string]$Customer = "ROMAWO",
+        [parameter(Mandatory = $false)]
+        [int]$Broadcast = 0,
+        [parameter(Mandatory = $false)]
+        [int]$PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
+
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).RuckZuckPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+
+        if (-NOT $Remove.ToBool()) {
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\Policies\RuckZuck") -ne $true) { New-Item "HKLM:\SOFTWARE\Policies\RuckZuck" -force -ea SilentlyContinue | Out-Null };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\RuckZuck' -Name 'Broadcast' -Value $Broadcast -PropertyType DWord -Force -ea SilentlyContinue | Out-Null
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\RuckZuck' -Name 'CustomerID' -Value $Customer -PropertyType String -Force -ea SilentlyContinue | Out-Null
+
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'RuckZuckPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
+        }
+    }
+
+    if ($Remove.ToBool()) {
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'RuckZuckPolicy' -Force -ea SilentlyContinue | Out-Null;
+        Remove-Item -Path 'HKLM:\SOFTWARE\Policies\RuckZuck' -recurse -force -ea SilentlyContinue  | Out-Null;
+    }
+}
+
 #region DevCDR
 
 Function Get-DevcdrEP {
@@ -721,6 +1425,23 @@ Function Get-DevcdrID {
     catch { }
 
     return ""
+}
+
+Function Set-DevcdrComplianceIntervall($Minutes = 5) {
+    <#
+        .Description
+        Set DeviceCommander HCompliance Check Intervall
+    #>
+    try {
+        $pipe = new-object System.IO.Pipes.NamedPipeClientStream '.', 'comcheck', 'Out'
+        $pipe.Connect(5000)
+        $sw = new-object System.IO.StreamWriter $pipe
+        $sw.WriteLine($Minutes)
+        $sw.Flush()
+    }
+    catch { }
+
+    return
 }
 #endregion
 
@@ -896,8 +1617,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU4Tnd/07wj3odpK7Tu9Q4fw1e
-# sZagggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUemG5SELgiCpfOxqNvd2gDqBK
+# jX+gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -962,12 +1683,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ9
-# IuEEsChF6vfhOujSJHJsV/yimzANBgkqhkiG9w0BAQEFAASCAQAEnSK1XlhNrNIf
-# PcOQxDQXLJVYp3/1Ydsc27QR3JFOAMhpWdZjp0xqAyhcw91h/UxRSDEGeBY87CO0
-# YJSQNuIdR3Pa/p63VpgrWzH5SZxEhHEE2DcO/tT7WjHhWdhwmVHwmmAIrQDonNb5
-# VqCTKcIPDYkwpJDltEHXFSQIQH+HeBwtiwsTNoxIMFPMnOrOz8knJEq1EqeJbElH
-# nkwcABi7c22/bWY+MWwQv5ne3u1grTjVEqMBMDrpjIIS3rPRIlffQOZpiZD1HRCQ
-# ZXwbWBdLEDyGn0koe3ev9iEVwpA82Ap1JEjr8O8huexSkQkUSEdQFlJcxyw30Ni5
-# Owzb2p7r
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQS
+# Zzpfmdj80lpq0SNDfIxl8DBxlDANBgkqhkiG9w0BAQEFAASCAQAuZu5GE+DCTuip
+# ugY/kqDEbAz3eeXHKAfbKWkpXYQx8FRmz1iDNEWPKBcCcQpHViKZVGOGKy1JhMc/
+# asMC/Q6+dJJq/H+C9ubxsnsOWiD5YB+MdRXxABHjnBDGoi22duZ/Tn6CMiT1j987
+# qhUTmbWAb+Xa/5W9XWun8uEmQNm7lerbflqqpVaGDbUnQnLFQn1/SD7ttNgnPXUf
+# ROWm7xSUzbtmBWsOD0DbW+HnvV2q+hmKyqDWTmr5BP9IdyYfnOcxcG1usGHkvMbs
+# df7II7MUZ91ht/hU0kp3HbFZXf9JUNu1LcENDAJUuU21nD9bqA4ssbQQmOQSrmem
+# UwQyy3tS
 # SIG # End signature block

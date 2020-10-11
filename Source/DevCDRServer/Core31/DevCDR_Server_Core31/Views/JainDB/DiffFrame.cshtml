@@ -1,4 +1,7 @@
 ﻿<p></p>
+@{
+    Layout = "_LayoutFrame";
+}
 
 <link href="~/lib/jsondiffpatch/dist/formatters-styles/html.css" rel="stylesheet" />
 <link href="~/lib/jsondiffpatch/dist/formatters-styles/annotated.css" rel="stylesheet" />
@@ -69,7 +72,7 @@
             },
             onclick: function (item, element, event) {
                 //alert(item.index);
-                window.location.href = "Diff?id=@ViewBag.Id&r=" + item.index;
+                window.location.href = "DiffFrame?id=@ViewBag.Id&r=" + item.index;
             },
             data: hist
 

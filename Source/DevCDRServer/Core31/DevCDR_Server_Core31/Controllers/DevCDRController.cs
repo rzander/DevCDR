@@ -30,8 +30,8 @@ namespace DevCDRServer.Controllers
         private readonly IWebHostEnvironment _env;
         private IMemoryCache _cache;
         private WebClient webclient = new WebClient();
-        public DevCDR.Extensions.AzureLogAnalytics AzureLog = new DevCDR.Extensions.AzureLogAnalytics("","","");
-
+        public DevCDR.Extensions.AzureLogAnalytics AzureLog = new DevCDR.Extensions.AzureLogAnalytics("", "", "");
+        public static string RootName = (Environment.GetEnvironmentVariable("rootKey") ?? "DeviceCommander");
         public DevCDRController(IHubContext<Default> hubContext, IWebHostEnvironment env, IMemoryCache memoryCache)
         {
             _hubContext = hubContext;
@@ -57,6 +57,8 @@ namespace DevCDRServer.Controllers
                 }
             }
         }
+        public static string lastalert = "";
+        private readonly object __lockObj = new object();
 
         [AllowAnonymous]
         public ActionResult Dashboard()
@@ -123,7 +125,7 @@ namespace DevCDRServer.Controllers
                 ViewBag.ExtMenu = true;
             }
 
-            if(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IP2LocationURL")))
             {
                 ViewBag.Location = "Internal IP";
             }
@@ -213,7 +215,10 @@ namespace DevCDRServer.Controllers
                 try
                 {
                     if (X509AgentCert.publicCertificates.Count == 0)
-                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+                    {
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceComamnder", false).Result))); //root
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(RootName, false).Result))); //root
+                    }
 
                     var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
                     if (!X509AgentCert.publicCertificates.Contains(xIssuing))
@@ -226,7 +231,7 @@ namespace DevCDRServer.Controllers
                 if (oSig.Exists && oSig.Valid)
                 {
                     string sScript = GetScriptAsync(oSig.CustomerID, filename).Result;
-                    
+
                     if (string.IsNullOrEmpty(sScript))
                         sScript = GetScriptAsync("DEMO", filename).Result;
 
@@ -255,7 +260,10 @@ namespace DevCDRServer.Controllers
                 try
                 {
                     if (X509AgentCert.publicCertificates.Count == 0)
-                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+                    {
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceComamnder", false).Result))); //root
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(RootName, false).Result))); //root
+                    }
 
                     var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
                     if (!X509AgentCert.publicCertificates.Contains(xIssuing))
@@ -283,9 +291,9 @@ namespace DevCDRServer.Controllers
                 }
                 else
                 {
-                    if(oSig.Expired) //allow if cert is expired in the last 7 days
+                    if (oSig.Expired) //allow if cert is expired in the last 7 days
                     {
-                        if((DateTime.UtcNow - oSig.Certificate.NotAfter).TotalDays < 7)
+                        if ((DateTime.UtcNow - oSig.Certificate.NotAfter).TotalDays < 7)
                         {
                             string sScript = GetOSDAsync(oSig.CustomerID, OS).Result;
 
@@ -317,7 +325,10 @@ namespace DevCDRServer.Controllers
                 try
                 {
                     if (X509AgentCert.publicCertificates.Count == 0)
-                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+                    {
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceComamnder", false).Result))); //root
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(RootName, false).Result))); //root
+                    }
 
                     var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
                     if (!X509AgentCert.publicCertificates.Contains(xIssuing))
@@ -429,7 +440,7 @@ namespace DevCDRServer.Controllers
 
             _cache.TryGetValue(customerid + filename, out Res);
 
-            if(!string.IsNullOrEmpty(Res))
+            if (!string.IsNullOrEmpty(Res))
             {
                 return Res;
             }
@@ -445,7 +456,7 @@ namespace DevCDRServer.Controllers
                     {
                         Res = await client.GetStringAsync($"{sURL}&customerid={customerid}&file={filename}");
 
-                        if(!string.IsNullOrEmpty(Res))
+                        if (!string.IsNullOrEmpty(Res))
                         {
                             var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(5)); //cache hash for x Seconds
                             _cache.Set(customerid + filename, Res, cacheEntryOptions);
@@ -494,7 +505,7 @@ namespace DevCDRServer.Controllers
                         if (!string.IsNullOrEmpty(Res))
                         {
                             var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(15));
-                            _cache.Set("osd" +customerid + os, Res, cacheEntryOptions);
+                            _cache.Set("osd" + customerid + os, Res, cacheEntryOptions);
                         }
                     }
 
@@ -566,6 +577,19 @@ namespace DevCDRServer.Controllers
         [AllowAnonymous]
         public ActionResult CreateAlert(string data, string signature)
         {
+            if (string.IsNullOrEmpty(data))
+            {
+                using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
+                    data = reader.ReadToEndAsync().Result;
+            }
+
+            lock (__lockObj)
+            {
+                if (data != lastalert)
+                    lastalert = data;
+                else return null;
+            }
+
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
             {
                 X509AgentCert oSig = new X509AgentCert(signature);
@@ -573,7 +597,10 @@ namespace DevCDRServer.Controllers
                 try
                 {
                     if (X509AgentCert.publicCertificates.Count == 0)
-                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+                    {
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceComamnder", false).Result))); //root
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(RootName, false).Result))); //root
+                    }
 
                     var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
                     if (!X509AgentCert.publicCertificates.Contains(xIssuing))
@@ -598,16 +625,33 @@ namespace DevCDRServer.Controllers
                         sURL = Environment.GetEnvironmentVariable("fnDevCDR");
                         sURL = sURL.Replace("{fn}", "fnSendMail");
 
-                        if (string.IsNullOrEmpty(data))
-                        {
-                            using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8))
-                                data = reader.ReadToEndAsync().Result;
-                        }
-
                         using (HttpClient client = new HttpClient())
                         {
-                            StringContent oData = new StringContent(data, Encoding.UTF8, "application/json");
-                            var oPost = client.PostAsync($"{sURL}&to={jCust["contact"].ToString()}&subject=Alert", new StringContent(data));
+                            //check if data is JSON...
+                            if (data.TrimStart().StartsWith('{'))
+                            {
+                                JObject oJData = JObject.Parse(data);
+                                data = oJData.ToString(Formatting.Indented); //Format JSON
+                                data = data.TrimStart('{');
+                                data = data.TrimEnd('}');
+                                data = "Threat details:<br>" + data;
+                                if (oJData["DefenderEventID"].Value<int>() == 1117)
+                                {
+                                    data = "A Threat was cleaned successfully by Windows-Defender !<br>" + data;
+                                } else
+                                {
+                                    data = "A Threat was detected in your environment !<br>" + data;
+                                }
+                                data = data.Replace("\n", "<br>");
+                                data = data.Replace("\t", "");
+                                //data = data.Replace(",", "<br>");
+                                data = data + "<br><br>Threat-Alert was generated at ROMAWO.com";
+                            }
+
+
+
+                            StringContent oData = new StringContent(data, Encoding.UTF8, "text/html");
+                            var oPost = client.PostAsync($"{sURL}&to={jCust["contact"].ToString()}&subject=Threat-Alert%21%21%21", new StringContent(data));
                             oPost.Wait(5000);
                             return new OkResult();
                         }
@@ -626,7 +670,7 @@ namespace DevCDRServer.Controllers
         //    try
         //    {
         //        if (X509AgentCert.publicCertificates.Count == 0)
-        //            X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+        //            X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(RootName, false).Result))); //root
 
         //        var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
         //        if (!X509AgentCert.publicCertificates.Contains(xIssuing))
@@ -696,7 +740,10 @@ namespace DevCDRServer.Controllers
             try
             {
                 if (X509AgentCert.publicCertificates.Count == 0)
-                    X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceCommander", false).Result))); //root
+                {
+                    X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceComamnder", false).Result))); //root
+                    X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(RootName, false).Result))); //root
+                }
 
                 var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
                 if (!X509AgentCert.publicCertificates.Contains(xIssuing))
@@ -741,7 +788,7 @@ namespace DevCDRServer.Controllers
                         {
                             StringContent oData = new StringContent(sNewData, Encoding.UTF8, "application/json");
                             var oPost = client.PostAsync($"{sURL}&deviceid={oSig.DeviceID}.json&customerid={oSig.CustomerID}", oData);
-                            string sID = jDB.UploadFull(data, oSig.DeviceID, "INV");
+                            string sID = jDB.UploadFullAsync(data, oSig.DeviceID, "INV").Result;
                             oPost.Wait(5000);
                             return new OkObjectResult(sID);
                         }
@@ -771,7 +818,7 @@ namespace DevCDRServer.Controllers
                 MemberInfo[] memberInfos = xType.GetMember("jData", BindingFlags.Public | BindingFlags.Static);
 
                 jData = ((FieldInfo)memberInfos[0]).GetValue(new JArray()) as JArray;
-                if(!string.IsNullOrEmpty(Group))
+                if (!string.IsNullOrEmpty(Group))
                     jData = new JArray(jData.SelectTokens($"$.[?(@.Groups=='{ Group }')]"));
             }
             catch { }
@@ -928,7 +975,7 @@ namespace DevCDRServer.Controllers
         //#if DEBUG
         //        [AllowAnonymous]
         //#endif
-        [AllowAnonymous]
+        //[AllowAnonymous]
         [HttpPost]
         public object Command()
         {
@@ -1042,7 +1089,7 @@ namespace DevCDRServer.Controllers
             var tItems = new JainDBController(_env, _cache).Query("$select=@MAC");
             JArray jMacs = tItems.Result;
 
-            foreach(var jTok in jMacs.SelectTokens("..@MAC"))
+            foreach (var jTok in jMacs.SelectTokens("..@MAC"))
             {
                 if (jTok.Type == JTokenType.String)
                     lResult.Add(jTok.Value<string>());
@@ -1374,8 +1421,33 @@ namespace DevCDRServer.Controllers
             }
         }
 
-        internal void sendWOL(List<string> Hostnames, string sInstance, List<string> MAC)
+        internal void sendWOL(List<string> Hostnames, string sInstance, List<string> MAC, string customerid = "")
         {
+            string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+
+
+
+            JArray jWOL = new JArray();
+            if (!string.IsNullOrEmpty(sURL))
+            {
+                if (string.IsNullOrEmpty(customerid))
+                {
+                    return;
+                }
+                    
+                sURL = sURL.Replace("{fn}", "fnGetFile");
+                HttpClient oClient = new HttpClient();
+                var stringWOL = oClient.GetStringAsync($"{sURL}&customerid={customerid}&file=WOLSummary.json").Result;
+                if (!string.IsNullOrEmpty(stringWOL))
+                {
+                    try
+                    {
+                        jWOL = JArray.Parse(stringWOL);
+                    }
+                    catch { }
+                }
+            } 
+
             foreach (string sHost in Hostnames)
             {
                 SetResult(sInstance, sHost, "triggered:" + "WakeUp devices..."); //Update Status
@@ -1384,24 +1456,49 @@ namespace DevCDRServer.Controllers
 
             foreach (string sHost in Hostnames)
             {
-                if (string.IsNullOrEmpty(sHost))
-                    continue;
-
-                //Get ConnectionID from HostName
-                string sID = GetID(sInstance, sHost);
-
-                if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                try
                 {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2002, Description = $"WakeUp all devices" });
-                    _hubContext.Clients.Client(sID).SendAsync("wol", string.Join(';', MAC));
+                    if (string.IsNullOrEmpty(sHost))
+                        continue;
+
+                    //Get ConnectionID from HostName
+                    string sID = GetID(sInstance, sHost);
+
+                    if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
+                    {
+                        if (string.IsNullOrEmpty(sURL))
+                        {
+                            if (MAC.Count > 0)
+                            {
+                                _hubContext.Clients.Client(sID).SendAsync("wol", string.Join(';', MAC));
+                            }
+                        }
+                        else
+                        {
+                            string subnetid = (jWOL.Children<JObject>().Where(t => t["name"].Value<string>().ToLower() == sHost.ToLower()).First())["subnetid"].Value<string>();
+                            foreach (var oDevice in jWOL.Children<JObject>().Where(t => t["subnetid"].Value<string>() == subnetid))
+                            {
+                                try
+                                {
+                                    MAC.Add(oDevice["mac"].Value<string>());
+                                }
+                                catch { }
+                            }
+
+                            _hubContext.Clients.Client(sID).SendAsync("wol", string.Join(';', MAC));
+                        }
+
+                        AzureLog.PostAsync(new { Computer = sHost, EventID = 2002, Description = $"WakeUp all devices" });
+                    }
                 }
+                catch { }
             }
         }
 
         //#if DEBUG
         //        [AllowAnonymous]
         //#endif
-        [AllowAnonymous]
+        //[AllowAnonymous]
         [HttpPost]
         public object RunPSCommand()
         {
@@ -1519,9 +1616,9 @@ namespace DevCDRServer.Controllers
         //#if DEBUG
         //        [AllowAnonymous]
         //#endif
-        [AllowAnonymous]
+        //[AllowAnonymous]
         [HttpPost]
-        public object RunPSAsync()
+        public object RunPSAsy()
         {
             string sParams = "";
             //Load response
@@ -1578,7 +1675,7 @@ namespace DevCDRServer.Controllers
         //#if DEBUG
         //        [AllowAnonymous]
         //#endif
-        [AllowAnonymous]
+        //[AllowAnonymous]
         [HttpPost]
         public object RunPSFile()
         {

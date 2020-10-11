@@ -1,0 +1,110 @@
+﻿<!DOCTYPE html>
+<style type="text/css">
+    html {
+        position: relative;
+        min-height: 100%;
+    }
+
+    .footer {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        /* Set the fixed height of the footer here */
+        height: 30px;
+        /*background-color: #f5f5f5;*/
+        text-align: right;
+        padding-right: 100px;
+    }
+</style>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ROMAWO</title>
+    <link rel="icon" type="image/x-icon" href="~/favicon.ico">
+    @*<environment include="Development">
+            <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
+            <link rel="stylesheet" href="~/css/site.css" />
+        </environment>
+        <environment exclude="Development">
+            <link rel="stylesheet" href="https://ajax.aspnetcdn.com/ajax/bootstrap/3.3.7/css/bootstrap.min.css"
+                  asp-fallback-href="~/lib/bootstrap/dist/css/bootstrap.min.css"
+                  asp-fallback-test-class="sr-only" asp-fallback-test-property="position" asp-fallback-test-value="absolute" />
+            <link rel="stylesheet" href="~/css/site.min.css" asp-append-version="true" />
+        </environment>*@
+    @*<link href="~/DataTables/css/select.dataTables.css" rel="stylesheet" />
+        <link href="~/DataTables/css/jquery.dataTables.css" rel="stylesheet" />
+        <link href="~/DataTables/css/buttons.dataTables.css" rel="stylesheet" />*@
+    <link href="~/lib/bootstrap4/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/css/site.css" rel="stylesheet" />
+    <link href="~/lib/datatables.net-select-jqui/css/select.jqueryui.min.css" rel="stylesheet" />
+    <link href="~/lib/datatables.net-jqui/css/dataTables.jqueryui.min.css" rel="stylesheet" />
+    <link href="~/lib/datatables.net-buttons-jqui/css/buttons.jqueryui.min.css" rel="stylesheet" />
+    <link href="~/lib/jquery-contextmenu/jquery.contextMenu.css" rel="stylesheet" />
+    <link href="~/lib/jqueryui/themes/base/jquery-ui.min.css" rel="stylesheet" />
+    <link href="~/lib/font-awesome/css/font-awesome.min.css" rel="stylesheet" />
+    <script src="~/lib/jquery/jquery.min.js"></script>
+    <script src="~/lib/signalr/dist/browser/signalr.min.js"></script>
+
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <a asp-area="" asp-controller="DevCDR" asp-action="Default" class="navbar-brand">ROMAWO managed workplace</a>
+        <button class="navbar-toggler" data-toggle="collapse" data-target="#layoutNavbarSupportedContent"
+                aria-controls="layoutNavbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="layoutNavbarSupportedContent">
+            @*<ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" asp-area="" asp-controller="DevCDR" asp-action="Default">Devices</a></li>
+                <li class="nav-item"><a class="nav-link" asp-area="" asp-controller="DevCDR" asp-action="About">About</a></li>
+                <li class="nav-item"><a class="nav-link" asp-area="" asp-controller="DevCDR" asp-action="Contact">Contact</a></li>
+            </ul>*@
+            @*<partial name="_LoginPartial" />*@
+        </div>
+    </nav>
+
+    <partial name="_CookieConsentPartial" />
+
+    <div class="body">
+        @RenderBody()
+        <footer class="footer" style="z-index:-1">
+            <p>&copy; 2020 by Zander-Tools - Version: @ViewBag.appVersion</p>
+        </footer>
+    </div>
+
+    <script src="~/lib/bootstrap4/dist/js/bootstrap.min.js"></script>
+    <script src="~/lib/modernizr/modernizr.min.js"></script>
+    <script src="~/lib/jqueryui/jquery-ui.min.js"></script>
+
+    @*<script type="text/javascript" src="https://cdn.datatables.net/1.10.20/js/jquery.dataTables.min.js"></script>*@
+    @*<script type="text/javascript" src="https://cdn.datatables.net/1.10.20/js/dataTables.jqueryui.min.js"></script>*@
+    @*<script type="text/javascript" src="https://cdn.datatables.net/buttons/1.6.1/js/dataTables.buttons.min.js"></script>*@
+    @*<script type="text/javascript" src="https://cdn.datatables.net/buttons/1.6.1/js/buttons.jqueryui.min.js"></script>*@
+    @*<script type="text/javascript" src="https://cdn.datatables.net/buttons/1.6.1/js/buttons.colVis.min.js"></script>*@
+    @*<script type="text/javascript" src="https://cdn.datatables.net/buttons/1.6.1/js/buttons.html5.min.js"></script>*@
+    @*<script type="text/javascript" src="https://cdn.datatables.net/buttons/1.6.1/js/buttons.print.min.js"></script>*@
+    @*<script type="text/javascript" src="https://cdn.datatables.net/select/1.3.1/js/dataTables.select.min.js"></script>*@
+
+
+    <script src="~/lib/datatables.net/js/jquery.dataTables.min.js"></script>
+    <script src="~/lib/datatables.net-jqui/js/dataTables.jqueryui.min.js"></script>
+    <script src="~/lib/datatables.net-select/js/dataTables.select.min.js"></script>
+    <script src="~/lib/datatables.net-select-jqui/js/select.jqueryui.min.js"></script>
+    <script src="~/lib/datatables.net-buttons/js/dataTables.buttons.min.js"></script>
+    <script src="~/lib/datatables.net-buttons-jqui/js/buttons.jqueryui.min.js"></script>
+    <script src="~/lib/ouanalyse-datatables.net-buttons-html5/js/buttons.html5.min.js"></script>
+    @*<script src="~/lib/datatables.net-colreorder/js/dataTables.colReorder.min.js"></script>*@
+    <script src="~/lib/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
+
+    @*<script src="~/lib/datatables/jquery.dataTables.min.js"></script>*@
+    @*<script src="~/lib/datatables/dataTables.select.min.js"></script>
+        <script src="~/lib/datatables/dataTables.buttons.min.js"></script>*@
+    @*<script src="~/lib/datatables/buttons.html5.min.js"></script>*@
+    <script src="~/lib/jquery-contextmenu/jquery.contextMenu.min.js"></script>
+    <script src="~/lib/jquery-contextmenu/jquery.ui.position.min.js"></script>
+
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

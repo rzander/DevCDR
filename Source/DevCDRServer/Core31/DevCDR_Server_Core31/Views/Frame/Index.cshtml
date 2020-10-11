@@ -2,6 +2,11 @@
     Layout = null;
 }
 
+<head>
+    <meta charset="utf-8" />
+    <title>@ViewData["Title"] - ROMAWO</title>
+</head>
+
 <link rel="icon" type="image/x-icon" href="~/favicon.ico">
 
 <link href="~/lib/bootstrap4/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -47,14 +52,14 @@
         <input class="btn btn-outline-secondary" type="button" onclick="Command('Shutdown')" value="Shutdown" title="shutdown selected devices" />
         <input class="btn btn-outline-secondary" type="button" value="User Message.." data-toggle="modal" data-target="#msgModal" title="Send a message to logged on users" />
         @*<input class="btn btn-outline-secondary" type="button" value="Get Groups" title="get Groups" onclick="Command('GetGroups')" />
-        <input class="btn btn-outline-secondary" type="button" value="Set Groups.." data-toggle="modal" data-target="#msgGroups" title="Group selected devices" />*@
+            <input class="btn btn-outline-secondary" type="button" value="Set Groups.." data-toggle="modal" data-target="#msgGroups" title="Group selected devices" />*@
         @*<input class="btn btn-light" type="button" value="Set Instance.." data-toggle="modal" data-target="#msgInstance" title="change Instance" />*@
         @*<input class="btn btn-outline-secondary" type="button" value="Set Endpoint.." data-toggle="modal" data-target="#msgEndpoint" title="change Endpoint (URL)" />
-        <input class="btn btn-outline-secondary" type="button" value="start DevCDR as User" title="start DevCDR as User" onclick="Command('DevCDRUser')" />*@
+            <input class="btn btn-outline-secondary" type="button" value="start DevCDR as User" title="start DevCDR as User" onclick="Command('DevCDRUser')" />*@
         <input class="btn btn-outline-secondary" type="button" value="WakeUp All" title="WakeUp all Devices" onclick="Command('WOL')" />
     </div>
     @Html.Partial("_CustomPS")
-    @Html.Partial("_ModalMessages")
+    @Html.Partial("_ModalMessagesFrame")
     @Html.Partial("_TableFrame")
 </div>
 
@@ -65,7 +70,7 @@
 }
 else
 {
-@Html.Partial("_ContextMenu")
+@Html.Partial("_ContextMenuFrame")
 }
 
 @Html.Partial("_RunCommandsFrame")

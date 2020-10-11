@@ -33,7 +33,7 @@
         if (title == null) { title = "CustomPS" }
         $.ajax({
             type: 'post',
-            url: '@Url.Action("RunPSAsync")',
+            url: '@Url.Action("RunPSAsy")',
             data: '{ "psscript": "' + encodeURIComponent(param) + '", "title" : "' + title + '", "instance" : "@ViewData["Instance"].ToString()", "rows": ' + rowdata + '  }',
             contentType: 'application/json; charset=utf-8',
             dataType: "json",
@@ -45,8 +45,8 @@
         if (table.rows({ selected: true }).count() > 0) {
             var id = table.rows({ selected: true }).data()[0]["id"];
             var jUrl = "../JainDB/Inv?id=" + id;
-            //window.open(jUrl); //to open a new tab
-            window.location.href = jUrl;
+            window.open(jUrl); //to open a new tab
+            //window.location.href = jUrl;
         };
     }
 
