@@ -675,12 +675,30 @@ Function Test-AppLocker {
     }
 }
 
-Function Set-EdgeChromium ($HomePageURL = "", $RestrictUserDomain = "", $Google = $true, $PolicyRevision = 0, $Force = $false) {
-
+Function Set-EdgeChromium {
     <#
         .Description
         Configure Edge Chromium...
     #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [String]
+        $HomePageURL = "",
+        [parameter(Mandatory = $false)]
+        [String]
+        $RestrictUserDomain = "",
+        [parameter(Mandatory = $false)]
+        [bool]
+        $Google = $true,
+        [parameter(Mandatory = $false)]
+        [int]
+        $PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
+
 
     #Fake MDM
     #https://hitco.at/blog/apply-edge-policies-for-non-domain-joined-devices/
@@ -701,7 +719,7 @@ Function Set-EdgeChromium ($HomePageURL = "", $RestrictUserDomain = "", $Google 
         New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF' -Name 'ProtoVer' -Value '1.2' -PropertyType String -Force -ea SilentlyContinue | Out-Null;
     }
 
-    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).EdgePolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).EdgePolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
         #Create the key if missing 
         If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Edge') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Edge' -force -ea SilentlyContinue | Out-Null } 
         If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -force -ea SilentlyContinue | Out-Null } 
@@ -745,7 +763,7 @@ Function Set-EdgeChromium ($HomePageURL = "", $RestrictUserDomain = "", $Google 
     }
 
     #remove Policy
-    if ([string]::IsNullOrEmpty($HomePageURL)) {
+    if ([string]::IsNullOrEmpty($HomePageURL) -or $Remove.ToBool()) {
         Remove-Item -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Recurse -force -ea SilentlyContinue  | Out-Null;
         Remove-Item  -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended' -force -ea SilentlyContinue  | Out-Null;
         Remove-Item  -Path 'HKLM:\Software\Policies\Microsoft\Edge\Recommended\RestoreOnStartupURLs' -force -ea SilentlyContinue  | Out-Null;
@@ -760,12 +778,28 @@ Function Set-EdgeChromium ($HomePageURL = "", $RestrictUserDomain = "", $Google 
     }
 }
 
-Function Set-OneDrive($KFM = $true, $FilesOnDemand = $true, $RemovePolicy = $false, $PolicyRevision = 0, $Force = $false) {
+Function Set-OneDrive {
     <#
         .Description
         Configure OneDrive...
     #>
-    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).OneDrivePolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [bool]
+        $KFM = $true,
+        [parameter(Mandatory = $false)]
+        [bool]
+        $FilesOnDemand = $true,
+        [parameter(Mandatory = $false)]
+        [int]
+        $PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
+
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).OneDrivePolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
         #Create the key if missing 
         If ((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive') -eq $false ) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -force -ea SilentlyContinue } 
                         
@@ -788,7 +822,7 @@ Function Set-OneDrive($KFM = $true, $FilesOnDemand = $true, $RemovePolicy = $fal
         }
     }
 
-    if ($RemovePolicy) {
+    if ($Remove.ToBool()) {
         Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'OneDrivePolicy' -Force -ea SilentlyContinue | Out-Null;
         Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'SilentAccountConfig' -ea SilentlyContinue 
         Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\OneDrive' -Name 'KFMSilentOptIn' -ea SilentlyContinue 
@@ -810,15 +844,31 @@ Function Set-OneDrive($KFM = $true, $FilesOnDemand = $true, $RemovePolicy = $fal
     }
 }
 
-Function Set-BitLocker($Drive = "C:" , $EncryptionMethod = "XtsAes128", $EnforceNewKey = $false, $PolicyRevision = 0, $Force = $false) {
+Function Set-BitLocker {
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [String]
+        $Drive = "C:",
+        [parameter(Mandatory = $false)]
+        [String]
+        $EncryptionMethod = "XtsAes128",
+        [parameter(Mandatory = $false)]
+        [switch]$EnforceNewKey,
+        [parameter(Mandatory = $false)]
+        [int]
+        $PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force
+    )
+
+    #only enable BitLocker if TPM is present
     if (Get-Tpm -ea SilentlyContinue) {
-        if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).BitLockerPolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
-            #only enable BitLocker if TPM is present
+        if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).BitLockerPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
 
             Remove-Item "HKLM:\Software\Policies\Microsoft\FVE" -recurse -force -ea SilentlyContinue
             Enable-BitLocker -MountPoint "$($Drive)" -EncryptionMethod $EncryptionMethod -UsedSpaceOnly -SkipHardwareTest -RecoveryPasswordProtector -ea SilentlyContinue > out-nul
 
-            if ($EnforceNewKey) {
+            if ($EnforceNewKey.ToBool()) {
                 $BLV = Get-BitLockerVolume -MountPoint "$($Drive)"
                 $BLV.KeyProtector | Where-Object { $_.KeyProtectorType -eq "RecoveryPassword" } | ForEach-Object {
                     Remove-BitLockerKeyProtector -MountPoint "$($Drive)" -KeyProtectorId $_.KeyProtectorId -ea SilentlyContinue > out-nul
@@ -849,8 +899,21 @@ Function Set-BitLocker($Drive = "C:" , $EncryptionMethod = "XtsAes128", $Enforce
     }  
 }
 
-Function Set-AppLocker($XMLFile = "-", $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false) {
-    if ($RemovePolicy) {
+Function Set-AppLocker {
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [String]
+        $XMLFile = "_",
+        [parameter(Mandatory = $false)]
+        [int]
+        $PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
+
+    if ($Remove.ToBool()) {
         $policy = @"
 <AppLockerPolicy Version="1">
   <RuleCollection Type="Exe" EnforcementMode="NotConfigured" />
@@ -866,7 +929,7 @@ Function Set-AppLocker($XMLFile = "-", $PolicyRevision = 0, $Force = $false, $Re
         Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'AppLockerPolicy' -Force -ea SilentlyContinue | Out-Null;
     }
     else {
-        if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).AppLockerPolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
+        if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).AppLockerPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
             if (Test-Path $XMLFile) {
                 Set-AppLockerPolicy -XMLPolicy $XMLFile
             }
@@ -1028,15 +1091,32 @@ Function Set-AppLocker($XMLFile = "-", $PolicyRevision = 0, $Force = $false, $Re
     }
 }
 
-Function Set-WindowsUpdate($DeferFeatureUpdateDays = 60, $DeferQualityUpdateDays = 7, $RecommendedUpdates = $false, $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false) {
+Function Set-WindowsUpdate {
     <#
         .Description
         Configure Windows Updates...
     #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [int]
+        $DeferFeatureUpdateDays = 60,
+        [parameter(Mandatory = $false)]
+        [int]
+        $DeferQualityUpdateDays = 7,
+        [parameter(Mandatory = $false)]
+        [bool]$RecommendedUpdates = $false,
+        [parameter(Mandatory = $false)]
+        [int]
+        $PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
 
-    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).WUAPolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).WUAPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
 
-        if (-NOT $RemovePolicy) {
+        if (-NOT $Remove.ToBool()) {
             Remove-Item -Path 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX' -recurse -force -ea SilentlyContinue  | Out-Null
             Remove-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -recurse -force -ea SilentlyContinue  | Out-Null
 
@@ -1065,20 +1145,34 @@ Function Set-WindowsUpdate($DeferFeatureUpdateDays = 60, $DeferQualityUpdateDays
         }
     }
 
-    if ($RemovePolicy) {
+    if ($Remove.ToBool()) {
         Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'WUAPolicy' -Force -ea SilentlyContinue | Out-Null;
         Remove-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -recurse -force -ea SilentlyContinue  | Out-Null;
         Remove-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' -recurse -force -ea SilentlyContinue  | Out-Null;
     }
 }
 
-Function Set-Defender($ASR = $true, $NetworkProtection = $true, $PUA = $true, $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false) {
+Function Set-Defender {
     <#
         .Description
         Configure Windows Defender...
     #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [bool]$ASR = $true,
+        [parameter(Mandatory = $false)]
+        [bool]$NetworkProtection = $true,
+        [parameter(Mandatory = $false)]
+        [bool]$PUA = $true,
+        [parameter(Mandatory = $false)]
+        [int]$PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
 
-    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).DefenderPolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).DefenderPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
 
         if ($ASR) {
             Set-MpPreference -AttackSurfaceReductionOnlyExclusions "C:\Windows", "C:\Program Files", "C:\Program Files (x86)", "C:\ProgramData\Microsoft\Windows Defender"
@@ -1125,7 +1219,7 @@ Function Set-Defender($ASR = $true, $NetworkProtection = $true, $PUA = $true, $P
         New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'DefenderPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
     }
 
-    if ($RemovePolicy) {
+    if ($Remove.ToBool()) {
         Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'DefenderPolicy' -Force -ea SilentlyContinue | Out-Null;
     }
 
@@ -1137,59 +1231,87 @@ function Set-WOL {
         .Description
         Enable WOL on NetworkAdapters
     #>
-    $bRes = $false
-    $niclist = Get-NetAdapter | Where-Object { ($_.MediaConnectionState -eq "Connected") -and (($_.name -match "Ethernet") -or ($_.name -match "local area connection")) }
-    $niclist | ForEach-Object { 
-        $nic = $_
-        $nicPowerWake = Get-WmiObject MSPower_DeviceWakeEnable -Namespace root\wmi | Where-Object { $_.instancename -match [regex]::escape($nic.PNPDeviceID) }
-        If ($nicPowerWake.Enable -eq $true) { }
-        Else {
-            try {
-                $nicPowerWake.Enable = $True
-                $nicPowerWake.psbase.Put() 
-                $bRes = $true;
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [int]$PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
+
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).WOLPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+        $niclist = Get-NetAdapter | Where-Object { ($_.MediaConnectionState -eq "Connected") -and (($_.name -match "Ethernet") -or ($_.name -match "local area connection")) }
+        $niclist | ForEach-Object { 
+            $nic = $_
+            $nicPowerWake = Get-WmiObject MSPower_DeviceWakeEnable -Namespace root\wmi | Where-Object { $_.instancename -match [regex]::escape($nic.PNPDeviceID) }
+            If ($nicPowerWake.Enable -eq $true) { }
+            Else {
+                try {
+                    $nicPowerWake.Enable = $True
+                    $nicPowerWake.psbase.Put() 
+                }
+                catch { }
             }
-            catch { }
-        }
-        $nicMagicPacket = Get-WmiObject MSNdis_DeviceWakeOnMagicPacketOnly -Namespace root\wmi | Where-Object { $_.instancename -match [regex]::escape($nic.PNPDeviceID) }
-        If ($nicMagicPacket.EnableWakeOnMagicPacketOnly -eq $true) { }
-        Else {
-            try {
-                $nicMagicPacket.EnableWakeOnMagicPacketOnly = $True
-                $nicMagicPacket.psbase.Put()
-                $bRes = $true;
+            $nicMagicPacket = Get-WmiObject MSNdis_DeviceWakeOnMagicPacketOnly -Namespace root\wmi | Where-Object { $_.instancename -match [regex]::escape($nic.PNPDeviceID) }
+            If ($nicMagicPacket.EnableWakeOnMagicPacketOnly -eq $true) { }
+            Else {
+                try {
+                    $nicMagicPacket.EnableWakeOnMagicPacketOnly = $True
+                    $nicMagicPacket.psbase.Put()
+                }
+                catch { }
             }
-            catch { }
         }
-    }
 
     
-    #Enable WOL broadcasts
-    if ((Get-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue).count -gt 1) {
-        #Cleanup WOl Rules
-        Remove-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue
-    }
-    if ((Get-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue).count -eq 0) {
-        #Add WOL Rule
-        New-NetFirewallRule -DisplayName "WOL" -Direction Outbound -RemotePort 9 -Protocol UDP -Action Allow
+        #Enable WOL broadcasts
+        if ((Get-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue).count -gt 1) {
+            #Cleanup WOl Rules
+            Remove-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue
+        }
+        if ((Get-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue).count -eq 0) {
+            #Add WOL Rule
+            New-NetFirewallRule -DisplayName "WOL" -Direction Outbound -RemotePort 9 -Protocol UDP -Action Allow
+        }
+
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'WOLPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null; 
     }
 
-    #if ($null -eq $global:chk) { $global:chk = @{ } }
-    #if ($global:chk.ContainsKey("WOL")) { $global:chk.Remove("WOL") }
-    #$global:chk.Add("WOL", $bRes)
+    if ($Remove.ToBool()) {
+        #Cleanup WOl Rules
+        Remove-NetFirewallRule -DisplayName "WOL" -ea SilentlyContinue  
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'WOLPolicy' -Force -ea SilentlyContinue | Out-Null;
+    }
 }
 
-function Set-FastBoot($Value = 0) {
+function Set-FastBoot {
     <#
         .Description
         Disable FastBoot
     #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [int]$PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
 
-    New-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' -Name 'HiberbootEnabled' -Value $Value -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).FastBootPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+        New-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' -Name 'HiberbootEnabled' -Value 0 -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
 
-    if ($null -eq $global:chk) { $global:chk = @{ } }
-    if ($global:chk.ContainsKey("FastBoot")) { $global:chk.Remove("FastBoot") }
-    $global:chk.Add("FastBoot", $Value)
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'FastBootPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null; 
+    }
+
+    if ($Remove.ToBool()) {
+        New-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' -Name 'HiberbootEnabled' -Value 1 -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'FastBootPolicy' -Force -ea SilentlyContinue | Out-Null;
+    }
+
 }
 
 function Set-DeliveryOptimization {
@@ -1209,14 +1331,28 @@ function Set-DeliveryOptimization {
     $global:chk.Add("DO", 1)
 }
 
-function Set-RuckZuck($Customer = "ROMAWO", $Broadcast = 0, $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false) {
+#($Customer = "ROMAWO", $Broadcast = 0, $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false)
+function Set-RuckZuck {
     <#
         .Description
         configure RuckZuck customerID; RuckZuck will configre the Repository Server based on the customerid
     #>
-    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).RuckZuckPolicy -ge $PolicyRevision) -and -NOT $Force) {  } else {
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [string]$Customer = "ROMAWO",
+        [parameter(Mandatory = $false)]
+        [int]$Broadcast = 0,
+        [parameter(Mandatory = $false)]
+        [int]$PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
 
-        if (-NOT $RemovePolicy) {
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).RuckZuckPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+
+        if (-NOT $Remove.ToBool()) {
             if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\Policies\RuckZuck") -ne $true) { New-Item "HKLM:\SOFTWARE\Policies\RuckZuck" -force -ea SilentlyContinue | Out-Null };
             New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\RuckZuck' -Name 'Broadcast' -Value $Broadcast -PropertyType DWord -Force -ea SilentlyContinue | Out-Null
             New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\RuckZuck' -Name 'CustomerID' -Value $Customer -PropertyType String -Force -ea SilentlyContinue | Out-Null
@@ -1226,7 +1362,7 @@ function Set-RuckZuck($Customer = "ROMAWO", $Broadcast = 0, $PolicyRevision = 0,
         }
     }
 
-    if ($RemovePolicy) {
+    if ($Remove.ToBool()) {
         Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'RuckZuckPolicy' -Force -ea SilentlyContinue | Out-Null;
         Remove-Item -Path 'HKLM:\SOFTWARE\Policies\RuckZuck' -recurse -force -ea SilentlyContinue  | Out-Null;
     }
@@ -1481,8 +1617,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQULmcFDUEvv68VWLk9fK00QDVZ
-# xlugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUemG5SELgiCpfOxqNvd2gDqBK
+# jX+gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1547,12 +1683,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTH
-# sbEtaJEX3FrI+oryhFneP6pmyTANBgkqhkiG9w0BAQEFAASCAQBQM4vzf7HyzJPt
-# LRyLGKgKa06XXyJhJE4o+DfZcb1ZCd9k0RtlMqnvyFvJVEz4zzZhkFtm2XkmLmAK
-# xW7nwGkAEuxc2cl2pBfZHamPTCtfoEUGW/6Uo0jWWPs4K+zPnMXL9225YU/hSh8d
-# M9OhRRzxakKrBy+pZbzaJSoKJWugeMTWPX4Xi/1FDWdBftUQyA1OzknlX+6wRoLX
-# wor3+rkXE3US39byWPeAsl0vQutvnGBYavSHifCAEMm0tv3TNNOpJoVeLtW/12im
-# BAqynh24oWJt0cXuXLUp4Ur9q32oNwYw00GK4L3zDOzn0jQAZEDPpjgs+ybvwOhT
-# EBFmAQi4
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQS
+# Zzpfmdj80lpq0SNDfIxl8DBxlDANBgkqhkiG9w0BAQEFAASCAQAuZu5GE+DCTuip
+# ugY/kqDEbAz3eeXHKAfbKWkpXYQx8FRmz1iDNEWPKBcCcQpHViKZVGOGKy1JhMc/
+# asMC/Q6+dJJq/H+C9ubxsnsOWiD5YB+MdRXxABHjnBDGoi22duZ/Tn6CMiT1j987
+# qhUTmbWAb+Xa/5W9XWun8uEmQNm7lerbflqqpVaGDbUnQnLFQn1/SD7ttNgnPXUf
+# ROWm7xSUzbtmBWsOD0DbW+HnvV2q+hmKyqDWTmr5BP9IdyYfnOcxcG1usGHkvMbs
+# df7II7MUZ91ht/hU0kp3HbFZXf9JUNu1LcENDAJUuU21nD9bqA4ssbQQmOQSrmem
+# UwQyy3tS
 # SIG # End signature block
