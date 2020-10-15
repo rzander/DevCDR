@@ -336,7 +336,7 @@
                                 "actDevQScan": {
                                     "name": "Run Quick Scan",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -346,7 +346,7 @@
                                 "actDevFScan": {
                                     "name": "Run Full Scan",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -356,7 +356,7 @@
                                 "actDevUpd": {
                                     "name": "Update Definitions",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -366,7 +366,7 @@
                                 "actDevFW": {
                                     "name": "reset Firewall to default",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -381,7 +381,7 @@
                                 "actOSLogoff": {
                                     "name": "Logoff all users",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -391,7 +391,7 @@
                                 "actOSRestart": {
                                     "name": "Restart Computer",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -401,7 +401,7 @@
                                 "actOSRestart5": {
                                     "name": "Restart Computer in 5min with User notification",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -411,7 +411,7 @@
                                 "actOSShutdown": {
                                     "name": "Shutdown Computer",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -421,7 +421,7 @@
                                 "actOSSuspend": {
                                     "name": "Suspend Computer",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -431,11 +431,67 @@
                                 "actOSHybernate": {
                                     "name": "Hybernate Computer",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
                                         RunPSAsync('shutdown /h', 'Hybernate...');
+                                    }
+                                },
+                                "sepW": "---------",
+                                "actOSWVD": {
+                                    "name": "Virtual Desktop",
+                                    "items": {
+                                        "actWVDQuery": {
+                                            "name": "Query current session login mode",
+                                            icon: function (opt, $itemElement, itemKey, item) {
+                                                $itemElement.html('<span class="fa fa-desktop" aria-hidden="true"></span> ' + item.name);
+                                                return 'context-menu-icon-updated';
+                                            },
+                                            callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                                RunPS('change logon /QUERY', 'QUERY...');
+                                            }
+                                        },
+                                        "actWVDEnable": {
+                                            "name": "Enable user login from sessions",
+                                            icon: function (opt, $itemElement, itemKey, item) {
+                                                $itemElement.html('<span class="fa fa-desktop" aria-hidden="true"></span> ' + item.name);
+                                                return 'context-menu-icon-updated';
+                                            },
+                                            callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                                RunPS('change logon /ENABLE', 'ENABLE...');
+                                            }
+                                        },
+                                        "actWVDDisable": {
+                                            "name": "Disable user login from sessions",
+                                            icon: function (opt, $itemElement, itemKey, item) {
+                                                $itemElement.html('<span class="fa fa-desktop" aria-hidden="true"></span> ' + item.name);
+                                                return 'context-menu-icon-updated';
+                                            },
+                                            callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                                RunPS('change logon /DISABLE', 'DISABLE...');
+                                            }
+                                        },
+                                        "actWVDDrain": {
+                                            "name": "Disable new user logons, but allow reconnections to existing sessions.",
+                                            icon: function (opt, $itemElement, itemKey, item) {
+                                                $itemElement.html('<span class="fa fa-desktop" aria-hidden="true"></span> ' + item.name);
+                                                return 'context-menu-icon-updated';
+                                            },
+                                            callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                                RunPS('change logon /DRAIN', 'DRAIN...');
+                                            }
+                                        },
+                                        "actWVDDrainUntilRestart": {
+                                            "name": "Disable new user logons until the server is restarted, but allow reconnections to existing sessions",
+                                            icon: function (opt, $itemElement, itemKey, item) {
+                                                $itemElement.html('<span class="fa fa-desktop" aria-hidden="true"></span> ' + item.name);
+                                                return 'context-menu-icon-updated';
+                                            },
+                                            callback: function (itemKey, opt, rootMenu, originalEvent) {
+                                                RunPS('change logon /DRAINUNTILRESTART', 'DRAINUNTILRESTART...');
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -446,7 +502,7 @@
                                 "actRZScan": {
                                     "name": "List missing Updates",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -456,7 +512,7 @@
                                 "actRZUpdateCore": {
                                     "name": "Update important Applications",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -466,7 +522,7 @@
                                 "actRZUpdate": {
                                     "name": "Update all Applications",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -476,7 +532,7 @@
                                 "actRZInstall": {
                                     "name": "Install a RuckZuck Package...",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -491,7 +547,7 @@
                                 "actUpdDrv": {
                                     "name": "Update Drivers",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -501,7 +557,7 @@
                                 "actUpdOS": {
                                     "name": "Update Windows",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-terminal" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -516,7 +572,7 @@
                                 "actSecGetUser": {
                                     "name": "Get active User",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-shield" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -526,7 +582,7 @@
                                 "actSecOwner": {
                                     "name": "Get Owner",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-shield" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -536,7 +592,7 @@
                                 "actSecLocked": {
                                     "name": "Get locked state",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-shield" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -547,7 +603,7 @@
                                 "actSecAddAdmin": {
                                     "name": "Make active User an Admin",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-shield" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -557,7 +613,7 @@
                                 "actSecRemAdmin": {
                                     "name": "Remove all local Admins",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-shield" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -569,7 +625,7 @@
                                 "actSecDisAdmin": {
                                     "name": "Disable local Administrator",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-shield" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -579,7 +635,7 @@
                                 "actSecEnAdmin": {
                                     "name": "Enable local Administrator",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-shield" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
@@ -589,7 +645,7 @@
                                 "actSecAdminPW": {
                                     "name": "Change Admin PW",
                                     icon: function (opt, $itemElement, itemKey, item) {
-                                        $itemElement.html('<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> ' + item.name);
+                                        $itemElement.html('<span class="fa fa-shield" aria-hidden="true"></span> ' + item.name);
                                         return 'context-menu-icon-updated';
                                     },
                                     callback: function (itemKey, opt, rootMenu, originalEvent) {
