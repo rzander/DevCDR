@@ -223,7 +223,7 @@ namespace DevCDRServer.Controllers
         //[TokenAuthentication]
         //[Authorize]
         [AllowAnonymous]
-        public ActionResult GetRZCatalog(string Instance = "Default" , string customerid = "")
+        public ActionResult GetRZCatalog(string customerid = "")
         {
             if (string.IsNullOrEmpty(customerid))
             {

@@ -20,6 +20,10 @@ LocalAdminWMIProvider
 Logitech Options
 Microsoft 365 Apps for Business - de-de
 Microsoft 365 Apps for business - en-us
+Microsoft 365 Apps for Business - de-de.proof
+Microsoft 365 Apps for business - en-us.proof
+Microsoft 365 Apps for business - fr-fr.proof
+Microsoft 365-apps voor bedrijven - nl-nl.proof
 Microsoft .NET Framework 4.5 Multi-Targeting Pack
 Microsoft .NET Framework 4.5.1 Multi-Targeting Pack
 Microsoft .NET Framework 4.5.1 Multi-Targeting Pack (ENU)
@@ -51,6 +55,7 @@ Microsoft Power BI Desktop (x64)
 Microsoft PowerBI Desktop (x64)
 Microsoft Project Professional 2016 - de-de
 Microsoft Project Professional 2016 - en-us
+Microsoft Report Viewer 2015-Laufzeit
 Microsoft Silverlight
 Microsoft SQL Server 2012 Native Client 
 Microsoft SQL Server 2014 Management Objects
@@ -93,6 +98,7 @@ Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.27.29016
 Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.27.29112
 Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.27.29112
 Microsoft Visual Studio 2010 Tools for Office Runtime (x64)
+Microsoft Visual Studio 2010-Tools für Office-Laufzeit (x64) Language Pack - DEU
 Microsoft Visual Studio 2015 Shell (Isolated)
 Microsoft Visual Studio Code
 Microsoft Visual Studio Installer
@@ -101,6 +107,7 @@ Microsoft Visual Studio Tools for Applications 2015 Language Support
 Microsoft Web Deploy 4.0
 Microsoft Web Platform Installer 5.1
 Microsoft Windows Desktop Runtime - 3.1.8 (x64)
+Microsoft-System-CLR-Typen für SQL Server 2014
 Mozilla Maintenance Service
 Notepad++ (32-bit x86)
 Notepad++ (64-bit x64)

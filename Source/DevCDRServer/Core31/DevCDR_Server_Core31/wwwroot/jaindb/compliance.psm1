@@ -177,25 +177,18 @@ function Test-DevCDRAgent($AgentVersion = "2.0.1.36") {
     $global:chk.Add("DevCDRAgent", (get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion )
 }
 
-#depreciated Test-LocalAdmin
-function Test-Administrators {
+function Set-Administrators {
     <#
         .Description
-        Fix local Admins on CloudJoined Devices, PowerShell Isseue if unknown cloud users/groups are member of a local group
+        remove all local admins except the built in Azure Global-Admins and Azure Device-Admins
     #>
     
-    $bRes = $false;
-    #Skip fix if running on a DC
-    if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) {
-        if (Get-LocalGroupMember -SID S-1-5-32-544 -ea SilentlyContinue) { } else {
-            $localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
-            $Group = [ADSI]"WinNT://localhost/$LocalGroup, group"
-            $members = $Group.psbase.Invoke("Members")
-            #$members | ForEach-Object { $_.GetType().InvokeMember("ADSPath", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -notlike "WinNT://S-1-12-1-*" } | ForEach-Object { $Group.Remove($_) } 
-            $members | ForEach-Object { $_.GetType().InvokeMember("ADSPath", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -notlike "WinNT://S-1-12-1-*" } | ForEach-Object { try { $Group.Remove($_) }catch {} }
-            $bRes = $true;
-        }
-    } 
+    if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) { 
+        $localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
+        $Group = [ADSI]"WinNT://localhost/$LocalGroup, group"
+        $members = $Group.psbase.Invoke("Members")
+        $members | ForEach-Object { $_.GetType().InvokeMember("ADSPath", "GetProperty", $null, $_, $null) } | Where-Object { $_ -notlike "WinNT://S-1-12-1-*" } | ForEach-Object { try { $Group.Remove($_) } catch {} } 
+    }
 }
 
 function Set-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
@@ -1319,19 +1312,111 @@ function Set-DeliveryOptimization {
         .Description
         restrict Peer Selection on DeliveryOptimization
     #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [int]$PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
 
-    #Create the key if missing 
-    If ((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization') -eq $false ) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -force -ea SilentlyContinue } 
+    if (-NOT $Remove.ToBool()) {
+        if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).DOPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+            #Create the key if missing 
+            If ((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization') -eq $false ) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -force -ea SilentlyContinue } 
 
-    #Enable Setting and Restrict to local Subnet only
-    Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -Name 'DORestrictPeerSelectionBy' -Value 1 -ea SilentlyContinue 
+            #Enable Setting and Restrict to local Subnet only
+            Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -Name 'DORestrictPeerSelectionBy' -Value 1 -ea SilentlyContinue 
 
-    if ($null -eq $global:chk) { $global:chk = @{ } }
-    if ($global:chk.ContainsKey("DO")) { $global:chk.Remove("DO") }
-    $global:chk.Add("DO", 1)
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'DOPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
+        }
+
+    }
+
+    if ($Remove.ToBool()) {
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'DOPolicy' -Force -ea SilentlyContinue | Out-Null;
+        Remove-Item -Path 'HKLM:\SOFTWARE\Policies\RuckZuck' -recurse -force -ea SilentlyContinue  | Out-Null;
+
+        Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -Name 'DORestrictPeerSelectionBy' -Force -ea SilentlyContinue | Out-Null;
+    }
 }
 
-#($Customer = "ROMAWO", $Broadcast = 0, $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false)
+function Set-InactivityTimeout {
+    <#
+        .Description
+        auto lock windows if idle for a secific time, set Timeout in seconds
+    #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [int]$Timeout = 300,
+        [parameter(Mandatory = $false)]
+        [int]$PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
+
+    if (-NOT $Remove.ToBool()) {
+        if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).InactivityPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System") -ne $true) { New-Item "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -force -ea SilentlyContinue };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'InactivityTimeoutSecs' -Value $Timeout -PropertyType DWord -Force -ea SilentlyContinue;
+
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'InactivityPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
+        }
+
+    }
+
+    if ($Remove.ToBool()) {
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'InactivityPolicy' -Force -ea SilentlyContinue | Out-Null;
+        Remove-Item -Path 'HKLM:\SOFTWARE\Policies\RuckZuck' -recurse -force -ea SilentlyContinue  | Out-Null;
+
+        Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'InactivityTimeoutSecs' -Force -ea SilentlyContinue | Out-Null;
+    }
+}
+
+function Set-OEMLicense {
+    <#
+        .Description
+        Set OEM Windows Key to activate Windows
+    #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [int]$PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force
+    )
+
+    if (-NOT $Remove.ToBool()) {
+        if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).OEMLicensePolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+
+            $Status = (Get-CimInstance -ClassName SoftwareLicensingProduct | Where-Object { $_.PartialProductKey -and $_.ApplicationID -eq '55c92734-d682-4d71-983e-d6ec3f16059f' } | Select-Object LicenseStatus).LicenseStatus
+            if ($Status -ne 1) {
+                #Set OEM Key
+                $key = (Get-WmiObject softwarelicensingservice).OA3xOriginalProductKey
+                if ($key) { slmgr /ipk $key }
+            }
+
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'OEMLicensePolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
+        }
+
+    }
+}
+
+function Test-WindowsLicense {
+    <#
+        .Description
+        Get Windows activation status
+    #>
+
+    Get-CimInstance -ClassName SoftwareLicensingProduct | Where-Object { $_.PartialProductKey -and $_.ApplicationID -eq '55c92734-d682-4d71-983e-d6ec3f16059f' } | Select-Object Description, LicenseStatus | convertto-json
+}
+
 function Set-RuckZuck {
     <#
         .Description
@@ -1617,8 +1702,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUemG5SELgiCpfOxqNvd2gDqBK
-# jX+gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhnO1EyFjC5Z1B4M8LtWYwkPh
+# hKOgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1683,12 +1768,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQS
-# Zzpfmdj80lpq0SNDfIxl8DBxlDANBgkqhkiG9w0BAQEFAASCAQAuZu5GE+DCTuip
-# ugY/kqDEbAz3eeXHKAfbKWkpXYQx8FRmz1iDNEWPKBcCcQpHViKZVGOGKy1JhMc/
-# asMC/Q6+dJJq/H+C9ubxsnsOWiD5YB+MdRXxABHjnBDGoi22duZ/Tn6CMiT1j987
-# qhUTmbWAb+Xa/5W9XWun8uEmQNm7lerbflqqpVaGDbUnQnLFQn1/SD7ttNgnPXUf
-# ROWm7xSUzbtmBWsOD0DbW+HnvV2q+hmKyqDWTmr5BP9IdyYfnOcxcG1usGHkvMbs
-# df7II7MUZ91ht/hU0kp3HbFZXf9JUNu1LcENDAJUuU21nD9bqA4ssbQQmOQSrmem
-# UwQyy3tS
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTP
+# Sd5y7xw5H9riw32lL+8+KtYO4TANBgkqhkiG9w0BAQEFAASCAQAwFRhUVdxrDss6
+# Gp5lxr7CRILRPXE4HuygjtJGe632H6XRowPHAqmsh0WcJwHt6zWzuZvQbOUUnPbI
+# 9gGuAEBaEML7llX90rWwRQM6mHrBvqPV73AMb6DeDg51/Ch0SXyVL9Z+XzKkhVHV
+# tr/GkUD6hKFdQKOcmSSbaTq4RYC+qz2nqxZan4LpOvM5eTswv0T7CprAdHGO/Ow5
+# qugcDnRj6QeC8zhtXKAdqrxDvJA2PaNpP+4KsuAwvz6+y3iIACl5mm4CK2kWGIEW
+# qgHFnG4stORjLlphBYi69+6iEsPjj93uzes6Kxw/9u5s5qiPupoZZWK7My8p2SXg
+# vguIPEt6
 # SIG # End signature block
