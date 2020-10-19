@@ -1391,21 +1391,21 @@ function Set-OEMLicense {
         [switch]$Force
     )
 
-    if (-NOT $Remove.ToBool()) {
-        if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).OEMLicensePolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
 
-            $Status = (Get-CimInstance -ClassName SoftwareLicensingProduct | Where-Object { $_.PartialProductKey -and $_.ApplicationID -eq '55c92734-d682-4d71-983e-d6ec3f16059f' } | Select-Object LicenseStatus).LicenseStatus
-            if ($Status -ne 1) {
-                #Set OEM Key
-                $key = (Get-WmiObject softwarelicensingservice).OA3xOriginalProductKey
-                if ($key) { slmgr /ipk $key }
-            }
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).OEMLicensePolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
 
-            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
-            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'OEMLicensePolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
+        $Status = (Get-CimInstance -ClassName SoftwareLicensingProduct | Where-Object { $_.PartialProductKey -and $_.ApplicationID -eq '55c92734-d682-4d71-983e-d6ec3f16059f' } | Select-Object LicenseStatus).LicenseStatus
+        if ($Status -ne 1) {
+            #Set OEM Key
+            $key = (Get-WmiObject softwarelicensingservice).OA3xOriginalProductKey
+            if ($key) { slmgr /ipk $key }
         }
 
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'OEMLicensePolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
     }
+
+    
 }
 
 function Test-WindowsLicense {
@@ -1702,8 +1702,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhnO1EyFjC5Z1B4M8LtWYwkPh
-# hKOgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7XSfx/Vm/wPgwHAsOcS8d+QF
+# my6gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1768,12 +1768,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTP
-# Sd5y7xw5H9riw32lL+8+KtYO4TANBgkqhkiG9w0BAQEFAASCAQAwFRhUVdxrDss6
-# Gp5lxr7CRILRPXE4HuygjtJGe632H6XRowPHAqmsh0WcJwHt6zWzuZvQbOUUnPbI
-# 9gGuAEBaEML7llX90rWwRQM6mHrBvqPV73AMb6DeDg51/Ch0SXyVL9Z+XzKkhVHV
-# tr/GkUD6hKFdQKOcmSSbaTq4RYC+qz2nqxZan4LpOvM5eTswv0T7CprAdHGO/Ow5
-# qugcDnRj6QeC8zhtXKAdqrxDvJA2PaNpP+4KsuAwvz6+y3iIACl5mm4CK2kWGIEW
-# qgHFnG4stORjLlphBYi69+6iEsPjj93uzes6Kxw/9u5s5qiPupoZZWK7My8p2SXg
-# vguIPEt6
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTC
+# oHfKCTZtSMb+axmUhT5i6rnTTzANBgkqhkiG9w0BAQEFAASCAQBeXegsEbzIl1w5
+# JklqanVIw93/Wz0qAt+DGHSFvmLXFKB2zpR2YQYzGJt5qa1FFCe9bZYBlI88+u+M
+# YMq06hcS3GgelmXZfv6yzptghnnPPSUL7ibC0k9jKpA+6ABkSq9qEtyjBUTW0G4i
+# +nzcjixqI1qQI9cuoePhdms5CBu/Tb1apbxVLyEYKAaP2CO5+ZDakjwPsM4Nxpqp
+# hrWg1sUhGWTdpD9nu3VCwli23yNstnTAdUdtHWk0h2FPWTwxG3ZSnWkSmzPKqpQh
+# SzvAqrENsGIvog3+5RQYQkopTiGxUJWkdxiarWGBWpmed5+ecMX2O7UhnXqa8Bh/
+# tIKvvsjJ
 # SIG # End signature block
