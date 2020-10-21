@@ -6,6 +6,8 @@ Summary: https://rzander.azurewebsites.net/device-commander/
 
 Get a free instance:
 
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Frzander%2FDevCDR%2FServerCore31%2Fazuredeploy.json)
+
 <a href="https://azuredeploy.net/?repository=https://github.com/rzander/devcdr/tree/ServerCore31" target="_blank">
     <img src="http://azuredeploy.net/deploybutton.png"/>
 </a>
