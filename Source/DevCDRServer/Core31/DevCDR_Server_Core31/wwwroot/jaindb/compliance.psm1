@@ -903,6 +903,8 @@ Function Set-AppLocker {
         [parameter(Mandatory = $false)]
         [switch]$Force,
         [parameter(Mandatory = $false)]
+        [switch]$ScriptRules,
+        [parameter(Mandatory = $false)]
         [switch]$Remove
     )
 
@@ -1070,7 +1072,15 @@ Function Set-AppLocker {
     </RuleCollection>
   </AppLockerPolicy>
 "@
-                $policy > $env:TEMP\Policy.xml
+                if ($ScriptRules.ToBool()) {
+                    #Enable ScriptRules
+                    $xPol = [XML]$policy
+                    $xPol.SelectNodes("//RuleCollection[@Type='Script']").SetAttribute("EnforcementMode", "Enabled")
+                    $xPol.Save("$($env:TEMP)\Policy.xml")
+                }
+                else {
+                    $policy > $env:TEMP\Policy.xml
+                }
                 Set-AppLockerPolicy -XMLPolicy $env:TEMP\Policy.xml
                 Remove-Item $env:TEMP\Policy.xml -Force
             }
@@ -1702,8 +1712,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7XSfx/Vm/wPgwHAsOcS8d+QF
-# my6gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUeVKHKxZOpYFq+7OG3xjao+nz
+# iM6gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1768,12 +1778,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTC
-# oHfKCTZtSMb+axmUhT5i6rnTTzANBgkqhkiG9w0BAQEFAASCAQBeXegsEbzIl1w5
-# JklqanVIw93/Wz0qAt+DGHSFvmLXFKB2zpR2YQYzGJt5qa1FFCe9bZYBlI88+u+M
-# YMq06hcS3GgelmXZfv6yzptghnnPPSUL7ibC0k9jKpA+6ABkSq9qEtyjBUTW0G4i
-# +nzcjixqI1qQI9cuoePhdms5CBu/Tb1apbxVLyEYKAaP2CO5+ZDakjwPsM4Nxpqp
-# hrWg1sUhGWTdpD9nu3VCwli23yNstnTAdUdtHWk0h2FPWTwxG3ZSnWkSmzPKqpQh
-# SzvAqrENsGIvog3+5RQYQkopTiGxUJWkdxiarWGBWpmed5+ecMX2O7UhnXqa8Bh/
-# tIKvvsjJ
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRM
+# mxP4hHXXTkGMhSQ5P4YwUVAOLTANBgkqhkiG9w0BAQEFAASCAQAftCw5fSdjvfQj
+# x+YF8phpCt0Wsu5UL3bX8zWvy0NeYu0Xi6tpDJlZQjqtiiDDj0HAHOThJLtbz4nU
+# ermcIjWm3wvyIdOu8r8K/nlE3Z7O64T/J//lsub9tnDgq+LPz33hvyxAemW/Xns3
+# +peWFSoXNyHp2By5RveOJIKmxVStr7C1GFAYs1wMn5OTi2j//YPycm9a3QowB/hx
+# yvRX9BWzuO3v9Eurw8N0GGGRy70xb6MgX8/8ncXlgdm/bOMwfb+dVFvhRQDkiytB
+# 15LnOSolbEWJ6tIC2SFP80VcWJpL2kTMd5knEtwIKuUWLiAFRmYvoBkWLfdUoFnh
+# fXM4hQLM
 # SIG # End signature block
