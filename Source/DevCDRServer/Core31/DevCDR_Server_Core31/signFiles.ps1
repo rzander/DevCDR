@@ -4,5 +4,6 @@ cd $psscriptroot
 Set-AuthenticodeSignature wwwroot\jaindb\compliance.psm1 $cert[0]
 Set-AuthenticodeSignature wwwroot\jaindb\Compliance_Default.ps1 $cert[0]
 Set-AuthenticodeSignature wwwroot\jaindb\inventory.ps1 $cert[0]
+Set-AuthenticodeSignature wwwroot\jaindb\inventory2.ps1 $cert[0]
 Set-AuthenticodeSignature wwwroot\PSScripts\UpdateWindows.ps1 $cert[0]
 Set-AuthenticodeSignature wwwroot\PSScripts\GetMissingOSUpdates.ps1 $cert[0]
