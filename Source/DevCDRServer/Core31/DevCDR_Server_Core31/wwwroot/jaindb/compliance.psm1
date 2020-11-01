@@ -1463,6 +1463,55 @@ function Set-RuckZuck {
     }
 }
 
+function Disable-WindowsUpdate {
+    <#
+        .Description
+        Disable Windows-Update 
+    #>
+    
+    #Create the key if missing 
+    If ((Test-Path 'HKLM:\Software\Policies\Microsoft\WindowsStore') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\WindowsStore' -force -ea SilentlyContinue } 
+    If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -force -ea SilentlyContinue } 
+
+    #Turn off access to all Windows Update features
+    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DisableWindowsUpdateAccess' -Value 1 -ea SilentlyContinue 
+
+    #Remove access to use all Windows Update features
+    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'SetDisableUXWUAccess' -Value 1 -ea SilentlyContinue 
+
+    #Select when Quality Updates are received
+    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdates' -Value 1 -ea SilentlyContinue 
+    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdatesPeriodInDays' -Value 35 -ea SilentlyContinue 
+    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'PauseQualityUpdatesStartTime' -Value '1' -ea SilentlyContinue 
+
+    #Turn off the offer to update to the latest version of Windows
+    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\WindowsStore' -Name 'DisableOSUpgrade' -Value 1 -ea SilentlyContinue 
+
+    Set-Service UsoSvc -StartMode Disabled -ea SilentlyContinue 
+    Stop-service UsoSvc -ea SilentlyContinue 
+    gpupdate /force
+
+}
+
+function Enable-Windowsupdate {
+    <#
+        .Description
+        Enable Windows-Update
+    #>
+    Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DisableWindowsUpdateAccess' -ea SilentlyContinue 
+    Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'SetDisableUXWUAccess' -ea SilentlyContinue
+    Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdates' -ea SilentlyContinue 
+    Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdatesPeriodInDays' -ea SilentlyContinue 
+    Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'PauseQualityUpdatesStartTime' -ea SilentlyContinue  
+    Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\WindowsStore' -Name 'DisableOSUpgrade' -ea SilentlyContinue 
+    Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\WindowsUpdate\UpdatePolicy\PolicyState' -Name 'DeferQualityUpdates' -Value 0 -ea SilentlyContinue 
+    Remove-ItemProperty -Path 'HKLM:\Software\Microsoft\WindowsUpdate\UpdatePolicy\Settings' -Name 'PausedQualityDate'-ea SilentlyContinue 
+    Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\WAU' -Name 'DeferQualityUpdates' -Value 0 -ea SilentlyContinue 
+    Set-Service UsoSvc -StartMode Automatic -ea SilentlyContinue 
+    Start-service UsoSvc -ea SilentlyContinue 
+    gpupdate /force
+}
+
 #region DevCDR
 
 Function Get-DevcdrEP {
@@ -1712,8 +1761,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUeVKHKxZOpYFq+7OG3xjao+nz
-# iM6gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMvViPmKvm8GSoYqscCo2/VTO
+# GvqgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1778,12 +1827,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRM
-# mxP4hHXXTkGMhSQ5P4YwUVAOLTANBgkqhkiG9w0BAQEFAASCAQAftCw5fSdjvfQj
-# x+YF8phpCt0Wsu5UL3bX8zWvy0NeYu0Xi6tpDJlZQjqtiiDDj0HAHOThJLtbz4nU
-# ermcIjWm3wvyIdOu8r8K/nlE3Z7O64T/J//lsub9tnDgq+LPz33hvyxAemW/Xns3
-# +peWFSoXNyHp2By5RveOJIKmxVStr7C1GFAYs1wMn5OTi2j//YPycm9a3QowB/hx
-# yvRX9BWzuO3v9Eurw8N0GGGRy70xb6MgX8/8ncXlgdm/bOMwfb+dVFvhRQDkiytB
-# 15LnOSolbEWJ6tIC2SFP80VcWJpL2kTMd5knEtwIKuUWLiAFRmYvoBkWLfdUoFnh
-# fXM4hQLM
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQe
+# mX8JhbPgGpAnsUt6maA+UpXevjANBgkqhkiG9w0BAQEFAASCAQCZMLVCO1ItN8T9
+# L7gCEtmcj72x8tw1NIK4lb/CR31BwTlJ/pkv9OfDLaX3wK9UxuJhqy4UkydujMCu
+# 4/zSl278qOptJorqb3uihiyBfGnebFzvTc7bUlFIhX0io6vHGegS/PbUJKJAzqQr
+# R6eVen/I7iollDLLGRdEL+HZkZT29iXZh9Pyi6DnkGKH75vxxQFsNzVyHTXWSbU/
+# bgvFzMiBStbjnR0hfzf428Nn5G1VpOUwOMi0nG2k/EOMoW2Gsy3QWHplAxzKiVWc
+# Rxw9wWUtAYTTySEK5+keRAcdQgYmKJ26O0rH0eFoy4+X6zPyzQJG79aseQXpcDpV
+# dbhQZTPw
 # SIG # End signature block
