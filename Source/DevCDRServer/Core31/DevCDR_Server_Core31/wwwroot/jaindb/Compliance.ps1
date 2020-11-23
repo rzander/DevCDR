@@ -1,16 +1,13 @@
 ﻿Import-Module Compliance
 
-Set-LogAnalytics -WorkspaceID "eb75cdf5-9d17-420a-8fab-3cea2a277aa3" -SharedKey "iM0m+tAfXJYnGg5RtjGGft6tiIN5KRYJ5GK2JVNe4RKJya5+k4K750XQNT01GJ+HS8YZ9N+un1Y0Dqx4IZ/+Xg==" -LogType "DevCDR" -TenantID "ROMAWO"
-Set-LogAnalytics -WorkspaceID "eb75cdf5-9d17-420a-8fab-3cea2a277aa3" -SharedKey "iM0m+tAfXJYnGg5RtjGGft6tiIN5KRYJ5GK2JVNe4RKJya5+k4K750XQNT01GJ+HS8YZ9N+un1Y0Dqx4IZ/+Xg==" -LogType "DevCDR" -TenantID "DevCDR"
+Remove-Item "HKLM:\SOFTWARE\romawo\WriteAnalyticsLogs" -Recurse -Force
 
 Test-OSVersion
 Test-Nuget
-Test-OneGetProvider("1.7.1.3")
-Test-DevCDRAgent("2.0.1.47")
+Test-OneGetProvider("1.7.2.0")
+Test-DevCDRAgent("2.0.1.50")
 Set-LocalAdmin -disableAdmin $false -randomizeAdmin $true
 Test-LocalAdmin
-#Test-WOL
-#Test-FastBoot
 Test-DeliveryOptimization
 Test-Bitlocker
 Test-DiskSpace

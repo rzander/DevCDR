@@ -69,7 +69,7 @@ function Test-NetMetered {
     return $res
 }
 
-function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https://github.com/rzander/ruckzuck/releases/download/$($ProviderVersion)/RuckZuck.provider.for.OneGet_x64.msi" ) {
+function Test-OneGetProvider($ProviderVersion = "1.7.2.0", $DownloadURL = "https://github.com/rzander/ruckzuck/releases/download/$($ProviderVersion)/RuckZuck.provider.for.OneGet_x64.msi" ) {
     <#
         .Description
         If missing, install latest RuckZuck Provider for OneGet...
@@ -77,14 +77,14 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https
     
 
     if (Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) { } else {
-        if ($bLogging) {
+        if (Test-Logging) {
             Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Installing OneGet v1.7.1.3"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDRCore" 
         }
         &msiexec -i $DownloadURL /qn REBOOT=REALLYSUPPRESS 
     }
 
     if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]($ProviderVersion)) {
-        if ($bLogging) {
+        if (Test-Logging) {
             Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Updating to OneGet v1.7.1.3"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDRCore" 
         }
         &msiexec -i $DownloadURL /qn REBOOT=REALLYSUPPRESS 
@@ -95,7 +95,7 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https
     $global:chk.Add("OneGetProvider", (Get-PackageProvider -Name Ruckzuck).Version.ToString())
 }
 
-function Test-DevCDRAgent($AgentVersion = "2.0.1.36") {
+function Test-DevCDRAgent($AgentVersion = "2.0.1.50") {
     <#
         .Description
         Install or Update DevCDRAgentCore if required
@@ -109,7 +109,7 @@ function Test-DevCDRAgent($AgentVersion = "2.0.1.36") {
 
             if ($customerId) { 
                 $customerId > $env:temp\customer.log
-                if ($bLogging) {
+                if (Test-Logging) {
                     Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1002; Description = "Updating DevCDRAgent to v$($AgentVersion)"; DeviceID = $( GetMyID ); CustomerID = $( Get-DevcdrID ) }) -LogType "DevCDRCore" 
                 }
                 &msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER="$($customerId)" /qn REBOOT=REALLYSUPPRESS  
@@ -126,7 +126,7 @@ function Test-DevCDRAgent($AgentVersion = "2.0.1.36") {
 
     #Add Scheduled-Task to repair Agent 
     if ((Get-ScheduledTask DevCDR -ea SilentlyContinue).Description -ne "DeviceCommander fix $($fix)") {
-        if ($bLogging) {
+        if (Test-Logging) {
             Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1004; Description = "Registering Scheduled-Task for DevCDR fix $($fix)"; DeviceID = $( GetMyID ); CustomerID = $( Get-DevcdrID ) }) -LogType "DevCDRCore" 
         }
         try {
@@ -180,15 +180,57 @@ function Test-DevCDRAgent($AgentVersion = "2.0.1.36") {
 function Set-Administrators {
     <#
         .Description
-        remove all local admins except the built in Azure Global-Admins and Azure Device-Admins
+        remove all local admins except the built in Azure Global-Admins and Azure Device-Admins. ExcludeSID can contain wildcards to exclude some SID's from removal. 
     #>
     
-    if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) { 
-        $localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
-        $Group = [ADSI]"WinNT://localhost/$LocalGroup, group"
-        $members = $Group.psbase.Invoke("Members")
-        $members | ForEach-Object { $_.GetType().InvokeMember("ADSPath", "GetProperty", $null, $_, $null) } | Where-Object { $_ -notlike "WinNT://S-1-12-1-*" } | ForEach-Object { try { $Group.Remove($_) } catch {} } 
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [array]
+        $ExcludeSID = @(),
+        [parameter(Mandatory = $false)] [switch] $Remove
+    )
+
+
+    if ($ExcludeSID.count -eq 0) {
+        if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) { 
+            $localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
+            $Group = [ADSI]"WinNT://localhost/$LocalGroup, group"
+            $members = $Group.psbase.Invoke("Members")
+            $members | ForEach-Object { $_.GetType().InvokeMember("ADSPath", "GetProperty", $null, $_, $null) } | Where-Object { $_ -notlike "WinNT://S-1-12-1-*" } | ForEach-Object { try { $Group.Remove($_) } catch {} } 
+        }
     }
+    else {
+        if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) { 
+            $localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
+            $Group = [ADSI]"WinNT://localhost/$LocalGroup, group"
+            $members = $Group.psbase.Invoke("Members")
+            $members | ForEach-Object { 
+                $script:rem = $true
+                $script:member = $_; 
+                $binarySID = ($_.GetType().InvokeMember("objectSID", "GetProperty", $null, $_, $null));
+                $stringSID = (New-Object System.Security.Principal.SecurityIdentifier($binarySID, 0)).Value; 
+           
+                $ExcludeSID | ForEach-Object { 
+                    if ($stringSID -like $_) { 
+                        $script:rem = $false
+                    }
+                } 
+            
+                if ($script:rem) {
+                    if ($Remove.ToBool()) {
+                        try { 
+                            $grp = ($script:member.GetType().InvokeMember("ADSPath", "GetProperty", $null, $_, $null))
+                            $Group.Remove($grp) 
+                        }
+                        catch {} 
+                    }
+                    else {
+                        Write-Output $stringSID
+                    }
+                }
+            }
+        } 
+    } 
 }
 
 function Set-LocalAdmin($disableAdmin = $true, $randomizeAdmin = $true) {
@@ -1179,7 +1221,7 @@ Function Set-Defender {
 
         if ($ASR) {
             Set-MpPreference -AttackSurfaceReductionOnlyExclusions "C:\Windows", "C:\Program Files", "C:\Program Files (x86)", "C:\ProgramData\Microsoft\Windows Defender"
-            Set-MpPreference -AttackSurfaceReductionRules_Ids BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550, D4F940AB-401B-4EFC-AADC-AD5F3C50688A, 3B576869-A4EC-4529-8536-B80A7769E899, 75668C1F-73B5-4CF0-BB93-3ECF5CB7CC84, D3E037E1-3EB8-44C8-A917-57927947596D, 5BEB7EFE-FD9A-4556-801D-275E5FFC04CC, 92E97FA1-2EDF-4476-BDD6-9DD0B4DDDC7B, 01443614-cd74-433a-b99e-2ecdc07bfc25, c1db55ab-c21a-4637-bb3f-a12568109d35, d1e49aac-8f56-4280-b9ba-993a6d77406c, 2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4, 26190899-1602-49e8-8b27-eb1d0a1ce869, 7674ba52-37eb-4a4f-a9a1-f0f9a1619a2c, e6db77e5-3df2-4cf1-b95a-636979351e5b, 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2  -AttackSurfaceReductionRules_Actions Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, AuditMode
+            Set-MpPreference -AttackSurfaceReductionRules_Ids BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550, D4F940AB-401B-4EFC-AADC-AD5F3C50688A, 3B576869-A4EC-4529-8536-B80A7769E899, 75668C1F-73B5-4CF0-BB93-3ECF5CB7CC84, D3E037E1-3EB8-44C8-A917-57927947596D, 5BEB7EFE-FD9A-4556-801D-275E5FFC04CC, 92E97FA1-2EDF-4476-BDD6-9DD0B4DDDC7B, 01443614-cd74-433a-b99e-2ecdc07bfc25, c1db55ab-c21a-4637-bb3f-a12568109d35, d1e49aac-8f56-4280-b9ba-993a6d77406c, 2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4, 26190899-1602-49e8-8b27-eb1d0a1ce869, 7674ba52-37eb-4a4f-a9a1-f0f9a1619a2c, e6db77e5-3df2-4cf1-b95a-636979351e5b, 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2, b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4  -AttackSurfaceReductionRules_Actions Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, AuditMode, Enabled
         }
 
         if ($NetworkProtection) {
@@ -1512,6 +1554,51 @@ function Enable-Windowsupdate {
     gpupdate /force
 }
 
+function Get-ConfigItems {
+    <#
+        .Description
+        Get Configuration from Azure TableStorage
+    #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $true)]
+        [String]
+        $CustomerID,
+        [parameter(Mandatory = $false)]
+        [string]
+        $Hostname = $env:COMPUTERNAME,
+        [parameter(Mandatory = $false)]
+        [string]
+        $SettingName = "",
+        [parameter(Mandatory = $false)]
+        [string]
+        $SettingType = "",
+        [parameter(Mandatory = $true)]
+        [string]
+        $storageAccount,
+        [parameter(Mandatory = $true)]
+        [string]
+        $sasToken
+    )
+
+    $version = "2017-04-17";
+    $dnow = (Get-Date).ToUniversalTime().toString('yyyy-MM-dd');
+    if ($SettingName -eq "") { $NameQuery = "" } else { $NameQuery = "%20and%20SettingName%20eq%20'$SettingName'" }
+    if ($SettingType -eq "") { $SetQuery = "" } else { $SetQuery = "%20and%20SettingType%20eq%20'$SettingType'" }
+
+    #Remove questionmark prefix on sasToken
+    if ($sasToken.StartsWith('?')) { $sasToken = $sasToken.TrimStart('?') }
+
+    $resource = "ConfigItems()?`$filter=PartitionKey%20eq%20'$CustomerID'%20and%20ComputerName%20eq%20'$Hostname'and%20ExpirationDate%20ge%20datetime'$dnow'$($NameQuery)$($SetQuery)&$sasToken";
+    $table_url = "https://$storageAccount.table.core.windows.net/$resource"
+    $GMTTime = (Get-Date).ToUniversalTime().toString('R')
+    $headers = @{
+        'x-ms-date'    = $GMTTime
+        "x-ms-version" = $version
+        Accept         = "application/json;odata=fullmetadata"
+    }
+    return (Invoke-RestMethod -Uri $table_url -Headers $headers -ContentType application/json).value
+}
+
 #region DevCDR
 
 Function Get-DevcdrEP {
@@ -1569,6 +1656,12 @@ Function Get-DevcdrID {
     catch { }
 
     return ""
+}
+
+function Get-DevcdrDeviceId {
+    $uuid = getinv -Name "Computer" -WMIClass "win32_ComputerSystemProduct" -Properties @("#UUID")
+    $comp = getinv -Name "Computer" -WMIClass "win32_ComputerSystem" -Properties @("Domain", "#Name") -AppendProperties $uuid 
+    return GetHash($comp | ConvertTo-Json -Compress)
 }
 
 Function Set-DevcdrComplianceIntervall($Minutes = 5) {
@@ -1761,8 +1854,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMvViPmKvm8GSoYqscCo2/VTO
-# GvqgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUcALG7HOWXkn3MgWSX8RNr8o4
+# c1KgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1827,12 +1920,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQe
-# mX8JhbPgGpAnsUt6maA+UpXevjANBgkqhkiG9w0BAQEFAASCAQCZMLVCO1ItN8T9
-# L7gCEtmcj72x8tw1NIK4lb/CR31BwTlJ/pkv9OfDLaX3wK9UxuJhqy4UkydujMCu
-# 4/zSl278qOptJorqb3uihiyBfGnebFzvTc7bUlFIhX0io6vHGegS/PbUJKJAzqQr
-# R6eVen/I7iollDLLGRdEL+HZkZT29iXZh9Pyi6DnkGKH75vxxQFsNzVyHTXWSbU/
-# bgvFzMiBStbjnR0hfzf428Nn5G1VpOUwOMi0nG2k/EOMoW2Gsy3QWHplAxzKiVWc
-# Rxw9wWUtAYTTySEK5+keRAcdQgYmKJ26O0rH0eFoy4+X6zPyzQJG79aseQXpcDpV
-# dbhQZTPw
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTb
+# Ip+itlAi8cdIMU9nzqff/ppF/TANBgkqhkiG9w0BAQEFAASCAQBfA4/2IeCQ4Ig4
+# 9lOoOalnvfm3wpM31iDKo1FsnEyyvgqtEajXKJYqD8cFM2jXBftirRwvLTrC6AQg
+# XJqs4w4+MbQ2Wp2PEmV54QHotOzgHoXfL2zgktFi0rnaAee9RivJjGJCto/yfDzq
+# 7X7ycE45Alo+cyXLj0pkkGzhDsWhL03VCAcxttVSZZtHWEENsCK/evQ9i/63+Ot3
+# GW9JwsjG+8bqO9+i1Tva66vGCa9LG5dCrLLVa42M2AbYR+mTxEUPZQmM2k1bRdmj
+# KwG9o+HHXW3sE8W9zBFy2Z4NaIR5y0YS+sZ3TsEE8XHUgzvSgP73dNHQzREx5ie0
+# beKkkhXx
 # SIG # End signature block

@@ -61,7 +61,7 @@ function Test-NetMetered {
     return $res
 }
 
-function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https://github.com/rzander/ruckzuck/releases/download/$($ProviderVersion)/RuckZuck.provider.for.OneGet_x64.msi" ) {
+function Test-OneGetProvider($ProviderVersion = "1.7.2.0", $DownloadURL = "https://github.com/rzander/ruckzuck/releases/download/$($ProviderVersion)/RuckZuck.provider.for.OneGet_x64.msi" ) {
     <#
         .Description
         If missing, install latest RuckZuck Provider for OneGet...
@@ -87,7 +87,7 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https
     $global:chk.Add("OneGetProvider", (Get-PackageProvider -Name Ruckzuck).Version.ToString())
 }
 
-function Test-DevCDRAgent($AgentVersion = "2.0.1.36") {
+function Test-DevCDRAgent($AgentVersion = "2.0.1.50") {
     <#
         .Description
         Install or Update DevCDRAgentCore if required
@@ -450,7 +450,7 @@ Function Test-Bitlocker {
 
 #Import-Module Compliance
 Test-Nuget
-Test-OneGetProvider("1.7.1.3")
+Test-OneGetProvider("1.7.2.0")
 Test-DevCDRAgent("2.0.1.50")
 Set-LocalAdmin -disableAdmin $false -randomizeAdmin $true 
 #Test-LocalAdmin
@@ -485,8 +485,8 @@ if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVir
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUuEm4qpXqJiqpj/Lxgzs6eN6+
-# iDegggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8HUOA6xk5JffqAjRHP6dW7PW
+# /+ygggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -551,12 +551,12 @@ if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVir
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRP
-# x/7WtK5kWNjwCH3oHsANl29KEzANBgkqhkiG9w0BAQEFAASCAQAKkrq2Vg5MTa0G
-# 86WNrwzBOet0K6zvkwGMuIE7xuwEMuDn/kQfhvPLmi2Odl/MKw1V9AloOD6zYA2h
-# LCGzsrFSI3rqP+gybs8K2KuLnr7mPCEc1870B2vH3WkZDm88GDvm9tSEPMHNVs6U
-# 5uGOmV0pMRFnC6nM46s99n9eoy2Zx/qi5FVhH8ohD33vaQYfgyf5J/4qMPOke/Ft
-# dikz8m7rHznp8vcHQ+1H+L7aScCj4zwIL4zr74UHvt4YY5TS8I/OLsghZ3UBTBta
-# KuRfA/z3oGYjvGnMKchD+zMyPKNB6lrc1+sZ+zliNLZYAA7Uer5GcNRG0zjBH7ph
-# eqn5RsR+
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQr
+# +F/HnnMgpN2NsjJ+XtMoYYSkzzANBgkqhkiG9w0BAQEFAASCAQDDxh9/pFbG758M
+# 3kXIRfFzMD0C0jLgeJCe60QGDVWs8jLoXgtDLL4IFJa6oQJb/1738o5Q/UVSRQT2
+# WeFO4N0D3OBsSZLXk68k+VADxCP1w7I3ONKXg89iU9vGvXjZJB1G3pVCvB5xu0fB
+# zLiGHrhaZ9xTG1ElYY31UkeqwGlRRCmXOhOi5wOo1AAXz87wxEY4dMUTHLc/keF9
+# QEDbMPOsuaRai6sYEtyaX1RM0LjckZlVEepBrQ5fcObZo/DINXlNARdclMyHIjzg
+# BwteUvZHPtp8c9gafbxSaOwpgsNvf1O821lgIaiU60GYtpkMGxoNz2oexUrVc7+U
+# xKU9iIPJ
 # SIG # End signature block
