@@ -177,7 +177,64 @@ function Test-DevCDRAgent($AgentVersion = "2.0.1.50") {
     $global:chk.Add("DevCDRAgent", (get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion )
 }
 
+#to be replaced with Remove-Administrators...
 function Set-Administrators {
+    <#
+        .Description
+        remove all local admins except the built in Azure Global-Admins and Azure Device-Admins. ExcludeSID can contain wildcards to exclude some SID's from removal. 
+    #>
+    
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [array]
+        $ExcludeSID = @(),
+        [parameter(Mandatory = $false)] [switch] $Remove
+    )
+
+
+    if ($ExcludeSID.count -eq 0) {
+        if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) { 
+            $localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
+            $Group = [ADSI]"WinNT://localhost/$LocalGroup, group"
+            $members = $Group.psbase.Invoke("Members")
+            $members | ForEach-Object { $_.GetType().InvokeMember("ADSPath", "GetProperty", $null, $_, $null) } | Where-Object { $_ -notlike "WinNT://S-1-12-1-*" } | ForEach-Object { try { $Group.Remove($_) } catch {} } 
+        }
+    }
+    else {
+        if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) { 
+            $localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
+            $Group = [ADSI]"WinNT://localhost/$LocalGroup, group"
+            $members = $Group.psbase.Invoke("Members")
+            $members | ForEach-Object { 
+                $script:rem = $true
+                $script:member = $_; 
+                $binarySID = ($_.GetType().InvokeMember("objectSID", "GetProperty", $null, $_, $null));
+                $stringSID = (New-Object System.Security.Principal.SecurityIdentifier($binarySID, 0)).Value; 
+           
+                $ExcludeSID | ForEach-Object { 
+                    if ($stringSID -like $_) { 
+                        $script:rem = $false
+                    }
+                } 
+            
+                if ($script:rem) {
+                    if ($Remove.ToBool()) {
+                        try { 
+                            $grp = ($script:member.GetType().InvokeMember("ADSPath", "GetProperty", $null, $_, $null))
+                            $Group.Remove($grp) 
+                        }
+                        catch {} 
+                    }
+                    else {
+                        Write-Output $stringSID
+                    }
+                }
+            }
+        } 
+    } 
+}
+
+function Remove-Administrators {
     <#
         .Description
         remove all local admins except the built in Azure Global-Admins and Azure Device-Admins. ExcludeSID can contain wildcards to exclude some SID's from removal. 
@@ -1599,6 +1656,36 @@ function Get-ConfigItems {
     return (Invoke-RestMethod -Uri $table_url -Headers $headers -ContentType application/json).value
 }
 
+function Sync-DeviceHardware () {
+
+    #Get SerialNumber
+    $ser = (Get-WmiObject win32_bios).SerialNumber
+
+    #Get Hardware Hash
+    $hwid = ((Get-WMIObject -Namespace root/cimv2/mdm/dmmap -Class MDM_DevDetail_Ext01 -Filter "InstanceID='Ext' AND ParentID='./DevDetail'").DeviceHardwareData)
+
+    #Get Vendor
+    $Vendor = (Get-CimInstance  -ClassName Win32_ComputerSystem).Manufacturer.Trim()
+
+    #Get Model
+    $Model = (Get-CimInstance  -ClassName Win32_ComputerSystem).Model.Trim()
+
+    #Get UUID
+    $UUID = (Get-CimInstance  -ClassName Win32_ComputerSystemProduct).UUID.Trim()
+
+    $orderIdentifier = "ROMAWO"
+
+    #Create object with the required parameters
+    $devdata = @{ Vendor = $Vendor; Model = $Model; SerialNumber = $ser; HardwareHash = $hwid; UUID = $UUID; OrderIdentifier = $orderIdentifier; Hostname = $env:computername }
+    $body = ConvertTo-Json -InputObject $devdata 
+
+    $uri = (Get-DevcdrEP) + "/devcdr/RegisterDevice?signature=" + (Get-DevcdrSIG)
+
+    $status = Invoke-RestMethod -uri $uri -Body $body -Method Post
+
+    return $status
+}
+
 #region DevCDR
 
 Function Get-DevcdrEP {
@@ -1854,8 +1941,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUcALG7HOWXkn3MgWSX8RNr8o4
-# c1KgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgPax+tODc+SCSVajS1PKBMMZ
+# w7OgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1920,12 +2007,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTb
-# Ip+itlAi8cdIMU9nzqff/ppF/TANBgkqhkiG9w0BAQEFAASCAQBfA4/2IeCQ4Ig4
-# 9lOoOalnvfm3wpM31iDKo1FsnEyyvgqtEajXKJYqD8cFM2jXBftirRwvLTrC6AQg
-# XJqs4w4+MbQ2Wp2PEmV54QHotOzgHoXfL2zgktFi0rnaAee9RivJjGJCto/yfDzq
-# 7X7ycE45Alo+cyXLj0pkkGzhDsWhL03VCAcxttVSZZtHWEENsCK/evQ9i/63+Ot3
-# GW9JwsjG+8bqO9+i1Tva66vGCa9LG5dCrLLVa42M2AbYR+mTxEUPZQmM2k1bRdmj
-# KwG9o+HHXW3sE8W9zBFy2Z4NaIR5y0YS+sZ3TsEE8XHUgzvSgP73dNHQzREx5ie0
-# beKkkhXx
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRv
+# uLRikK5DL4vBHcu2FRc8BGu9ATANBgkqhkiG9w0BAQEFAASCAQAJfqKRPs186o0i
+# m1Rdfc5YIrS0sbi4hCqGdCKIm5U5poGTmTm9CgeWLf8aL8DWWiFphB0R7vvaU+dY
+# gd5yRWIZAMPpf5RHhRCzMeGZV6XltI/vofno9hXznRa/toPPnynsPqC2HgmXFnUA
+# RbmyGv6KYakYlboT5VpNSA9cOKyQfMSFs+4BjipJeyZF4/fdutiz25qNLkoZ0pKe
+# eVvVsR6Vx8U8YTuKtauXpv9jSQitBiQjUA41fJdRmGTjp2ygY+4Iqz4d6XdyZPOp
+# uw/xN4XyCSle2S/Lc4DVXQOO7E4cwu2ruMQvlWtoCWzJql+LDDfvgwN+UGas6BrJ
+# 62qq9nDN
 # SIG # End signature block
