@@ -284,23 +284,57 @@ namespace DevCDRAgent
             catch { }
 
 
-            if ((Properties.Settings.Default.CustomerID == "DEMO" ||  string.IsNullOrEmpty(Properties.Settings.Default.CustomerID)) && File.Exists("c:\\remove-me.txt"))
+            if (File.Exists("c:\\remove-me.txt"))
             {
                 OFF(true);
                 return;
             }
 
+            //Check if OOBE or during Setup
+            bool bSetupInProgress = false;
+            try
+            {
+                var oWinSetup = Registry.LocalMachine.OpenSubKey("System\\Setup", false);
+                if ((int)oWinSetup.GetValue("OOBEInProgress", 0) != 0)
+                    bSetupInProgress = true;
+                if ((int)oWinSetup.GetValue("SetupPhase", 0) != 0)
+                    bSetupInProgress = true;
+                if ((int)oWinSetup.GetValue("SetupType", 0) != 0)
+                    bSetupInProgress = true;
+            }
+            catch { }
+
             isstopping = false;
             sScriptResult = DateTime.Now.ToString();
             tReCheck.Elapsed -= TReCheck_Elapsed;
             tReCheck.Elapsed += TReCheck_Elapsed;
-            tReCheck.Enabled = true;
-            tReCheck.AutoReset = true;
+            if (!bSetupInProgress)
+            {
+                tReCheck.Enabled = true;
+                tReCheck.AutoReset = true;
+            }
+            else
+            {
+                tReCheck.Enabled = false;
+                tReCheck.AutoReset = false;
+                Properties.Settings.Default.HealthCheckSuccess = DateTime.Now;
+                Properties.Settings.Default.InventorySuccess = DateTime.Now;
+                Properties.Settings.Default.Save();
+                Trace.WriteLine(DateTime.Now.ToString() + "\tWarning: Windows Setup is in progress... ");
+            }
 
             tReInit.Elapsed -= TReInit_Elapsed;
             tReInit.Elapsed += TReInit_Elapsed;
-            tReInit.Enabled = true;
-            tReInit.AutoReset = true;
+            if (!bSetupInProgress)
+            {
+                tReInit.Enabled = true;
+                tReInit.AutoReset = true;
+            }
+            else
+            {
+                tReInit.Enabled = false;
+                tReInit.AutoReset = false;
+            }
 
             try
             {
@@ -447,7 +481,12 @@ namespace DevCDRAgent
                         }
                     }
                     else
+                    {
                         isconnected = false;
+                        Properties.Settings.Default.ConnectionErrors++;
+                        if (Properties.Settings.Default.ConnectionErrors > 50)
+                            throw new Exception("Too many connection Errors...");
+                    }
                 }
                 else
                 {
