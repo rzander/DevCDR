@@ -1617,7 +1617,7 @@ function Get-ConfigItems {
         Get Configuration from Azure TableStorage
     #>
     [CmdletBinding()]Param(
-        [parameter(Mandatory = $true)]
+        [parameter(Mandatory = $false)]
         [String]
         $CustomerID,
         [parameter(Mandatory = $false)]
@@ -1629,31 +1629,36 @@ function Get-ConfigItems {
         [parameter(Mandatory = $false)]
         [string]
         $SettingType = "",
-        [parameter(Mandatory = $true)]
+        [parameter(Mandatory = $false)]
         [string]
         $storageAccount,
-        [parameter(Mandatory = $true)]
+        [parameter(Mandatory = $false)]
         [string]
         $sasToken
     )
 
-    $version = "2017-04-17";
-    $dnow = (Get-Date).ToUniversalTime().toString('yyyy-MM-dd');
-    if ($SettingName -eq "") { $NameQuery = "" } else { $NameQuery = "%20and%20SettingName%20eq%20'$SettingName'" }
-    if ($SettingType -eq "") { $SetQuery = "" } else { $SetQuery = "%20and%20SettingType%20eq%20'$SettingType'" }
+    if ($sasToken) {
+        $version = "2017-04-17";
+        $dnow = (Get-Date).ToUniversalTime().toString('yyyy-MM-dd');
+        if ($SettingName -eq "") { $NameQuery = "" } else { $NameQuery = "%20and%20SettingName%20eq%20'$SettingName'" }
+        if ($SettingType -eq "") { $SetQuery = "" } else { $SetQuery = "%20and%20SettingType%20eq%20'$SettingType'" }
 
-    #Remove questionmark prefix on sasToken
-    if ($sasToken.StartsWith('?')) { $sasToken = $sasToken.TrimStart('?') }
+        #Remove questionmark prefix on sasToken
+        if ($sasToken.StartsWith('?')) { $sasToken = $sasToken.TrimStart('?') }
 
-    $resource = "ConfigItems()?`$filter=PartitionKey%20eq%20'$CustomerID'%20and%20ComputerName%20eq%20'$Hostname'and%20ExpirationDate%20ge%20datetime'$dnow'$($NameQuery)$($SetQuery)&$sasToken";
-    $table_url = "https://$storageAccount.table.core.windows.net/$resource"
-    $GMTTime = (Get-Date).ToUniversalTime().toString('R')
-    $headers = @{
-        'x-ms-date'    = $GMTTime
-        "x-ms-version" = $version
-        Accept         = "application/json;odata=fullmetadata"
+        $resource = "ConfigItems()?`$filter=PartitionKey%20eq%20'$CustomerID'%20and%20ComputerName%20eq%20'$Hostname'and%20ExpirationDate%20ge%20datetime'$dnow'$($NameQuery)$($SetQuery)&$sasToken";
+        $table_url = "https://$storageAccount.table.core.windows.net/$resource"
+        $GMTTime = (Get-Date).ToUniversalTime().toString('R')
+        $headers = @{
+            'x-ms-date'    = $GMTTime
+            "x-ms-version" = $version
+            Accept         = "application/json;odata=fullmetadata"
+        }
+        return (Invoke-RestMethod -Uri $table_url -Headers $headers -ContentType application/json).value
+    } else {
+        $uri = (Get-DevcdrEP) + "/devcdr/GetConfigItems?signature=" + (Get-DevcdrSIG) + "&settingname=LocalAdmins&settingtype=SID&hostname=" + $Hostname
+        return (Invoke-RestMethod -Uri $uri -ContentType application/json)
     }
-    return (Invoke-RestMethod -Uri $table_url -Headers $headers -ContentType application/json).value
 }
 
 function Sync-DeviceHardware () {
@@ -1941,8 +1946,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgPax+tODc+SCSVajS1PKBMMZ
-# w7OgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUP83lG8hRD3dJPAmeYUFvVxD8
+# X8WgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -2007,12 +2012,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRv
-# uLRikK5DL4vBHcu2FRc8BGu9ATANBgkqhkiG9w0BAQEFAASCAQAJfqKRPs186o0i
-# m1Rdfc5YIrS0sbi4hCqGdCKIm5U5poGTmTm9CgeWLf8aL8DWWiFphB0R7vvaU+dY
-# gd5yRWIZAMPpf5RHhRCzMeGZV6XltI/vofno9hXznRa/toPPnynsPqC2HgmXFnUA
-# RbmyGv6KYakYlboT5VpNSA9cOKyQfMSFs+4BjipJeyZF4/fdutiz25qNLkoZ0pKe
-# eVvVsR6Vx8U8YTuKtauXpv9jSQitBiQjUA41fJdRmGTjp2ygY+4Iqz4d6XdyZPOp
-# uw/xN4XyCSle2S/Lc4DVXQOO7E4cwu2ruMQvlWtoCWzJql+LDDfvgwN+UGas6BrJ
-# 62qq9nDN
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRD
+# f/znzQq9NKMoRymt4mfaHarDwTANBgkqhkiG9w0BAQEFAASCAQCp20/vOp1tGFnk
+# TQwmtO8Z+JfmprQAyP5rfct5kEGb/DG4vptuESHkSDrKH2W/NIrVC18mUNHC2Ewp
+# q5+SueBRd1D78K2Soj9APtetVZ/Tkh0FjQJIAcjDWOSb7ATGekK0QakdKg1srzyI
+# MQqVby6FCObddmiTZWYGDQk39AEqCwPoRwH6lt9fDF+cfBmEyKA4J7UFuxhAmTXY
+# paDYnADxW3mGhX3IfmR8+JNXbkb3zEK5g9gm24pOyya72jojz+btaw2WwLtiihbu
+# 9dSE2P0OLdClz64/YVQVeGInxE467QYUCwgGX+qoHwePML/LF9OByzVg3z6GVct/
+# xDjeRjwI
 # SIG # End signature block

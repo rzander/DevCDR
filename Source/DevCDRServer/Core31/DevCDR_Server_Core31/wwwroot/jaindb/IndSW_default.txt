@@ -91,12 +91,8 @@ Microsoft Visual C++ 2012 Redistributable (x64) - 11.0.61030
 Microsoft Visual C++ 2012 Redistributable (x86) - 11.0.61030
 Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.40664
 Microsoft Visual C++ 2013 Redistributable (x86) - 12.0.40664
-Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.26.28720
-Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.26.28720
-Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.27.29016
-Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.27.29016
-Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.27.29112
-Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.27.29112
+Microsoft Visual C++ 2015-2019 Redistributable (x64) - 14.28.29325
+Microsoft Visual C++ 2015-2019 Redistributable (x86) - 14.28.29325
 Microsoft Visual Studio 2010 Tools for Office Runtime (x64)
 Microsoft Visual Studio 2010-Tools für Office-Laufzeit (x64) Language Pack - DEU
 Microsoft Visual Studio 2015 Shell (Isolated)

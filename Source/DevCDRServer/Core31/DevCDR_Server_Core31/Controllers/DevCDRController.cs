@@ -204,6 +204,53 @@ namespace DevCDRServer.Controllers
             return View();
         }
 
+
+        [AllowAnonymous]
+        public ActionResult GetConfigItems(string hostname, string signature, string settingName = "", string settingType = "")
+        {
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+            {
+                X509AgentCert oSig = new X509AgentCert(signature);
+
+                try
+                {
+                    if (X509AgentCert.publicCertificates.Count == 0)
+                    {
+                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(RootName, false).Result))); //root
+                    }
+
+                    var xIssuing = new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(oSig.IssuingCA, false).Result));
+                    if (!X509AgentCert.publicCertificates.Contains(xIssuing))
+                        X509AgentCert.publicCertificates.Add(xIssuing); //Issuing
+
+                    oSig.ValidateChain(X509AgentCert.publicCertificates);
+                }
+                catch { }
+
+                if (oSig.Exists && oSig.Valid && !string.IsNullOrEmpty(settingName) && !string.IsNullOrEmpty(settingType) &&!string.IsNullOrEmpty(hostname))
+                {
+                    try
+                    {
+                        string sResult = "";
+                        string sCustomerID = oSig.CustomerID;
+
+                        string sURL = Environment.GetEnvironmentVariable("fnDevCDR");
+                        sURL = sURL.Replace("{fn}", "fnGetSumData");
+
+                        sResult = webclient.DownloadString(sURL + "&SecretName=AzureCITableSAS&CustomerID=" + sCustomerID + "&Query=%3F%24filter%3DPartitionKey%2520eq%2520%27" + sCustomerID + "%27%2520and%2520ExpirationDate%2520ge%2520datetime%27" + DateTime.Now.ToString("yyyy-MM-dd") + $"%27%2520and%2520SettingName%2520eq%2520%27{ settingName }%27%2520and%2520SettingType%2520eq%2520%27{ settingType }%27%2520and%2520ComputerName%2520eq%2520%27{ hostname }%27");
+
+                        return new ContentResult()
+                        {
+                            Content = sResult,
+                            ContentType = "text/plain"
+                        };
+                    }
+                    catch { }
+                }
+            }
+            return null;
+        }
+
         //Get a File and authenticate with signature
         [AllowAnonymous]
         public ActionResult GetFile(string filename, string signature)
@@ -216,7 +263,7 @@ namespace DevCDRServer.Controllers
                 {
                     if (X509AgentCert.publicCertificates.Count == 0)
                     {
-                        X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceComamnder", false).Result))); //root
+                        //X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync("DeviceComamnder", false).Result))); //root
                         X509AgentCert.publicCertificates.Add(new X509Certificate2(Convert.FromBase64String(GetPublicCertAsync(RootName, false).Result))); //root
                     }
 
@@ -573,6 +620,7 @@ namespace DevCDRServer.Controllers
 
             return "";
         }
+
 
         [AllowAnonymous]
         public ActionResult CreateAlert(string data, string signature)
