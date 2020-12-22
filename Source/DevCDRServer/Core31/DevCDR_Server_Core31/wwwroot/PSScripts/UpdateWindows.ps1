@@ -1,6 +1,6 @@
 ﻿#Check if PSWindowsUpdate Module is installed
 try {
-if(Get-InstalledModule -Name PSWindowsUpdate -MinimumVersion "2.1.1.2" -ea SilentlyContinue) {} else 
+if(Get-InstalledModule -Name PSWindowsUpdate -MinimumVersion "2.2.0.2" -ea SilentlyContinue) {} else 
 {
  Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.208 -Force;
  Set-PSRepository -Name PSGallery -InstallationPolicy Trusted; 
@@ -15,8 +15,8 @@ catch { "Error, unable to detect updates: " + $_.Exception.Message }
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUogSWKl/MU1nWrPLqoKlIk6Tg
-# kJagggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUL4ySdUQB2GsMNf3cW56Zc974
+# m9ugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -81,12 +81,12 @@ catch { "Error, unable to detect updates: " + $_.Exception.Message }
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQF
-# 2f1wIDdw1WJu8OJpy1BA9mwJCzANBgkqhkiG9w0BAQEFAASCAQA9glvegNNY98KG
-# ke1xxbmOSmUYR0IetwkJcgYOo9cpASNglzomukse7nQ1y2LyPNZEN+9SnDEbun8l
-# 4w8n7ghWWtC5FBnsrIxzbcR/ymDvpKVl9CwAh8WGoe7uA9/+JI8WlnOEUnzgpZnS
-# FXsG8aXLshRrDQ0yKx5kEma6YKXbPO9h2qJ+apkpf/ApqG+mBlj4oEUMvNU9tXVt
-# gbzZ7Vk02SFhVUNN89ZjwJgWc/ZtDCEWu5HA0dI0nou4kWrHAdix/HFPq0e2nAO/
-# cFuel6/eo5NBtY0x7lbeJhBoi+cPRL3mvJB+FJkEdCJcWUTiX53DOb9BuKzn2cbI
-# /4whb4F1
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRA
+# EcA6vVrS29VeKgOEzgNQCgMTXDANBgkqhkiG9w0BAQEFAASCAQAymQcv5p90nGf9
+# oAJqHntKGuRzBrDt5wTcv+jVf+cRHSBObY8cF2XHWfKgbNPhqqTbJbMRCSsK1X5X
+# sBDtGy3Ko5rZT/7o56yX3K3EH80l4e8+UihHnUrNCD/zZuboTWXEi27syn8HUZtM
+# m56HzaR7CZBZg/A4lT6PDYi4CaidG8MUcn6ettIF5DWzJlt9yl+TAivFThxVvxwf
+# T897x29qigLJkA4FVzcT+dX0e9Z2J9opvr10IZOCbKjhsteEgwy5j+5Z3MAsOux7
+# dL+k2Yuy2kHMHWy7BfCx72RY5X+lbY+Pl0A4+qv2MKOx097eEocNSOq+A/s33Nq3
+# Jb63kOoy
 # SIG # End signature block

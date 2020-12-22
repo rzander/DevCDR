@@ -1611,6 +1611,20 @@ function Enable-Windowsupdate {
     gpupdate /force
 }
 
+function Update-Windows {
+    try {
+        if (Get-InstalledModule -Name PSWindowsUpdate -MinimumVersion "2.2.0.2" -ea SilentlyContinue) {} else {
+            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.208 -Force;
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted; 
+            Install-Module PSWindowsUpdate -Force;
+        }
+        #Add-WUServiceManager -ServiceID 7971f918-a847-4430-9279-4a52d1efe18d -confirm:$false;
+        Install-WindowsUpdate -MicrosoftUpdate -IgnoreReboot -AcceptAll -Install;
+        "Updates installed..."
+    }
+    catch { "Error, unable to detect updates: " + $_.Exception.Message }
+}
+
 function Get-ConfigItems {
     <#
         .Description
@@ -1655,7 +1669,8 @@ function Get-ConfigItems {
             Accept         = "application/json;odata=fullmetadata"
         }
         return (Invoke-RestMethod -Uri $table_url -Headers $headers -ContentType application/json).value
-    } else {
+    }
+    else {
         $uri = (Get-DevcdrEP) + "/devcdr/GetConfigItems?signature=" + (Get-DevcdrSIG) + "&settingname=LocalAdmins&settingtype=SID&hostname=" + $Hostname
         return (Invoke-RestMethod -Uri $uri -ContentType application/json)
     }
@@ -1946,8 +1961,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUP83lG8hRD3dJPAmeYUFvVxD8
-# X8WgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUvYfGCjpyy6QN211FSHumfpRn
+# VFSgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -2012,12 +2027,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRD
-# f/znzQq9NKMoRymt4mfaHarDwTANBgkqhkiG9w0BAQEFAASCAQCp20/vOp1tGFnk
-# TQwmtO8Z+JfmprQAyP5rfct5kEGb/DG4vptuESHkSDrKH2W/NIrVC18mUNHC2Ewp
-# q5+SueBRd1D78K2Soj9APtetVZ/Tkh0FjQJIAcjDWOSb7ATGekK0QakdKg1srzyI
-# MQqVby6FCObddmiTZWYGDQk39AEqCwPoRwH6lt9fDF+cfBmEyKA4J7UFuxhAmTXY
-# paDYnADxW3mGhX3IfmR8+JNXbkb3zEK5g9gm24pOyya72jojz+btaw2WwLtiihbu
-# 9dSE2P0OLdClz64/YVQVeGInxE467QYUCwgGX+qoHwePML/LF9OByzVg3z6GVct/
-# xDjeRjwI
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTk
+# iv9y6pr53PIh8HcvxoMtq8On+jANBgkqhkiG9w0BAQEFAASCAQCi+MqraydjUt4l
+# N6yJY0P1laK9V6CUSAIn1/I3W9yOmZInbQ+epQtcmKd5UI2Lr1QnMXh0ngBX9tuO
+# oFaFKyu27lb+XemXGguW3lAGu8x8vvd5yczPy4V2o7DzV1q3mZpR3Z7jcXj+B7MF
+# wrf3wWAS6uQSubzbjZlkGG2WkxVG2QPApjwIpL086nJ82FvEe6mAVMNl/G33pmgb
+# 9YkUoIV0OrFRuOC5MSbkiqaVYhY9SsKL/gbe724eF/BjUXeay7VEXVcocVIMsAnB
+# Wt1iFPiyFPs9owU+qlEWR6iAH27M2soKn4hlMmJ0SBhtvhVn0faoUGsGdKXqKv/9
+# KYyVT+sw
 # SIG # End signature block
