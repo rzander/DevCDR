@@ -5,7 +5,7 @@ Remove-Item "HKLM:\SOFTWARE\romawo\WriteAnalyticsLogs" -Recurse -Force
 Test-OSVersion
 Test-Nuget
 Test-OneGetProvider("1.7.2.0")
-Test-DevCDRAgent("2.0.1.50")
+Test-DevCDRAgent("2.0.1.51")
 Set-LocalAdmin -disableAdmin $false -randomizeAdmin $true
 Test-LocalAdmin
 Test-DeliveryOptimization

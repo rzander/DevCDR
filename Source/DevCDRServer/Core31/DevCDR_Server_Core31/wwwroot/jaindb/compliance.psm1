@@ -222,6 +222,9 @@ function Set-Administrators {
                         try { 
                             $grp = ($script:member.GetType().InvokeMember("ADSPath", "GetProperty", $null, $_, $null))
                             $Group.Remove($grp) 
+                            if (Test-Logging) {
+                                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1101; Description = "removed from local Admins: $($grp)"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "ROMAWO" -TenantID "ROMAWO"
+                            }
                         }
                         catch {} 
                     }
@@ -278,6 +281,9 @@ function Remove-Administrators {
                         try { 
                             $grp = ($script:member.GetType().InvokeMember("ADSPath", "GetProperty", $null, $_, $null))
                             $Group.Remove($grp) 
+                            if (Test-Logging) {
+                                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1101; Description = "removed from local Admins: $($grp)"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "ROMAWO" -TenantID "ROMAWO"
+                            }
                         }
                         catch {} 
                     }
@@ -725,8 +731,9 @@ Function Test-WU {
             set-executionpolicy bypass -Force
             Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.208 -Force
             Set-PSRepository -Name PSGallery -InstallationPolicy Trusted 
+            Install-Module PSWindowsUpdate -Force
         }
-        Install-Module PSWindowsUpdate -Force
+
         $upd = Get-WUList -MicrosoftUpdate
 
         if ($upd) {
@@ -1961,8 +1968,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUvYfGCjpyy6QN211FSHumfpRn
-# VFSgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUDCYNUve6r8x3Nn64ATZxMe9s
+# F7igggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -2027,12 +2034,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTk
-# iv9y6pr53PIh8HcvxoMtq8On+jANBgkqhkiG9w0BAQEFAASCAQCi+MqraydjUt4l
-# N6yJY0P1laK9V6CUSAIn1/I3W9yOmZInbQ+epQtcmKd5UI2Lr1QnMXh0ngBX9tuO
-# oFaFKyu27lb+XemXGguW3lAGu8x8vvd5yczPy4V2o7DzV1q3mZpR3Z7jcXj+B7MF
-# wrf3wWAS6uQSubzbjZlkGG2WkxVG2QPApjwIpL086nJ82FvEe6mAVMNl/G33pmgb
-# 9YkUoIV0OrFRuOC5MSbkiqaVYhY9SsKL/gbe724eF/BjUXeay7VEXVcocVIMsAnB
-# Wt1iFPiyFPs9owU+qlEWR6iAH27M2soKn4hlMmJ0SBhtvhVn0faoUGsGdKXqKv/9
-# KYyVT+sw
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSB
+# BVLTNYGPqJFF0gWaqVgtWn2dyDANBgkqhkiG9w0BAQEFAASCAQAJYJs7Vwq3FYtr
+# un9mWfsqoYDGkblkwoWgLkcqIciqyVbNOLyqyPOT6nvvPh+eHTq71aJ4gJIvDQRu
+# a1kEuCnwBIgHsWQzyLs6XaOOEW+NauOL4w03Jypvy7jqZREbUMS6wPbf37w09Qw7
+# wW0NV/rQldHJyhXFqKJBnXp8VVx7/Xubxzn3gJxYxg8AOLoWszZyy2QPobfDslNh
+# FVqV9jKu5Edx/iQVKOLCCsxHyGm57KUGbO/ThtA/WHPrI9OMzKqqX4uDAkdUU6aj
+# gGJ2wKWyL7o8K9mU74n9Yjr0cHVrr2YxaRKKNdkVo0BC9K9qjZ+GYjwE5UjHjuqA
+# vAPQzTnB
 # SIG # End signature block
