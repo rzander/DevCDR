@@ -95,13 +95,14 @@ function Test-OneGetProvider($ProviderVersion = "1.7.2.0", $DownloadURL = "https
     $global:chk.Add("OneGetProvider", (Get-PackageProvider -Name Ruckzuck).Version.ToString())
 }
 
-function Test-DevCDRAgent($AgentVersion = "2.0.1.50") {
+function Test-DevCDRAgent($AgentVersion = "2.0.1.51") {
     <#
         .Description
         Install or Update DevCDRAgentCore if required
     #>
     $fix = "1.0.0.7"
-    if (-NOT (Get-Process DevCDRAgent -ea SilentlyContinue)) {
+    if (-NOT (Get-Process ROMAWOAgent -ea SilentlyContinue)) {
+
         if ([version](get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]($AgentVersion)) {
             [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
             $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
@@ -118,63 +119,169 @@ function Test-DevCDRAgent($AgentVersion = "2.0.1.50") {
                 &msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT="$($ep)" /qn REBOOT=REALLYSUPPRESS  
             }
         }
+
     }
     else {
-        Get-ScheduledTask DevCDR | Unregister-ScheduledTask -Confirm:$False
-        return
+        try {
+            Get-ScheduledTask DevCDR | Unregister-ScheduledTask -Confirm:$False
+            $scheduleObject = New-Object -ComObject Schedule.Service
+            $scheduleObject.connect()
+            $rootFolder = $scheduleObject.GetFolder("\")
+            $rootFolder.DeleteFolder("DevCDR", $null)
+        }
+        catch {}
     }
 
     #Add Scheduled-Task to repair Agent 
-    if ((Get-ScheduledTask DevCDR -ea SilentlyContinue).Description -ne "DeviceCommander fix $($fix)") {
-        if (Test-Logging) {
-            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1004; Description = "Registering Scheduled-Task for DevCDR fix $($fix)"; DeviceID = $( GetMyID ); CustomerID = $( Get-DevcdrID ) }) -LogType "DevCDRCore" 
-        }
-        try {
-            $scheduleObject = New-Object -ComObject schedule.service
-            $scheduleObject.connect()
-            $rootFolder = $scheduleObject.GetFolder("\")
-            $rootFolder.CreateFolder("DevCDR")
-        }
-        catch { }
+    if (Get-Process DevCDRAgentCore -ea SilentlyContinue) {
+        if ((Get-ScheduledTask DevCDR -ea SilentlyContinue).Description -ne "DeviceCommander fix $($fix)") {
+            if (Test-Logging) {
+                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1004; Description = "Registering Scheduled-Task for DevCDR fix $($fix)"; DeviceID = $( GetMyID ); CustomerID = $( Get-DevcdrID ) }) -LogType "DevCDRCore" 
+            }
+            try {
+                $scheduleObject = New-Object -ComObject schedule.service
+                $scheduleObject.connect()
+                $rootFolder = $scheduleObject.GetFolder("\")
+                $rootFolder.CreateFolder("DevCDR")
+            }
+            catch { }
 
-        [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
-        $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
-        $ep = ($a.configuration.userSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
-        if ($customerId) {
-            if ($ep) {
-                $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER=$($customerId) ENDPOINT=$($ep) /qn REBOOT=REALLYSUPPRESS`" }"
-                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
-                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
-                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+            [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+            $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
+            $ep = ($a.configuration.userSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+            if ($customerId) {
+                if ($ep) {
+                    $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER=$($customerId) ENDPOINT=$($ep) /qn REBOOT=REALLYSUPPRESS`" }"
+                    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                    $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                    $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+                }
+                else {
+                    $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER=$($customerId) ENDPOINT=https://devcdrcore.azurewebsites.net/chat /qn REBOOT=REALLYSUPPRESS`" }"
+                    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                    $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                    $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+                }
+                Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "DevCDR" -Description "DeviceCommander fix $($fix)" -User "System" -TaskPath "\DevCDR" -Force
             }
             else {
-                $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER=$($customerId) ENDPOINT=https://devcdrcore.azurewebsites.net/chat /qn REBOOT=REALLYSUPPRESS`" }"
-                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
-                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
-                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+                if ($ep) {
+                    $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT=$($ep) /qn REBOOT=REALLYSUPPRESS`" }"
+                    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                    $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                    $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+                }
+                else {
+                    $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT=https://devcdrcore.azurewebsites.net/chat /qn REBOOT=REALLYSUPPRESS`" }"
+                    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                    $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                    $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+                }
+                Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "DevCDR" -Description "DeviceCommander fix $($fix)" -User "System" -TaskPath "\DevCDR" -Force
             }
-            Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "DevCDR" -Description "DeviceCommander fix $($fix)" -User "System" -TaskPath "\DevCDR" -Force
-        }
-        else {
-            if ($ep) {
-                $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT=$($ep) /qn REBOOT=REALLYSUPPRESS`" }"
-                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
-                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
-                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
-            }
-            else {
-                $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT=https://devcdrcore.azurewebsites.net/chat /qn REBOOT=REALLYSUPPRESS`" }"
-                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
-                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
-                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
-            }
-            Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "DevCDR" -Description "DeviceCommander fix $($fix)" -User "System" -TaskPath "\DevCDR" -Force
         }
     }
 
     if ($null -eq $global:chk) { $global:chk = @{ } }
     if ($global:chk.ContainsKey("DevCDRAgent")) { $global:chk.Remove("DevCDRAgent") }
-    $global:chk.Add("DevCDRAgent", (get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion )
+    if ($global:chk.ContainsKey("ROMAWOAgent")) { $global:chk.Remove("ROMAWOAgent") }
+    if (Get-Process DevCDRAgentCore -ea SilentlyContinue) {
+        $global:chk.Add("DevCDRAgent", (get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion )
+        $global:chk.Add("ROMAWOAgent", (get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion )
+    }
+    if (Get-Process ROMAWOAgent -ea SilentlyContinue) {
+        $global:chk.Add("DevCDRAgent", (get-item "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe").VersionInfo.FileVersion )
+        $global:chk.Add("ROMAWOAgent", (get-item "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe").VersionInfo.FileVersion )
+    }
+}
+
+function Test-ROMAWOAgent($AgentVersion = "2.1.0.0") {
+    <#
+        .Description
+        Install or Update ROMAWO if required
+    #>
+    $fix = "1.0.0.0"
+
+    if ([version](get-item "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe").VersionInfo.FileVersion -lt [version]($AgentVersion)) {
+        [xml]$a = Get-Content "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe.config"
+        $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
+        $ep = ($a.configuration.userSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+
+        if ($customerId) { 
+            $customerId > $env:temp\customer.log
+            if (Test-Logging) {
+                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1002; Description = "Updating ROMAWO Agent to v$($AgentVersion)"; DeviceID = $( GetMyID ); CustomerID = $( Get-DevcdrID ) }) -LogType "ROMAWO"  -TenantID "ROMAWO"
+            }
+            &msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi CUSTOMER="$($customerId)" /qn REBOOT=REALLYSUPPRESS  
+        }
+        else {
+            $customerId = Get-DevcdrID
+            if ($customerId) {
+                &msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi ENDPOINT="$(Get-DevCDREP)/chat" CUSTOMER="$($customerId)" /qn REBOOT=REALLYSUPPRESS  
+            }
+            else {
+                &msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi /qn REBOOT=REALLYSUPPRESS  
+            }
+        }
+    }
+
+
+    #Add Scheduled-Task to repair Agent 
+    if ((Get-ScheduledTask ROMAWO -ea SilentlyContinue).Description -ne "ROMAWO Agent fix $($fix)") {
+        if (Test-Logging) {
+            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1004; Description = "Registering Scheduled-Task for ROMAWO fix $($fix)"; DeviceID = $( GetMyID ); CustomerID = $( Get-DevcdrID ) }) -LogType "ROMAWO" -TenantID "ROMAWO" 
+        }
+        try {
+            $scheduleObject = New-Object -ComObject schedule.service
+            $scheduleObject.connect()
+            $rootFolder = $scheduleObject.GetFolder("\")
+            $rootFolder.CreateFolder("ROMAWO")
+        }
+        catch { }
+
+        [xml]$a = Get-Content "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe.config"
+        $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
+        $ep = ($a.configuration.userSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+        if ($customerId) {
+            if ($ep) {
+                $arg = "if(-not (get-process ROMAWOAgent -ea SilentlyContinue)) { `"&msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi CUSTOMER=$($customerId) ENDPOINT=$($ep) /qn REBOOT=REALLYSUPPRESS`" }"
+                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+            }
+            else {
+                $arg = "if(-not (get-process ROMAWOAgent -ea SilentlyContinue)) { `"&msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi CUSTOMER=$($customerId) /qn REBOOT=REALLYSUPPRESS`" }"
+                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+            }
+            Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "ROMAWO" -Description "ROMAWO Agent fix $($fix)" -User "System" -TaskPath "\ROMAWO" -Force
+            Get-ScheduledTask DevCDR | Unregister-ScheduledTask -Confirm:$False
+        }
+        else {
+            if ($ep) {
+                $arg = "if(-not (get-process ROMAWOAgent -ea SilentlyContinue)) { `"&msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi ENDPOINT=$($ep) /qn REBOOT=REALLYSUPPRESS`" }"
+                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+            }
+            else {
+                $arg = "if(-not (get-process ROMAWOAgent -ea SilentlyContinue)) { `"&msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi /qn REBOOT=REALLYSUPPRESS`" }"
+                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+            }
+            #Do not add fix Version as the Task has to be recreated with customerID and EP
+            Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "ROMAWO" -Description "ROMAWO Agent fix" -User "System" -TaskPath "\ROMAWO" -Force
+            Get-ScheduledTask DevCDR | Unregister-ScheduledTask -Confirm:$False
+        }
+    }
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("DevCDRAgent")) { $global:chk.Remove("DevCDRAgent") }
+    if ($global:chk.ContainsKey("ROMAWOAgent")) { $global:chk.Remove("ROMAWOAgent") }
+    $global:chk.Add("DevCDRAgent", (get-item "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe").VersionInfo.FileVersion )
+    $global:chk.Add("ROMAWOAgent", (get-item "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe").VersionInfo.FileVersion )
 }
 
 #to be replaced with Remove-Administrators...
@@ -1952,14 +2059,23 @@ function SetID {
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#Name" -Value (getinv -Name "Computer" -WMIClass "win32_ComputerSystem" -Properties @("Name"))."Name" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#SerialNumber" -Value (getinv -Name "Computer" -WMIClass "win32_SystemEnclosure" -Properties @("SerialNumber"))."SerialNumber" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "@MAC" -Value (Get-WmiObject -class "Win32_NetworkAdapterConfiguration" | Where-Object { ($_.IpEnabled -Match "True") }).MACAddress.Replace(':', '-')
-		
-        [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
-        $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
-        $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
-        $devcdrgrp = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Groups' }).value
-        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDREndpoint" -Value $EP
-        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRGroups" -Value $devcdrgrp
-        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRCustomerID" -Value $customerId
+        
+        if (Test-Path "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config") {
+            [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+            $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+            $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
+            $devcdrgrp = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Groups' }).value
+            $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDREndpoint" -Value $EP
+            $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRGroups" -Value $devcdrgrp
+            $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRCustomerID" -Value $customerId
+        }
+        if (Test-Path "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe.config") {
+            [xml]$a = Get-Content "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe.config"
+            $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
+            $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "ROMAWOEndpoint" -Value $(get-devcdrep)
+            $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "ROMAWOCustomerID" -Value $customerId
+        }
+        
         return $null
     }   
 }
@@ -1968,8 +2084,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUDCYNUve6r8x3Nn64ATZxMe9s
-# F7igggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNI1U++cmFRvDky2zUdqPAQs9
+# XmKgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -2034,12 +2150,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSB
-# BVLTNYGPqJFF0gWaqVgtWn2dyDANBgkqhkiG9w0BAQEFAASCAQAJYJs7Vwq3FYtr
-# un9mWfsqoYDGkblkwoWgLkcqIciqyVbNOLyqyPOT6nvvPh+eHTq71aJ4gJIvDQRu
-# a1kEuCnwBIgHsWQzyLs6XaOOEW+NauOL4w03Jypvy7jqZREbUMS6wPbf37w09Qw7
-# wW0NV/rQldHJyhXFqKJBnXp8VVx7/Xubxzn3gJxYxg8AOLoWszZyy2QPobfDslNh
-# FVqV9jKu5Edx/iQVKOLCCsxHyGm57KUGbO/ThtA/WHPrI9OMzKqqX4uDAkdUU6aj
-# gGJ2wKWyL7o8K9mU74n9Yjr0cHVrr2YxaRKKNdkVo0BC9K9qjZ+GYjwE5UjHjuqA
-# vAPQzTnB
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ0
+# yGSNCGwjCaiNMXe5erjXREgUWjANBgkqhkiG9w0BAQEFAASCAQCx4r4nlOf+JNdr
+# zdhxyOeg97LQWG766OMZQpiuLO2gASkg6yHvh0DiGrJLU+pTHzb90l0y3Z9cr/1F
+# pLLKS1z/2/vedCZFxG+a3s83uRc9sBYf1qR/qspZ/qpse7v+Mx/yuPgD0dW/nImV
+# cJu22g3DEaHs+Gl6azZYFZYRE1UH/GYreZDa5ZP5kySBS1Zbq0uKpfFOm9wL0imP
+# FQprJFOQSV+pqUGKYsGHSOOxXYmWdHTp9FxZdiX97AicYOQurq7MCEt55egg0YFE
+# ihBOTH3cbc1jykmdE2t1OGyy4bUbmKFCr4qbJtfy2wWg58dlaV13QXV6QcqyrEWf
+# tJLAOt5g
 # SIG # End signature block
