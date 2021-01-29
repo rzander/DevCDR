@@ -627,7 +627,7 @@ function Test-Temp {
     #>
 
     if ((Get-ChildItem "$($env:windir)\Temp\*" -Recurse).Count -gt 100) {
-        Remove-Item "$($env:windir)\Temp\*" -Force -Recurse -Exclude devcdrcore.log -ea SilentlyContinue
+        Remove-Item "$($env:windir)\Temp\*" -Force -Recurse -Exclude romawoagent.log -ea SilentlyContinue
     }
 
     #if ($null -eq $global:chk) { $global:chk = @{ } }
@@ -644,6 +644,52 @@ Function Test-Defender($Age = 7) {
         $ScanAge = (Get-MpComputerStatus).QuickScanAge
         if ($ScanAge -ge $Age) { start-process "$($env:ProgramFiles)\Windows Defender\MpCmdRun.exe" -ArgumentList '-Scan -ScanType 1' }
 
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("DefenderScanAge")) { $global:chk.Remove("DefenderScangAge") }
+        $global:chk.Add("DefenderScanAge", $ScanAge)
+    }
+    else {
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("DefenderScanAge")) { $global:chk.Remove("DefenderScanAge") }
+        $global:chk.Add("DefenderScanAge", 999)
+    }
+}
+
+Function Test-DefenderSignatureAge($Age = 3) {
+    <#
+        .Description
+        Run Defender Quickscan if last scan is older than $Age days
+    #>
+    if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVirusProduct" -ea SilentlyContinue).displayName.count -eq 1) {
+        $SigAge = (Get-MpComputerStatus).AntivirusSignatureAge
+        if ($SigAge -ge $Age) { 
+            start-process "$($env:ProgramFiles)\Windows Defender\MpCmdRun.exe" -ArgumentList '-SignatureUpdate -MMPC' 
+            $SigAge = (Get-MpComputerStatus).AntivirusSignatureAge
+        }
+
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("DefenderScanAge")) { $global:chk.Remove("DefenderSigAge") }
+        $global:chk.Add("DefenderSigAge", $SigAge)
+    }
+    else {
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("DefenderScanAge")) { $global:chk.Remove("DefenderSigAge") }
+        $global:chk.Add("DefenderSigAge", 999)
+    }
+}
+
+Function Test-DefenderQuickScan($Age = 7) {
+    <#
+        .Description
+        Run Defender Quickscan if last scan is older than $Age days
+    #>
+    if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVirusProduct" -ea SilentlyContinue).displayName.count -eq 1) {
+        $ScanAge = (Get-MpComputerStatus).QuickScanAge
+        if ($ScanAge -ge $Age) { 
+            start-process "$($env:ProgramFiles)\Windows Defender\MpCmdRun.exe" -ArgumentList '-Scan -ScanType 1' 
+            $ScanAge = (Get-MpComputerStatus).QuickScanAge
+        }
+        
         if ($null -eq $global:chk) { $global:chk = @{ } }
         if ($global:chk.ContainsKey("DefenderScanAge")) { $global:chk.Remove("DefenderScangAge") }
         $global:chk.Add("DefenderScanAge", $ScanAge)
@@ -1753,10 +1799,10 @@ function Get-ConfigItems {
         $Hostname = $env:COMPUTERNAME,
         [parameter(Mandatory = $false)]
         [string]
-        $SettingName = "",
+        $SettingName = "LocalAdmins",
         [parameter(Mandatory = $false)]
         [string]
-        $SettingType = "",
+        $SettingType = "SID",
         [parameter(Mandatory = $false)]
         [string]
         $storageAccount,
@@ -1785,7 +1831,7 @@ function Get-ConfigItems {
         return (Invoke-RestMethod -Uri $table_url -Headers $headers -ContentType application/json).value
     }
     else {
-        $uri = (Get-DevcdrEP) + "/devcdr/GetConfigItems?signature=" + (Get-DevcdrSIG) + "&settingname=LocalAdmins&settingtype=SID&hostname=" + $Hostname
+        $uri = (Get-DevcdrEP) + "/devcdr/GetConfigItems?signature=" + (Get-DevcdrSIG) + "&settingname=$($SettingName)&settingtype=$($SettingType)&hostname=" + $Hostname
         return (Invoke-RestMethod -Uri $uri -ContentType application/json)
     }
 }
@@ -2084,8 +2130,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNI1U++cmFRvDky2zUdqPAQs9
-# XmKgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU6mrFrj/leYcDeo8mPYjTx0wk
+# r3ygggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -2150,12 +2196,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ0
-# yGSNCGwjCaiNMXe5erjXREgUWjANBgkqhkiG9w0BAQEFAASCAQCx4r4nlOf+JNdr
-# zdhxyOeg97LQWG766OMZQpiuLO2gASkg6yHvh0DiGrJLU+pTHzb90l0y3Z9cr/1F
-# pLLKS1z/2/vedCZFxG+a3s83uRc9sBYf1qR/qspZ/qpse7v+Mx/yuPgD0dW/nImV
-# cJu22g3DEaHs+Gl6azZYFZYRE1UH/GYreZDa5ZP5kySBS1Zbq0uKpfFOm9wL0imP
-# FQprJFOQSV+pqUGKYsGHSOOxXYmWdHTp9FxZdiX97AicYOQurq7MCEt55egg0YFE
-# ihBOTH3cbc1jykmdE2t1OGyy4bUbmKFCr4qbJtfy2wWg58dlaV13QXV6QcqyrEWf
-# tJLAOt5g
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTo
+# vDmQNTQL13xdrhIBaEpBEa0GADANBgkqhkiG9w0BAQEFAASCAQAguHEvHhdMDzX6
+# Tuw01Ukd8vSAbMoVS9cc42IcjvBz/wR+ds77pZyGefLKAuPzHJKLfpvl9ytI1Wlk
+# BILql8V3eSQmFtjF6MBdNJLtAP108Rjk+g1sxcHWlUovOgOeQ1Pt1GvLs5+e1gtx
+# boZEmlMaPVqjfUAwOwuOCOk94EcjyLPsvAT46R6mfKiv6lwItf4vgL5zFV9ZTXMB
+# Hk0Me6otUTME/ztNESAgVTnnLiHu6DKn5lWA4MxZJFKPbMT8pLTKBkhMYdLxZe9M
+# Nn2m9rLPM5gQmyV21hk1Ftaw52Aaee9rbf4R0GFe9DEp3rswr3PF960vx8EzaCAw
+# fHGJ2m8i
 # SIG # End signature block

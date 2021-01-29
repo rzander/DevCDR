@@ -6,17 +6,17 @@
     <Authors>Roger Zander</Authors>
     <Company>Zander - Tools</Company>
     <Product>DevCDR Server Core</Product>
-    <Copyright>Copyright (c) 2020 by Roger Zander</Copyright>
+    <Copyright>Copyright (c) 2021 by Roger Zander</Copyright>
     <PackageLicenseUrl>https://github.com/rzander/DevCDR/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/rzander/DevCDR</PackageProjectUrl>
     <Description>lightweight Client/Server Management tool</Description>
     <ApplicationIcon>wwwroot\favicon.ico</ApplicationIcon>
     <OutputType>WinExe</OutputType>
     <StartupObject>DevCDR.Program</StartupObject>
-    <AssemblyVersion>2.1.2.0</AssemblyVersion>
+    <AssemblyVersion>2.1.2.1</AssemblyVersion>
     <WebProject_DirectoryAccessLevelKey>0</WebProject_DirectoryAccessLevelKey>
-    <FileVersion>2.1.2.0</FileVersion>
-    <Version>2.1.1</Version>
+    <FileVersion>2.1.2.1</FileVersion>
+    <Version>2.1.2</Version>
     <DockerTargetOS>Linux</DockerTargetOS>
     <UserSecretsId>93ce79d7-2e37-460b-bc67-a091d9b812b5</UserSecretsId>
     <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
@@ -45,7 +45,7 @@
     <PackageReference Include="JsonDiffPatch.Net" Version="2.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="3.1.10" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
-    <PackageReference Include="Microsoft.Azure.SignalR" Version="1.6.1" />
+    <PackageReference Include="Microsoft.Azure.SignalR" Version="1.7.0" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.8" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.1.4" />
   </ItemGroup>
