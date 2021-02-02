@@ -4,5 +4,11 @@
     "inputFiles": [
       "wwwroot/css/site.css"
     ]
+  },
+  {
+    "outputFileName": "wwwroot/css/siteFrame.min.css",
+    "inputFiles": [
+      "wwwroot/css/siteFrame.css"
+    ]
   }
 ]

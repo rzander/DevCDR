@@ -284,6 +284,41 @@ function Test-ROMAWOAgent($AgentVersion = "2.1.0.0") {
     $global:chk.Add("ROMAWOAgent", (get-item "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe").VersionInfo.FileVersion )
 }
 
+function Test-CurrentUser {
+    <#
+.Description
+Check for current logged on users
+#> 
+
+    try {
+        $User = (Get-Process -IncludeUserName | Select-Object -Unique -Property UserName -First 1).UserName
+        if ($User.IndexOf('\') -gt 0) {
+            $User = $User.split("\")[1]
+        }
+    }
+    catch { $User = "" }
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("User")) { $global:chk.Remove("User") }
+    $global:chk.Add("User", $User)
+}
+
+function Test-Owner {
+    <#
+.Description
+Check the name of the owner
+#> 
+
+    try {
+        $User = (Get-Item HKLM:SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\* -ea SilentlyContinue | Get-ItemProperty).UserEmail
+    }
+    catch { $User = "" }
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("User")) { $global:chk.Remove("User") }
+    $global:chk.Add("User", $User)
+}
+
 #to be replaced with Remove-Administrators...
 function Set-Administrators {
     <#
@@ -1427,6 +1462,8 @@ Function Set-Defender {
         [parameter(Mandatory = $false)]
         [bool]$PUA = $true,
         [parameter(Mandatory = $false)]
+        [bool]$SmartScreen = $true,
+        [parameter(Mandatory = $false)]
         [int]$PolicyRevision = 0,
         [parameter(Mandatory = $false)]
         [switch]$Force,
@@ -1453,6 +1490,37 @@ Function Set-Defender {
         }
         else {
             Set-MpPreference -PUAProtection Disabled
+        }
+
+        if ($SmartScreen) {
+            #Create the key if missing 
+            If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Windows\System') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\System' -force -ea SilentlyContinue } 
+            #Enable the Policy
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\System' -Name 'EnableSmartScreen' -Value 1 -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\System' -Name 'ShellSmartScreenLevel' -Value Block -ea SilentlyContinue 
+
+            #Create the key if missing 
+            If ((Test-Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -force -ea SilentlyContinue } 
+            #Enable the Policy
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -Name 'EnabledV9' -Value 1 -ea SilentlyContinue 
+
+
+            If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen' -force -ea SilentlyContinue } 
+            #Enable the Policy
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen' -Name 'ConfigureAppInstallControlEnabled' -Value 1 -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen' -Name 'ConfigureAppInstallControl' -Value PreferStore -ea SilentlyContinue 
+
+            #Create the key if missing 
+            If ((Test-Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -force -ea SilentlyContinue } 
+            #Enable the Policy
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -Name 'PreventOverride' -Value 1 -ea SilentlyContinue 
+        }
+        else {
+            Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\System' -Name 'EnableSmartScreen' -ea SilentlyContinue 
+            Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -Name 'EnabledV9' -ea SilentlyContinue 
+            Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen' -Name 'ConfigureAppInstallControlEnabled' -ea SilentlyContinue 
+            Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen' -Name 'ConfigureAppInstallControl' -ea SilentlyContinue 
+            Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -Name 'PreventOverride' -ea SilentlyContinue 
         }
 
         Set-MpPreference -DisableArchiveScanning $false
@@ -1483,6 +1551,12 @@ Function Set-Defender {
 
     if ($Remove.ToBool()) {
         Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'DefenderPolicy' -Force -ea SilentlyContinue | Out-Null;
+        
+        Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\System' -Name 'EnableSmartScreen' -ea SilentlyContinue 
+        Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -Name 'EnabledV9' -ea SilentlyContinue 
+        Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen' -Name 'ConfigureAppInstallControlEnabled' -ea SilentlyContinue 
+        Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen' -Name 'ConfigureAppInstallControl' -ea SilentlyContinue 
+        Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -Name 'PreventOverride' -ea SilentlyContinue 
     }
 
 
@@ -2130,8 +2204,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU6mrFrj/leYcDeo8mPYjTx0wk
-# r3ygggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUS42M28QeJF7SYeuakPgfdIN7
+# LT6gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -2196,12 +2270,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTo
-# vDmQNTQL13xdrhIBaEpBEa0GADANBgkqhkiG9w0BAQEFAASCAQAguHEvHhdMDzX6
-# Tuw01Ukd8vSAbMoVS9cc42IcjvBz/wR+ds77pZyGefLKAuPzHJKLfpvl9ytI1Wlk
-# BILql8V3eSQmFtjF6MBdNJLtAP108Rjk+g1sxcHWlUovOgOeQ1Pt1GvLs5+e1gtx
-# boZEmlMaPVqjfUAwOwuOCOk94EcjyLPsvAT46R6mfKiv6lwItf4vgL5zFV9ZTXMB
-# Hk0Me6otUTME/ztNESAgVTnnLiHu6DKn5lWA4MxZJFKPbMT8pLTKBkhMYdLxZe9M
-# Nn2m9rLPM5gQmyV21hk1Ftaw52Aaee9rbf4R0GFe9DEp3rswr3PF960vx8EzaCAw
-# fHGJ2m8i
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSO
+# GFnaXNip4OvL/4zUrLo5er90rDANBgkqhkiG9w0BAQEFAASCAQDV4tCmKasH8yx3
+# rTXvW+mtmZJhvIsjs58tNSQVXMl/DdZgVO5nHFmPWLHKKjTDx99ON0d5IMk1c4RK
+# eRCUJCNzn4n+K8l5HJbeK2iCUy0Pv2EUNMpJbsvHcUtppfwVDnNL5UadaWhpkCbc
+# 8QAL9llJV2T1uZ96Tfs8vZTCmWhlOqQxACCDiaDSsAYqjfo+R6tXJrhKSEk2BAVP
+# +HPsYciHxAD/z2XPSVBldLSmmbm31UVQQni4DcQHAkWRSoW44Enus0MQE7Xg1vTk
+# nclsWa4JWzYYZipCUCTBW6xi5fY3ZtP9sssnYctRt+0b7eUJlYvHLUi/k7vI1ji5
+# oj4GKEzm
 # SIG # End signature block

@@ -167,7 +167,7 @@ namespace DevCDRServer.Controllers
                 case "SetEndpoint":
                     //SetEndpoint(lHostnames, sInstance, sArgs);
                     break;
-                case "DevCDRUser":
+                case "ROMAWOUser":
                     runUserCmd(lHostnames, sInstance, "", "");
                     break;
                 case "WOL":
@@ -293,28 +293,32 @@ namespace DevCDRServer.Controllers
         }
 
         [TokenAuthentication]
-        public ActionResult Index()
+        public ActionResult Index(string SP = "")
         {
             ViewBag.Title = Environment.GetEnvironmentVariable("INSTANCETITLE") ?? "Default Environment";
             ViewBag.Instance = Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default";
             ViewBag.appVersion = typeof(FrameController).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             ViewBag.Endpoint = Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat";
             ViewBag.Customer = Environment.GetEnvironmentVariable("CUSTOMERID") ?? "DEMO";
+            if(!string.IsNullOrEmpty(SP))
+            {
+                ViewBag.SP = SP;
+            }
 
-            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
-            {
-                if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
-                    ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"}  /qn REBOOT=REALLYSUPPRESS";
-                else
-                    ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
-            }
-            else
-            {
-                if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
-                    ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
-                else
-                    ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
-            }
+            //if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
+            //{
+            //    if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
+            //        ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"}  /qn REBOOT=REALLYSUPPRESS";
+            //    else
+            //        ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER={ViewBag.Customer} ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
+            //}
+            //else
+            //{
+            //    if (System.IO.File.Exists(Path.Combine(_env.WebRootPath, "DevCDRAgentCoreNew.msi")))
+            //        ViewBag.InstallCMD = $"&msiexec -i { Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/DevCDRAgentCoreNew.msi" } ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
+            //    else
+            //        ViewBag.InstallCMD = $"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT={Request.GetEncodedUrl().Split("/DevCDR/Default")[0] + "/chat"} /qn REBOOT=REALLYSUPPRESS";
+            //}
             ViewBag.Route = "/chat";
 
             var sRoot = Directory.GetCurrentDirectory();
@@ -900,7 +904,7 @@ namespace DevCDRServer.Controllers
 
                 if (!string.IsNullOrEmpty(sID)) //Do we have a ConnectionID ?!
                 {
-                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2010, Description = $"Run USer Processs: {cmd} {args}" });
+                    AzureLog.PostAsync(new { Computer = sHost, EventID = 2010, Description = $"Run User Processs: {cmd} {args}" });
                     _hubContext.Clients.Client(sID).SendAsync("userprocess", cmd, args);
                 }
             }
