@@ -150,7 +150,7 @@ namespace DevCDRServer.Controllers
                     GetGroups(lHostnames, sInstance);
                     break;
                 case "SetGroups":
-                    //SetGroups(lHostnames, sInstance, sArgs);
+                    SetGroups(lHostnames, sInstance, sArgs);
                     break;
                 case "GetUpdates":
                     RunCommand(lHostnames, "(Get-WUList -MicrosoftUpdate) | select Title | ConvertTo-Json", sInstance, sCommand);
@@ -165,7 +165,7 @@ namespace DevCDRServer.Controllers
                     //SetInstance(lHostnames, sInstance, sArgs);
                     break;
                 case "SetEndpoint":
-                    //SetEndpoint(lHostnames, sInstance, sArgs);
+                    SetEndpoint(lHostnames, sInstance, sArgs);
                     break;
                 case "ROMAWOUser":
                     runUserCmd(lHostnames, sInstance, "", "");
@@ -577,7 +577,7 @@ namespace DevCDRServer.Controllers
             return new ContentResult();
         }
 
-        internal void _SetEndpoint(List<string> Hostnames, string sInstance, string Args)
+        internal void SetEndpoint(List<string> Hostnames, string sInstance, string Args)
         {
             if (string.IsNullOrEmpty(Args))
                 return;
@@ -604,7 +604,7 @@ namespace DevCDRServer.Controllers
             }
         }
 
-        internal void _SetGroups(List<string> Hostnames, string sInstance, string Args)
+        internal void SetGroups(List<string> Hostnames, string sInstance, string Args)
         {
             foreach (string sHost in Hostnames)
             {
