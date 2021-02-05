@@ -69,7 +69,7 @@ function Test-NetMetered {
     return $res
 }
 
-function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https://github.com/rzander/ruckzuck/releases/download/$($ProviderVersion)/RuckZuck.provider.for.OneGet_x64.msi" ) {
+function Test-OneGetProvider($ProviderVersion = "1.7.2.0", $DownloadURL = "https://github.com/rzander/ruckzuck/releases/download/$($ProviderVersion)/RuckZuck.provider.for.OneGet_x64.msi" ) {
     <#
         .Description
         If missing, install latest RuckZuck Provider for OneGet...
@@ -77,14 +77,14 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https
     
 
     if (Get-PackageProvider -Name Ruckzuck -ea SilentlyContinue) { } else {
-        if ($bLogging) {
+        if (Test-Logging) {
             Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Installing OneGet v1.7.1.3"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDRCore" 
         }
         &msiexec -i $DownloadURL /qn REBOOT=REALLYSUPPRESS 
     }
 
     if ((Get-PackageProvider -Name Ruckzuck).Version -lt [version]($ProviderVersion)) {
-        if ($bLogging) {
+        if (Test-Logging) {
             Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1000; Description = "Updating to OneGet v1.7.1.3"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "DevCDRCore" 
         }
         &msiexec -i $DownloadURL /qn REBOOT=REALLYSUPPRESS 
@@ -95,13 +95,14 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https
     $global:chk.Add("OneGetProvider", (Get-PackageProvider -Name Ruckzuck).Version.ToString())
 }
 
-function Test-DevCDRAgent($AgentVersion = "2.0.1.36") {
+function Test-DevCDRAgent($AgentVersion = "2.0.1.51") {
     <#
         .Description
         Install or Update DevCDRAgentCore if required
     #>
     $fix = "1.0.0.7"
-    if (-NOT (Get-Process DevCDRAgent -ea SilentlyContinue)) {
+    if (-NOT (Get-Process ROMAWOAgent -ea SilentlyContinue)) {
+
         if ([version](get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion -lt [version]($AgentVersion)) {
             [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
             $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
@@ -109,7 +110,7 @@ function Test-DevCDRAgent($AgentVersion = "2.0.1.36") {
 
             if ($customerId) { 
                 $customerId > $env:temp\customer.log
-                if ($bLogging) {
+                if (Test-Logging) {
                     Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1002; Description = "Updating DevCDRAgent to v$($AgentVersion)"; DeviceID = $( GetMyID ); CustomerID = $( Get-DevcdrID ) }) -LogType "DevCDRCore" 
                 }
                 &msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER="$($customerId)" /qn REBOOT=REALLYSUPPRESS  
@@ -118,83 +119,322 @@ function Test-DevCDRAgent($AgentVersion = "2.0.1.36") {
                 &msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT="$($ep)" /qn REBOOT=REALLYSUPPRESS  
             }
         }
+
     }
     else {
-        Get-ScheduledTask DevCDR | Unregister-ScheduledTask -Confirm:$False
-        return
+        try {
+            Get-ScheduledTask DevCDR | Unregister-ScheduledTask -Confirm:$False
+            $scheduleObject = New-Object -ComObject Schedule.Service
+            $scheduleObject.connect()
+            $rootFolder = $scheduleObject.GetFolder("\")
+            $rootFolder.DeleteFolder("DevCDR", $null)
+        }
+        catch {}
     }
 
     #Add Scheduled-Task to repair Agent 
-    if ((Get-ScheduledTask DevCDR -ea SilentlyContinue).Description -ne "DeviceCommander fix $($fix)") {
-        if ($bLogging) {
-            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1004; Description = "Registering Scheduled-Task for DevCDR fix $($fix)"; DeviceID = $( GetMyID ); CustomerID = $( Get-DevcdrID ) }) -LogType "DevCDRCore" 
-        }
-        try {
-            $scheduleObject = New-Object -ComObject schedule.service
-            $scheduleObject.connect()
-            $rootFolder = $scheduleObject.GetFolder("\")
-            $rootFolder.CreateFolder("DevCDR")
-        }
-        catch { }
+    if (Get-Process DevCDRAgentCore -ea SilentlyContinue) {
+        if ((Get-ScheduledTask DevCDR -ea SilentlyContinue).Description -ne "DeviceCommander fix $($fix)") {
+            if (Test-Logging) {
+                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1004; Description = "Registering Scheduled-Task for DevCDR fix $($fix)"; DeviceID = $( GetMyID ); CustomerID = $( Get-DevcdrID ) }) -LogType "DevCDRCore" 
+            }
+            try {
+                $scheduleObject = New-Object -ComObject schedule.service
+                $scheduleObject.connect()
+                $rootFolder = $scheduleObject.GetFolder("\")
+                $rootFolder.CreateFolder("DevCDR")
+            }
+            catch { }
 
-        [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
-        $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
-        $ep = ($a.configuration.userSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
-        if ($customerId) {
-            if ($ep) {
-                $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER=$($customerId) ENDPOINT=$($ep) /qn REBOOT=REALLYSUPPRESS`" }"
-                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
-                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
-                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+            [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+            $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
+            $ep = ($a.configuration.userSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+            if ($customerId) {
+                if ($ep) {
+                    $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER=$($customerId) ENDPOINT=$($ep) /qn REBOOT=REALLYSUPPRESS`" }"
+                    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                    $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                    $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+                }
+                else {
+                    $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER=$($customerId) ENDPOINT=https://devcdrcore.azurewebsites.net/chat /qn REBOOT=REALLYSUPPRESS`" }"
+                    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                    $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                    $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+                }
+                Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "DevCDR" -Description "DeviceCommander fix $($fix)" -User "System" -TaskPath "\DevCDR" -Force
             }
             else {
-                $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi CUSTOMER=$($customerId) ENDPOINT=https://devcdrcore.azurewebsites.net/chat /qn REBOOT=REALLYSUPPRESS`" }"
-                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
-                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
-                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+                if ($ep) {
+                    $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT=$($ep) /qn REBOOT=REALLYSUPPRESS`" }"
+                    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                    $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                    $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+                }
+                else {
+                    $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT=https://devcdrcore.azurewebsites.net/chat /qn REBOOT=REALLYSUPPRESS`" }"
+                    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                    $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                    $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+                }
+                Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "DevCDR" -Description "DeviceCommander fix $($fix)" -User "System" -TaskPath "\DevCDR" -Force
             }
-            Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "DevCDR" -Description "DeviceCommander fix $($fix)" -User "System" -TaskPath "\DevCDR" -Force
-        }
-        else {
-            if ($ep) {
-                $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT=$($ep) /qn REBOOT=REALLYSUPPRESS`" }"
-                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
-                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
-                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
-            }
-            else {
-                $arg = "if(-not (get-process DevCDRAgentCore -ea SilentlyContinue)) { `"&msiexec -i https://devcdrcore.azurewebsites.net/DevCDRAgentCoreNew.msi ENDPOINT=https://devcdrcore.azurewebsites.net/chat /qn REBOOT=REALLYSUPPRESS`" }"
-                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
-                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
-                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
-            }
-            Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "DevCDR" -Description "DeviceCommander fix $($fix)" -User "System" -TaskPath "\DevCDR" -Force
         }
     }
 
     if ($null -eq $global:chk) { $global:chk = @{ } }
     if ($global:chk.ContainsKey("DevCDRAgent")) { $global:chk.Remove("DevCDRAgent") }
-    $global:chk.Add("DevCDRAgent", (get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion )
+    if ($global:chk.ContainsKey("ROMAWOAgent")) { $global:chk.Remove("ROMAWOAgent") }
+    if (Get-Process DevCDRAgentCore -ea SilentlyContinue) {
+        $global:chk.Add("DevCDRAgent", (get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion )
+        $global:chk.Add("ROMAWOAgent", (get-item "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe").VersionInfo.FileVersion )
+    }
+    if (Get-Process ROMAWOAgent -ea SilentlyContinue) {
+        $global:chk.Add("DevCDRAgent", (get-item "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe").VersionInfo.FileVersion )
+        $global:chk.Add("ROMAWOAgent", (get-item "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe").VersionInfo.FileVersion )
+    }
 }
 
-#depreciated Test-LocalAdmin
-function Test-Administrators {
+function Test-ROMAWOAgent($AgentVersion = "2.1.0.0") {
     <#
         .Description
-        Fix local Admins on CloudJoined Devices, PowerShell Isseue if unknown cloud users/groups are member of a local group
+        Install or Update ROMAWO if required
+    #>
+    $fix = "1.0.0.0"
+
+    if ([version](get-item "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe").VersionInfo.FileVersion -lt [version]($AgentVersion)) {
+        [xml]$a = Get-Content "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe.config"
+        $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
+        $ep = ($a.configuration.userSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+
+        if ($customerId) { 
+            $customerId > $env:temp\customer.log
+            if (Test-Logging) {
+                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1002; Description = "Updating ROMAWO Agent to v$($AgentVersion)"; DeviceID = $( GetMyID ); CustomerID = $( Get-DevcdrID ) }) -LogType "ROMAWO"  -TenantID "ROMAWO"
+            }
+            &msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi CUSTOMER="$($customerId)" /qn REBOOT=REALLYSUPPRESS  
+        }
+        else {
+            $customerId = Get-DevcdrID
+            if ($customerId) {
+                &msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi ENDPOINT="$(Get-DevCDREP)/chat" CUSTOMER="$($customerId)" /qn REBOOT=REALLYSUPPRESS  
+            }
+            else {
+                &msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi /qn REBOOT=REALLYSUPPRESS  
+            }
+        }
+    }
+
+
+    #Add Scheduled-Task to repair Agent 
+    if ((Get-ScheduledTask ROMAWO -ea SilentlyContinue).Description -ne "ROMAWO Agent fix $($fix)") {
+        if (Test-Logging) {
+            Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1004; Description = "Registering Scheduled-Task for ROMAWO fix $($fix)"; DeviceID = $( GetMyID ); CustomerID = $( Get-DevcdrID ) }) -LogType "ROMAWO" -TenantID "ROMAWO" 
+        }
+        try {
+            $scheduleObject = New-Object -ComObject schedule.service
+            $scheduleObject.connect()
+            $rootFolder = $scheduleObject.GetFolder("\")
+            $rootFolder.CreateFolder("ROMAWO")
+        }
+        catch { }
+
+        [xml]$a = Get-Content "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe.config"
+        $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
+        $ep = ($a.configuration.userSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+        if ($customerId) {
+            if ($ep) {
+                $arg = "if(-not (get-process ROMAWOAgent -ea SilentlyContinue)) { `"&msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi CUSTOMER=$($customerId) ENDPOINT=$($ep) /qn REBOOT=REALLYSUPPRESS`" }"
+                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+            }
+            else {
+                $arg = "if(-not (get-process ROMAWOAgent -ea SilentlyContinue)) { `"&msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi CUSTOMER=$($customerId) /qn REBOOT=REALLYSUPPRESS`" }"
+                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+            }
+            Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "ROMAWO" -Description "ROMAWO Agent fix $($fix)" -User "System" -TaskPath "\ROMAWO" -Force
+            Get-ScheduledTask DevCDR | Unregister-ScheduledTask -Confirm:$False
+        }
+        else {
+            if ($ep) {
+                $arg = "if(-not (get-process ROMAWOAgent -ea SilentlyContinue)) { `"&msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi ENDPOINT=$($ep) /qn REBOOT=REALLYSUPPRESS`" }"
+                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+            }
+            else {
+                $arg = "if(-not (get-process ROMAWOAgent -ea SilentlyContinue)) { `"&msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi /qn REBOOT=REALLYSUPPRESS`" }"
+                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+            }
+            #Do not add fix Version as the Task has to be recreated with customerID and EP
+            Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "ROMAWO" -Description "ROMAWO Agent fix" -User "System" -TaskPath "\ROMAWO" -Force
+            Get-ScheduledTask DevCDR | Unregister-ScheduledTask -Confirm:$False
+        }
+    }
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("DevCDRAgent")) { $global:chk.Remove("DevCDRAgent") }
+    if ($global:chk.ContainsKey("ROMAWOAgent")) { $global:chk.Remove("ROMAWOAgent") }
+    $global:chk.Add("DevCDRAgent", (get-item "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe").VersionInfo.FileVersion )
+    $global:chk.Add("ROMAWOAgent", (get-item "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe").VersionInfo.FileVersion )
+}
+
+function Test-CurrentUser {
+    <#
+.Description
+Check for current logged on users
+#> 
+
+    try {
+        $User = (Get-Process -IncludeUserName | Select-Object -Unique -Property UserName -First 1).UserName
+        if ($User.IndexOf('\') -gt 0) {
+            $User = $User.split("\")[1]
+        }
+    }
+    catch { $User = "" }
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("User")) { $global:chk.Remove("User") }
+    $global:chk.Add("User", $User)
+}
+
+function Test-Owner {
+    <#
+.Description
+Check the name of the owner
+#> 
+
+    try {
+        $User = (Get-Item HKLM:SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\* -ea SilentlyContinue | Get-ItemProperty).UserEmail
+    }
+    catch { $User = "" }
+
+    if ($null -eq $global:chk) { $global:chk = @{ } }
+    if ($global:chk.ContainsKey("User")) { $global:chk.Remove("User") }
+    $global:chk.Add("User", $User)
+}
+
+#to be replaced with Remove-Administrators...
+function Set-Administrators {
+    <#
+        .Description
+        remove all local admins except the built in Azure Global-Admins and Azure Device-Admins. ExcludeSID can contain wildcards to exclude some SID's from removal. 
     #>
     
-    $bRes = $false;
-    #Skip fix if running on a DC
-    if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) {
-        if (Get-LocalGroupMember -SID S-1-5-32-544 -ea SilentlyContinue) { } else {
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [array]
+        $ExcludeSID = @(),
+        [parameter(Mandatory = $false)] [switch] $Remove
+    )
+
+
+    if ($ExcludeSID.count -eq 0) {
+        if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) { 
             $localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
             $Group = [ADSI]"WinNT://localhost/$LocalGroup, group"
             $members = $Group.psbase.Invoke("Members")
-            #$members | ForEach-Object { $_.GetType().InvokeMember("ADSPath", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -notlike "WinNT://S-1-12-1-*" } | ForEach-Object { $Group.Remove($_) } 
-            $members | ForEach-Object { $_.GetType().InvokeMember("ADSPath", 'GetProperty', $null, $_, $null) } | Where-Object { $_ -notlike "WinNT://S-1-12-1-*" } | ForEach-Object { try { $Group.Remove($_) }catch {} }
-            $bRes = $true;
+            $members | ForEach-Object { $_.GetType().InvokeMember("ADSPath", "GetProperty", $null, $_, $null) } | Where-Object { $_ -notlike "WinNT://S-1-12-1-*" } | ForEach-Object { try { $Group.Remove($_) } catch {} } 
         }
+    }
+    else {
+        if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) { 
+            $localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
+            $Group = [ADSI]"WinNT://localhost/$LocalGroup, group"
+            $members = $Group.psbase.Invoke("Members")
+            $members | ForEach-Object { 
+                $script:rem = $true
+                $script:member = $_; 
+                $binarySID = ($_.GetType().InvokeMember("objectSID", "GetProperty", $null, $_, $null));
+                $stringSID = (New-Object System.Security.Principal.SecurityIdentifier($binarySID, 0)).Value; 
+           
+                $ExcludeSID | ForEach-Object { 
+                    if ($stringSID -like $_) { 
+                        $script:rem = $false
+                    }
+                } 
+            
+                if ($script:rem) {
+                    if ($Remove.ToBool()) {
+                        try { 
+                            $grp = ($script:member.GetType().InvokeMember("ADSPath", "GetProperty", $null, $_, $null))
+                            $Group.Remove($grp) 
+                            if (Test-Logging) {
+                                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1101; Description = "removed from local Admins: $($grp)"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "ROMAWO" -TenantID "ROMAWO"
+                            }
+                        }
+                        catch {} 
+                    }
+                    else {
+                        Write-Output $stringSID
+                    }
+                }
+            }
+        } 
+    } 
+}
+
+function Remove-Administrators {
+    <#
+        .Description
+        remove all local admins except the built in Azure Global-Admins and Azure Device-Admins. ExcludeSID can contain wildcards to exclude some SID's from removal. 
+    #>
+    
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [array]
+        $ExcludeSID = @(),
+        [parameter(Mandatory = $false)] [switch] $Remove
+    )
+
+
+    if ($ExcludeSID.count -eq 0) {
+        if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) { 
+            $localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
+            $Group = [ADSI]"WinNT://localhost/$LocalGroup, group"
+            $members = $Group.psbase.Invoke("Members")
+            $members | ForEach-Object { $_.GetType().InvokeMember("ADSPath", "GetProperty", $null, $_, $null) } | Where-Object { $_ -notlike "WinNT://S-1-12-1-*" } | ForEach-Object { try { $Group.Remove($_) } catch {} } 
+        }
+    }
+    else {
+        if ( (Get-WmiObject Win32_OperatingSystem).ProductType -ne 2) { 
+            $localgroup = (Get-LocalGroup -SID "S-1-5-32-544").Name
+            $Group = [ADSI]"WinNT://localhost/$LocalGroup, group"
+            $members = $Group.psbase.Invoke("Members")
+            $members | ForEach-Object { 
+                $script:rem = $true
+                $script:member = $_; 
+                $binarySID = ($_.GetType().InvokeMember("objectSID", "GetProperty", $null, $_, $null));
+                $stringSID = (New-Object System.Security.Principal.SecurityIdentifier($binarySID, 0)).Value; 
+           
+                $ExcludeSID | ForEach-Object { 
+                    if ($stringSID -like $_) { 
+                        $script:rem = $false
+                    }
+                } 
+            
+                if ($script:rem) {
+                    if ($Remove.ToBool()) {
+                        try { 
+                            $grp = ($script:member.GetType().InvokeMember("ADSPath", "GetProperty", $null, $_, $null))
+                            $Group.Remove($grp) 
+                            if (Test-Logging) {
+                                Write-Log -JSON ([pscustomobject]@{Computer = $env:COMPUTERNAME; EventID = 1101; Description = "removed from local Admins: $($grp)"; CustomerID = $( Get-DevcdrID ); DeviceID = $( GetMyID ) }) -LogType "ROMAWO" -TenantID "ROMAWO"
+                            }
+                        }
+                        catch {} 
+                    }
+                    else {
+                        Write-Output $stringSID
+                    }
+                }
+            }
+        } 
     } 
 }
 
@@ -422,7 +662,7 @@ function Test-Temp {
     #>
 
     if ((Get-ChildItem "$($env:windir)\Temp\*" -Recurse).Count -gt 100) {
-        Remove-Item "$($env:windir)\Temp\*" -Force -Recurse -Exclude devcdrcore.log -ea SilentlyContinue
+        Remove-Item "$($env:windir)\Temp\*" -Force -Recurse -Exclude romawoagent.log -ea SilentlyContinue
     }
 
     #if ($null -eq $global:chk) { $global:chk = @{ } }
@@ -439,6 +679,52 @@ Function Test-Defender($Age = 7) {
         $ScanAge = (Get-MpComputerStatus).QuickScanAge
         if ($ScanAge -ge $Age) { start-process "$($env:ProgramFiles)\Windows Defender\MpCmdRun.exe" -ArgumentList '-Scan -ScanType 1' }
 
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("DefenderScanAge")) { $global:chk.Remove("DefenderScangAge") }
+        $global:chk.Add("DefenderScanAge", $ScanAge)
+    }
+    else {
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("DefenderScanAge")) { $global:chk.Remove("DefenderScanAge") }
+        $global:chk.Add("DefenderScanAge", 999)
+    }
+}
+
+Function Test-DefenderSignatureAge($Age = 3) {
+    <#
+        .Description
+        Run Defender Quickscan if last scan is older than $Age days
+    #>
+    if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVirusProduct" -ea SilentlyContinue).displayName.count -eq 1) {
+        $SigAge = (Get-MpComputerStatus).AntivirusSignatureAge
+        if ($SigAge -ge $Age) { 
+            start-process "$($env:ProgramFiles)\Windows Defender\MpCmdRun.exe" -ArgumentList '-SignatureUpdate -MMPC' 
+            $SigAge = (Get-MpComputerStatus).AntivirusSignatureAge
+        }
+
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("DefenderScanAge")) { $global:chk.Remove("DefenderSigAge") }
+        $global:chk.Add("DefenderSigAge", $SigAge)
+    }
+    else {
+        if ($null -eq $global:chk) { $global:chk = @{ } }
+        if ($global:chk.ContainsKey("DefenderScanAge")) { $global:chk.Remove("DefenderSigAge") }
+        $global:chk.Add("DefenderSigAge", 999)
+    }
+}
+
+Function Test-DefenderQuickScan($Age = 7) {
+    <#
+        .Description
+        Run Defender Quickscan if last scan is older than $Age days
+    #>
+    if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVirusProduct" -ea SilentlyContinue).displayName.count -eq 1) {
+        $ScanAge = (Get-MpComputerStatus).QuickScanAge
+        if ($ScanAge -ge $Age) { 
+            start-process "$($env:ProgramFiles)\Windows Defender\MpCmdRun.exe" -ArgumentList '-Scan -ScanType 1' 
+            $ScanAge = (Get-MpComputerStatus).QuickScanAge
+        }
+        
         if ($null -eq $global:chk) { $global:chk = @{ } }
         if ($global:chk.ContainsKey("DefenderScanAge")) { $global:chk.Remove("DefenderScangAge") }
         $global:chk.Add("DefenderScanAge", $ScanAge)
@@ -633,8 +919,9 @@ Function Test-WU {
             set-executionpolicy bypass -Force
             Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.208 -Force
             Set-PSRepository -Name PSGallery -InstallationPolicy Trusted 
+            Install-Module PSWindowsUpdate -Force
         }
-        Install-Module PSWindowsUpdate -Force
+
         $upd = Get-WUList -MicrosoftUpdate
 
         if ($upd) {
@@ -654,6 +941,11 @@ Function Test-WU {
         if ($global:chk.ContainsKey("WU")) { $global:chk.Remove("WU") }
         $global:chk.Add("WU", -1) 
     }
+}
+
+Function Test-CPU($LessThan = 50) {
+  $average =  (Get-WmiObject Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
+  if($average -le $LessThan) { return $true } else  { return $false }
 }
 
 Function Test-AppLocker {
@@ -910,6 +1202,8 @@ Function Set-AppLocker {
         [parameter(Mandatory = $false)]
         [switch]$Force,
         [parameter(Mandatory = $false)]
+        [switch]$ScriptRules,
+        [parameter(Mandatory = $false)]
         [switch]$Remove
     )
 
@@ -1077,7 +1371,15 @@ Function Set-AppLocker {
     </RuleCollection>
   </AppLockerPolicy>
 "@
-                $policy > $env:TEMP\Policy.xml
+                if ($ScriptRules.ToBool()) {
+                    #Enable ScriptRules
+                    $xPol = [XML]$policy
+                    $xPol.SelectNodes("//RuleCollection[@Type='Script']").SetAttribute("EnforcementMode", "Enabled")
+                    $xPol.Save("$($env:TEMP)\Policy.xml")
+                }
+                else {
+                    $policy > $env:TEMP\Policy.xml
+                }
                 Set-AppLockerPolicy -XMLPolicy $env:TEMP\Policy.xml
                 Remove-Item $env:TEMP\Policy.xml -Force
             }
@@ -1165,6 +1467,8 @@ Function Set-Defender {
         [parameter(Mandatory = $false)]
         [bool]$PUA = $true,
         [parameter(Mandatory = $false)]
+        [bool]$SmartScreen = $true,
+        [parameter(Mandatory = $false)]
         [int]$PolicyRevision = 0,
         [parameter(Mandatory = $false)]
         [switch]$Force,
@@ -1176,7 +1480,7 @@ Function Set-Defender {
 
         if ($ASR) {
             Set-MpPreference -AttackSurfaceReductionOnlyExclusions "C:\Windows", "C:\Program Files", "C:\Program Files (x86)", "C:\ProgramData\Microsoft\Windows Defender"
-            Set-MpPreference -AttackSurfaceReductionRules_Ids BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550, D4F940AB-401B-4EFC-AADC-AD5F3C50688A, 3B576869-A4EC-4529-8536-B80A7769E899, 75668C1F-73B5-4CF0-BB93-3ECF5CB7CC84, D3E037E1-3EB8-44C8-A917-57927947596D, 5BEB7EFE-FD9A-4556-801D-275E5FFC04CC, 92E97FA1-2EDF-4476-BDD6-9DD0B4DDDC7B, 01443614-cd74-433a-b99e-2ecdc07bfc25, c1db55ab-c21a-4637-bb3f-a12568109d35, d1e49aac-8f56-4280-b9ba-993a6d77406c, 2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4, 26190899-1602-49e8-8b27-eb1d0a1ce869, 7674ba52-37eb-4a4f-a9a1-f0f9a1619a2c, e6db77e5-3df2-4cf1-b95a-636979351e5b, b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4, 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2  -AttackSurfaceReductionRules_Actions Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, AuditMode
+            Set-MpPreference -AttackSurfaceReductionRules_Ids BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550, D4F940AB-401B-4EFC-AADC-AD5F3C50688A, 3B576869-A4EC-4529-8536-B80A7769E899, 75668C1F-73B5-4CF0-BB93-3ECF5CB7CC84, D3E037E1-3EB8-44C8-A917-57927947596D, 5BEB7EFE-FD9A-4556-801D-275E5FFC04CC, 92E97FA1-2EDF-4476-BDD6-9DD0B4DDDC7B, 01443614-cd74-433a-b99e-2ecdc07bfc25, c1db55ab-c21a-4637-bb3f-a12568109d35, d1e49aac-8f56-4280-b9ba-993a6d77406c, 2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4, 26190899-1602-49e8-8b27-eb1d0a1ce869, 7674ba52-37eb-4a4f-a9a1-f0f9a1619a2c, e6db77e5-3df2-4cf1-b95a-636979351e5b, 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2, b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4  -AttackSurfaceReductionRules_Actions Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, Enabled, AuditMode, Enabled
         }
 
         if ($NetworkProtection) {
@@ -1191,6 +1495,37 @@ Function Set-Defender {
         }
         else {
             Set-MpPreference -PUAProtection Disabled
+        }
+
+        if ($SmartScreen) {
+            #Create the key if missing 
+            If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Windows\System') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\System' -force -ea SilentlyContinue } 
+            #Enable the Policy
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\System' -Name 'EnableSmartScreen' -Value 1 -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\System' -Name 'ShellSmartScreenLevel' -Value Block -ea SilentlyContinue 
+
+            #Create the key if missing 
+            If ((Test-Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -force -ea SilentlyContinue } 
+            #Enable the Policy
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -Name 'EnabledV9' -Value 1 -ea SilentlyContinue 
+
+
+            If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen' -force -ea SilentlyContinue } 
+            #Enable the Policy
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen' -Name 'ConfigureAppInstallControlEnabled' -Value 1 -ea SilentlyContinue 
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen' -Name 'ConfigureAppInstallControl' -Value PreferStore -ea SilentlyContinue 
+
+            #Create the key if missing 
+            If ((Test-Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -force -ea SilentlyContinue } 
+            #Enable the Policy
+            Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -Name 'PreventOverride' -Value 1 -ea SilentlyContinue 
+        }
+        else {
+            Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\System' -Name 'EnableSmartScreen' -ea SilentlyContinue 
+            Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -Name 'EnabledV9' -ea SilentlyContinue 
+            Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen' -Name 'ConfigureAppInstallControlEnabled' -ea SilentlyContinue 
+            Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen' -Name 'ConfigureAppInstallControl' -ea SilentlyContinue 
+            Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -Name 'PreventOverride' -ea SilentlyContinue 
         }
 
         Set-MpPreference -DisableArchiveScanning $false
@@ -1221,6 +1556,12 @@ Function Set-Defender {
 
     if ($Remove.ToBool()) {
         Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'DefenderPolicy' -Force -ea SilentlyContinue | Out-Null;
+        
+        Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\System' -Name 'EnableSmartScreen' -ea SilentlyContinue 
+        Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -Name 'EnabledV9' -ea SilentlyContinue 
+        Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen' -Name 'ConfigureAppInstallControlEnabled' -ea SilentlyContinue 
+        Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows Defender\SmartScreen' -Name 'ConfigureAppInstallControl' -ea SilentlyContinue 
+        Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter' -Name 'PreventOverride' -ea SilentlyContinue 
     }
 
 
@@ -1319,19 +1660,111 @@ function Set-DeliveryOptimization {
         .Description
         restrict Peer Selection on DeliveryOptimization
     #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [int]$PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
 
-    #Create the key if missing 
-    If ((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization') -eq $false ) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -force -ea SilentlyContinue } 
+    if (-NOT $Remove.ToBool()) {
+        if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).DOPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+            #Create the key if missing 
+            If ((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization') -eq $false ) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -force -ea SilentlyContinue } 
 
-    #Enable Setting and Restrict to local Subnet only
-    Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -Name 'DORestrictPeerSelectionBy' -Value 1 -ea SilentlyContinue 
+            #Enable Setting and Restrict to local Subnet only
+            Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -Name 'DORestrictPeerSelectionBy' -Value 1 -ea SilentlyContinue 
 
-    if ($null -eq $global:chk) { $global:chk = @{ } }
-    if ($global:chk.ContainsKey("DO")) { $global:chk.Remove("DO") }
-    $global:chk.Add("DO", 1)
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'DOPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
+        }
+
+    }
+
+    if ($Remove.ToBool()) {
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'DOPolicy' -Force -ea SilentlyContinue | Out-Null;
+        Remove-Item -Path 'HKLM:\SOFTWARE\Policies\RuckZuck' -recurse -force -ea SilentlyContinue  | Out-Null;
+
+        Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization' -Name 'DORestrictPeerSelectionBy' -Force -ea SilentlyContinue | Out-Null;
+    }
 }
 
-#($Customer = "ROMAWO", $Broadcast = 0, $PolicyRevision = 0, $Force = $false, $RemovePolicy = $false)
+function Set-InactivityTimeout {
+    <#
+        .Description
+        auto lock windows if idle for a secific time, set Timeout in seconds
+    #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [int]$Timeout = 300,
+        [parameter(Mandatory = $false)]
+        [int]$PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force,
+        [parameter(Mandatory = $false)]
+        [switch]$Remove
+    )
+
+    if (-NOT $Remove.ToBool()) {
+        if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).InactivityPolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System") -ne $true) { New-Item "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -force -ea SilentlyContinue };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'InactivityTimeoutSecs' -Value $Timeout -PropertyType DWord -Force -ea SilentlyContinue;
+
+            if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+            New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'InactivityPolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
+        }
+
+    }
+
+    if ($Remove.ToBool()) {
+        Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'InactivityPolicy' -Force -ea SilentlyContinue | Out-Null;
+        Remove-Item -Path 'HKLM:\SOFTWARE\Policies\RuckZuck' -recurse -force -ea SilentlyContinue  | Out-Null;
+
+        Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'InactivityTimeoutSecs' -Force -ea SilentlyContinue | Out-Null;
+    }
+}
+
+function Set-OEMLicense {
+    <#
+        .Description
+        Set OEM Windows Key to activate Windows
+    #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [int]$PolicyRevision = 0,
+        [parameter(Mandatory = $false)]
+        [switch]$Force
+    )
+
+
+    if (((Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -ea SilentlyContinue).OEMLicensePolicy -ge $PolicyRevision) -and -NOT $Force.ToBool()) {  } else {
+
+        $Status = (Get-CimInstance -ClassName SoftwareLicensingProduct | Where-Object { $_.PartialProductKey -and $_.ApplicationID -eq '55c92734-d682-4d71-983e-d6ec3f16059f' } | Select-Object LicenseStatus).LicenseStatus
+        if ($Status -ne 1) {
+            #Set OEM Key
+            $key = (Get-WmiObject softwarelicensingservice).OA3xOriginalProductKey
+            if ($key) { slmgr /ipk $key }
+        }
+
+        if ((Test-Path -LiteralPath "HKLM:\SOFTWARE\ROMAWO") -ne $true) { New-Item "HKLM:\SOFTWARE\ROMAWO" -force -ea SilentlyContinue | Out-Null };
+        New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'OEMLicensePolicy' -Value $PolicyRevision -PropertyType DWord -Force -ea SilentlyContinue | Out-Null;   
+    }
+
+    
+}
+
+function Test-WindowsLicense {
+    <#
+        .Description
+        Get Windows activation status
+    #>
+
+    Get-CimInstance -ClassName SoftwareLicensingProduct | Where-Object { $_.PartialProductKey -and $_.ApplicationID -eq '55c92734-d682-4d71-983e-d6ec3f16059f' } | Select-Object Description, LicenseStatus | convertto-json
+}
+
 function Set-RuckZuck {
     <#
         .Description
@@ -1366,6 +1799,150 @@ function Set-RuckZuck {
         Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ROMAWO' -Name 'RuckZuckPolicy' -Force -ea SilentlyContinue | Out-Null;
         Remove-Item -Path 'HKLM:\SOFTWARE\Policies\RuckZuck' -recurse -force -ea SilentlyContinue  | Out-Null;
     }
+}
+
+function Disable-WindowsUpdate {
+    <#
+        .Description
+        Disable Windows-Update 
+    #>
+    
+    #Create the key if missing 
+    If ((Test-Path 'HKLM:\Software\Policies\Microsoft\WindowsStore') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\WindowsStore' -force -ea SilentlyContinue } 
+    If ((Test-Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate') -eq $false ) { New-Item -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -force -ea SilentlyContinue } 
+
+    #Turn off access to all Windows Update features
+    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DisableWindowsUpdateAccess' -Value 1 -ea SilentlyContinue 
+
+    #Remove access to use all Windows Update features
+    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'SetDisableUXWUAccess' -Value 1 -ea SilentlyContinue 
+
+    #Select when Quality Updates are received
+    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdates' -Value 1 -ea SilentlyContinue 
+    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdatesPeriodInDays' -Value 35 -ea SilentlyContinue 
+    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'PauseQualityUpdatesStartTime' -Value '1' -ea SilentlyContinue 
+
+    #Turn off the offer to update to the latest version of Windows
+    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\WindowsStore' -Name 'DisableOSUpgrade' -Value 1 -ea SilentlyContinue 
+
+    Set-Service UsoSvc -StartMode Disabled -ea SilentlyContinue 
+    Stop-service UsoSvc -ea SilentlyContinue 
+    gpupdate /force
+
+}
+
+function Enable-Windowsupdate {
+    <#
+        .Description
+        Enable Windows-Update
+    #>
+    Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DisableWindowsUpdateAccess' -ea SilentlyContinue 
+    Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'SetDisableUXWUAccess' -ea SilentlyContinue
+    Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdates' -ea SilentlyContinue 
+    Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdatesPeriodInDays' -ea SilentlyContinue 
+    Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate' -Name 'PauseQualityUpdatesStartTime' -ea SilentlyContinue  
+    Remove-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\WindowsStore' -Name 'DisableOSUpgrade' -ea SilentlyContinue 
+    Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\WindowsUpdate\UpdatePolicy\PolicyState' -Name 'DeferQualityUpdates' -Value 0 -ea SilentlyContinue 
+    Remove-ItemProperty -Path 'HKLM:\Software\Microsoft\WindowsUpdate\UpdatePolicy\Settings' -Name 'PausedQualityDate'-ea SilentlyContinue 
+    Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\WAU' -Name 'DeferQualityUpdates' -Value 0 -ea SilentlyContinue 
+    Set-Service UsoSvc -StartMode Automatic -ea SilentlyContinue 
+    Start-service UsoSvc -ea SilentlyContinue 
+    gpupdate /force
+}
+
+function Update-Windows {
+    try {
+        if (Get-InstalledModule -Name PSWindowsUpdate -MinimumVersion "2.2.0.2" -ea SilentlyContinue) {} else {
+            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.208 -Force;
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted; 
+            Install-Module PSWindowsUpdate -Force;
+        }
+        #Add-WUServiceManager -ServiceID 7971f918-a847-4430-9279-4a52d1efe18d -confirm:$false;
+        Install-WindowsUpdate -MicrosoftUpdate -IgnoreReboot -AcceptAll -Install;
+        "Updates installed..."
+    }
+    catch { "Error, unable to detect updates: " + $_.Exception.Message }
+}
+
+function Get-ConfigItems {
+    <#
+        .Description
+        Get Configuration from Azure TableStorage
+    #>
+    [CmdletBinding()]Param(
+        [parameter(Mandatory = $false)]
+        [String]
+        $CustomerID,
+        [parameter(Mandatory = $false)]
+        [string]
+        $Hostname = $env:COMPUTERNAME,
+        [parameter(Mandatory = $false)]
+        [string]
+        $SettingName = "LocalAdmins",
+        [parameter(Mandatory = $false)]
+        [string]
+        $SettingType = "SID",
+        [parameter(Mandatory = $false)]
+        [string]
+        $storageAccount,
+        [parameter(Mandatory = $false)]
+        [string]
+        $sasToken
+    )
+
+    if ($sasToken) {
+        $version = "2017-04-17";
+        $dnow = (Get-Date).ToUniversalTime().toString('yyyy-MM-dd');
+        if ($SettingName -eq "") { $NameQuery = "" } else { $NameQuery = "%20and%20SettingName%20eq%20'$SettingName'" }
+        if ($SettingType -eq "") { $SetQuery = "" } else { $SetQuery = "%20and%20SettingType%20eq%20'$SettingType'" }
+
+        #Remove questionmark prefix on sasToken
+        if ($sasToken.StartsWith('?')) { $sasToken = $sasToken.TrimStart('?') }
+
+        $resource = "ConfigItems()?`$filter=PartitionKey%20eq%20'$CustomerID'%20and%20ComputerName%20eq%20'$Hostname'and%20ExpirationDate%20ge%20datetime'$dnow'$($NameQuery)$($SetQuery)&$sasToken";
+        $table_url = "https://$storageAccount.table.core.windows.net/$resource"
+        $GMTTime = (Get-Date).ToUniversalTime().toString('R')
+        $headers = @{
+            'x-ms-date'    = $GMTTime
+            "x-ms-version" = $version
+            Accept         = "application/json;odata=fullmetadata"
+        }
+        return (Invoke-RestMethod -Uri $table_url -Headers $headers -ContentType application/json).value
+    }
+    else {
+        $uri = (Get-DevcdrEP) + "/devcdr/GetConfigItems?signature=" + (Get-DevcdrSIG) + "&settingname=$($SettingName)&settingtype=$($SettingType)&hostname=" + $Hostname
+        return (Invoke-RestMethod -Uri $uri -ContentType application/json)
+    }
+}
+
+function Sync-DeviceHardware () {
+
+    #Get SerialNumber
+    $ser = (Get-WmiObject win32_bios).SerialNumber
+
+    #Get Hardware Hash
+    $hwid = ((Get-WMIObject -Namespace root/cimv2/mdm/dmmap -Class MDM_DevDetail_Ext01 -Filter "InstanceID='Ext' AND ParentID='./DevDetail'").DeviceHardwareData)
+
+    #Get Vendor
+    $Vendor = (Get-CimInstance  -ClassName Win32_ComputerSystem).Manufacturer.Trim()
+
+    #Get Model
+    $Model = (Get-CimInstance  -ClassName Win32_ComputerSystem).Model.Trim()
+
+    #Get UUID
+    $UUID = (Get-CimInstance  -ClassName Win32_ComputerSystemProduct).UUID.Trim()
+
+    $orderIdentifier = "ROMAWO"
+
+    #Create object with the required parameters
+    $devdata = @{ Vendor = $Vendor; Model = $Model; SerialNumber = $ser; HardwareHash = $hwid; UUID = $UUID; OrderIdentifier = $orderIdentifier; Hostname = $env:computername }
+    $body = ConvertTo-Json -InputObject $devdata 
+
+    $uri = (Get-DevcdrEP) + "/devcdr/RegisterDevice?signature=" + (Get-DevcdrSIG)
+
+    $status = Invoke-RestMethod -uri $uri -Body $body -Method Post
+
+    return $status
 }
 
 #region DevCDR
@@ -1425,6 +2002,12 @@ Function Get-DevcdrID {
     catch { }
 
     return ""
+}
+
+function Get-DevcdrDeviceId {
+    $uuid = getinv -Name "Computer" -WMIClass "win32_ComputerSystemProduct" -Properties @("#UUID")
+    $comp = getinv -Name "Computer" -WMIClass "win32_ComputerSystem" -Properties @("Domain", "#Name") -AppendProperties $uuid 
+    return GetHash($comp | ConvertTo-Json -Compress)
 }
 
 Function Set-DevcdrComplianceIntervall($Minutes = 5) {
@@ -1601,14 +2184,23 @@ function SetID {
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#Name" -Value (getinv -Name "Computer" -WMIClass "win32_ComputerSystem" -Properties @("Name"))."Name" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "#SerialNumber" -Value (getinv -Name "Computer" -WMIClass "win32_SystemEnclosure" -Properties @("SerialNumber"))."SerialNumber" -ea SilentlyContinue
         $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "@MAC" -Value (Get-WmiObject -class "Win32_NetworkAdapterConfiguration" | Where-Object { ($_.IpEnabled -Match "True") }).MACAddress.Replace(':', '-')
-		
-        [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
-        $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
-        $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
-        $devcdrgrp = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Groups' }).value
-        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDREndpoint" -Value $EP
-        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRGroups" -Value $devcdrgrp
-        $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRCustomerID" -Value $customerId
+        
+        if (Test-Path "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config") {
+            [xml]$a = Get-Content "$($env:ProgramFiles)\DevCDRAgentCore\DevCDRAgentCore.exe.config"
+            $EP = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
+            $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
+            $devcdrgrp = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Groups' }).value
+            $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDREndpoint" -Value $EP
+            $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRGroups" -Value $devcdrgrp
+            $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "DevCDRCustomerID" -Value $customerId
+        }
+        if (Test-Path "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe.config") {
+            [xml]$a = Get-Content "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe.config"
+            $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
+            $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "ROMAWOEndpoint" -Value $(get-devcdrep)
+            $AppendObject.Value | Add-Member -MemberType NoteProperty -Name "ROMAWOCustomerID" -Value $customerId
+        }
+        
         return $null
     }   
 }
@@ -1617,8 +2209,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwAm9xQLbOkXhd67Ug0UBRgR1
-# siagggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU/DgzYDJU2AtnftTpCi5Q2HSq
+# zrOgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -1683,12 +2275,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRl
-# SCHMrjz58L9MI2hwJg+a2wRncjANBgkqhkiG9w0BAQEFAASCAQBhji2mi/czm+VN
-# TKBcjPj5jpiDYyCR36PwBRis+X1SN0Ht9nSIaHjIdLuhCLapeWg20/osQ03Iw56a
-# ptR5XL8N+RQrEGDJ/285DUwvVkCGEaCYNHr/3S+Q17ikcCfTsTnywdLtfxzl1eBq
-# 44SwtwaadTuQoRDm7Ry0v0qcsCp5pbNxvW0vuqlnBUwABZ8raZIcQc85CtiJ7IT0
-# PDqAeUG6NJNOsKa2Gr8nUC+c2wG0nFuyCOd0530qgi7vq9A8h8fzn58HiKXZ5n0j
-# 88BxYOnzsW+/rEefmNYoRvYw3spHseIGabBvTDQeBoygkg+fO9WDI/nmx4Eq6NV0
-# E5QHMTbU
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTC
+# gVlFjEF5obzpnBu8yiGRWUWKzjANBgkqhkiG9w0BAQEFAASCAQCu5lEiIuEtpMo6
+# rpBclb2M5EohtbMzzD8iWtUja8Lxe1H/RtkcasLi/GURkbowgk4zMMA7s1m5BFLV
+# KeDxeg+Z3Abl6BLHFfrF57Wb8tU4L3T1a7IUGyTNDomPvLP7KIJCCMGkLaesr8uW
+# dQsv7I3vaUYwaJFPA0UPe3qbmINjmWGBmBKaeltiwflLcn/CuRor+pCtcaCFjbnC
+# w8PULr3Bc9ORiOEU1WPw3st6rpZKbF7Q2bz84Crj1VX/1eIveVHGGqlAHOjNEPMt
+# BSSPDHy7rBXZk4Y0MEpWTpUavo59j7ddOODcDEh8zBzOckg63g5Zitqf4fgxMsls
+# 6X18z69t
 # SIG # End signature block

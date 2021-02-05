@@ -61,7 +61,7 @@ function Test-NetMetered {
     return $res
 }
 
-function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https://github.com/rzander/ruckzuck/releases/download/$($ProviderVersion)/RuckZuck.provider.for.OneGet_x64.msi" ) {
+function Test-OneGetProvider($ProviderVersion = "1.7.2.0", $DownloadURL = "https://github.com/rzander/ruckzuck/releases/download/$($ProviderVersion)/RuckZuck.provider.for.OneGet_x64.msi" ) {
     <#
         .Description
         If missing, install latest RuckZuck Provider for OneGet...
@@ -87,7 +87,7 @@ function Test-OneGetProvider($ProviderVersion = "1.7.1.3", $DownloadURL = "https
     $global:chk.Add("OneGetProvider", (Get-PackageProvider -Name Ruckzuck).Version.ToString())
 }
 
-function Test-DevCDRAgent($AgentVersion = "2.0.1.36") {
+function Test-DevCDRAgent($AgentVersion = "2.0.1.50") {
     <#
         .Description
         Install or Update DevCDRAgentCore if required
@@ -451,8 +451,7 @@ Function Test-Bitlocker {
 #Import-Module Compliance
 Test-Nuget
 Test-OneGetProvider("1.7.2.0")
-Test-DevCDRAgent("2.0.1.50")
-#Test-Administrators
+Test-DevCDRAgent("2.0.1.51")
 Set-LocalAdmin -disableAdmin $false -randomizeAdmin $true 
 #Test-LocalAdmin
 #Test-WOL
@@ -486,8 +485,8 @@ if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVir
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUu8nKcrEm6ticm2qSoxi9lo20
-# dVugggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUC8fNRpdCJTdTs5Q7/ru8NY8w
+# ITWgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -552,12 +551,12 @@ if ((Get-WmiObject -Namespace root\SecurityCenter2 -Query "SELECT * FROM AntiVir
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBT6
-# RmUSmGZXITbHTGgPoy3azcuBhTANBgkqhkiG9w0BAQEFAASCAQDJ+z8DcK+5tgnY
-# 3Qf96E3gtYO3nzQyXQJ3+9A1JDkEu473hy064EbMHgCfyBveaWhdrJlV073elDTt
-# DQaaGl8x3VujHoxfcOa+3p1VSXtkw11a45Jchya3MTO0gN5zJPseX9LsDJxb7kYc
-# XuyaZTcVAYBMflLRG+vK2eLwlJGohDmoRkT6XGSEBq/Gk1jqFncj6CKP+ntBdi+A
-# 8ENy3EFaH4MGPwy/PAptEM/vsWVsndy6rCP0BLxTsGiiIxpCAXscHo50K1f+cSy3
-# FKQrV3UmdyvqhY3oI3qScZkvzvXloQN2lDIYPRiz7o1/d/1fb41/ofESEhAsQYBX
-# rRytr8s7
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSB
+# UuA6c1yc+lW8+BLYId5cVvjt+TANBgkqhkiG9w0BAQEFAASCAQBkFer7kS8XzmNX
+# AXIky2ecYxoNwy2IuGQgi0uaoxMXSOX3C/9hXRKo74nkIgzgY+vuIHtpm4/uLi3+
+# svi0lLTiz8S0GnLYxtTMG/P1URTdprhb8g8ttWqAOQEwaJjI5ZyNzSQ6EOhdA+0j
+# vOOafYZwTTef0dr8fO9qOPtv/c5xfqafMs6Upyz0Ni6ZLaHfpHtm03MFFFTW2oZX
+# geD2zvnn8chK3R8UvNEm/tXy/H5qHPwnmqQLsFjMGh/CMaRPSFpaz9j5RB6AAFfl
+# DzRR5ioCDJhyKVOI3MZVQZo71ZhG3o1jVCc5AG9rjublYBhKe4XNxv2RQMPhMH1l
+# zHicZ/Qt
 # SIG # End signature block

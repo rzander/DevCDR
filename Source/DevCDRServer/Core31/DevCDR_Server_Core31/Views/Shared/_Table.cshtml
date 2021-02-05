@@ -69,7 +69,7 @@
                 { "data": "Version" },
                 { "data": "Arch" },
                 { "data": "Lang" },
-                { "data": "ScriptResult" },
+                { "data": "ScriptResult", "defaultContent": ""  },
                 { "data": "Groups", "visible": false },
                 { "data": "User", "visible": false },
                 { "data": "id", "visible": false },
@@ -141,7 +141,7 @@
     function reloadData() {
         //console.log("reload Data");
         var table = $('#test').DataTable();
-        table.ajax.reload();
+        table.ajax.reload(null, false);
     }
     Number.prototype.pad = function (size) {
         var s = String(this);

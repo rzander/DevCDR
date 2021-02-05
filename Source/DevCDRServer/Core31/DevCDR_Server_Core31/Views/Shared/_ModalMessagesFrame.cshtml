@@ -200,7 +200,8 @@
 
 <script>
     $('#msgRZ').on('shown.bs.modal', function () {
-        var groupurl = '/Frame/GetRZCatalog?Instance=@ViewData["Instance"].ToString()&customerid=@ViewData["customerid"].ToString()';
+        var groupurl = '/Frame/GetRZCatalog?customerid=@ViewData["customerid"].ToString()';
+        //console.log(groupurl);
         $.post(groupurl, "",
             function (data, status) {
                 $(".addresspicker").autocomplete({

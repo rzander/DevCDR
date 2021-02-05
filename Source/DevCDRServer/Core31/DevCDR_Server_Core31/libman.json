@@ -27,10 +27,6 @@
       ]
     },
     {
-      "library": "jquery-contextmenu@2.9.0",
-      "destination": "wwwroot/lib/jquery-contextmenu/"
-    },
-    {
       "library": "jqueryui@1.12.1",
       "destination": "wwwroot/lib/jqueryui/",
       "files": [
@@ -56,23 +52,8 @@
     },
     {
       "provider": "unpkg",
-      "library": "datatables.net@1.10.21",
-      "destination": "wwwroot/lib/datatables.net/"
-    },
-    {
-      "provider": "unpkg",
-      "library": "datatables.net-jqui@1.10.21",
-      "destination": "wwwroot/lib/datatables.net-jqui/"
-    },
-    {
-      "provider": "unpkg",
       "library": "datatables.net-select-jqui@1.3.1",
       "destination": "wwwroot/lib/datatables.net-select-jqui/"
-    },
-    {
-      "provider": "unpkg",
-      "library": "datatables.net-buttons-jqui@1.6.2",
-      "destination": "wwwroot/lib/datatables.net-buttons-jqui/"
     },
     {
       "provider": "unpkg",
@@ -81,18 +62,8 @@
     },
     {
       "provider": "unpkg",
-      "library": "datatables.net-buttons@1.6.2",
-      "destination": "wwwroot/lib/datatables.net-buttons/"
-    },
-    {
-      "provider": "unpkg",
       "library": "datatables.net-select@1.3.1",
       "destination": "wwwroot/lib/datatables.net-select/"
-    },
-    {
-      "provider": "unpkg",
-      "library": "datatables.net-responsive@2.2.5",
-      "destination": "wwwroot/lib/datatables.net-responsive/"
     },
     {
       "provider": "unpkg",
@@ -113,6 +84,32 @@
       "provider": "unpkg",
       "library": "font-awesome@4.7.0",
       "destination": "wwwroot/lib/font-awesome/"
+    },
+    {
+      "library": "datatables.net@1.10.22",
+      "destination": "wwwroot/lib/datatables.net/"
+    },
+    {
+      "library": "datatables.net-jqui@1.10.22",
+      "destination": "wwwroot/lib/datatables.net-jqui/"
+    },
+    {
+      "library": "datatables.net-responsive@2.2.6",
+      "destination": "wwwroot/lib/datatables.net-responsive/"
+    },
+    {
+      "library": "jquery-contextmenu@2.9.2",
+      "destination": "wwwroot/lib/jquery-contextmenu/"
+    },
+    {
+      "provider": "unpkg",
+      "library": "datatables.net-buttons-jqui@1.6.5",
+      "destination": "wwwroot/lib/datatables.net-buttons-jqui/"
+    },
+    {
+      "provider": "unpkg",
+      "library": "datatables.net-buttons@1.6.5",
+      "destination": "wwwroot/lib/datatables.net-buttons/"
     }
   ]
 }
