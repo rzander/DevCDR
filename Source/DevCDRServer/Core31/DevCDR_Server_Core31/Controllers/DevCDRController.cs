@@ -253,7 +253,7 @@ namespace DevCDRServer.Controllers
 
         //Get a File and authenticate with signature
         [AllowAnonymous]
-        public ActionResult GetFile(string filename, string signature)
+        public ActionResult GetFile(string filename, string signature, string hash = "")
         {
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
             {
@@ -286,6 +286,28 @@ namespace DevCDRServer.Controllers
                     {
                         //replace %ENDPOINTURL% with real Endpoint from Certificate...
                         sScript = sScript.Replace("%ENDPOINTURL%", oSig.EndpointURL.Replace("/chat", ""));
+
+                        //only return script if hash does NOT match -> Client will use local cached script
+                        if (!string.IsNullOrEmpty(hash))
+                        {
+                            //Get MD5 Hash
+                            string FileHash = "";
+                            using (var md5 = System.Security.Cryptography.MD5.Create())
+                            {
+                                FileHash = BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(sScript))).Replace("-", "").ToLower();
+                            }
+
+                            //Do NOT return script if hash does match;
+                            if (hash.ToLower() == FileHash.ToLower())
+                            {
+                                return new ContentResult()
+                                {
+                                    Content = "",
+                                    ContentType = "text/plain"
+                                };
+                            }
+                        }
+
                         return new ContentResult()
                         {
                             Content = sScript,
