@@ -253,7 +253,7 @@ namespace DevCDRServer.Controllers
 
         //Get a File and authenticate with signature
         [AllowAnonymous]
-        public ActionResult GetFile(string filename, string signature, string hash = "")
+        public ActionResult GetFile(string filename, string signature, string hash = "", string sign = "0", string customername = "")
         {
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
             {
@@ -277,15 +277,20 @@ namespace DevCDRServer.Controllers
 
                 if (oSig.Exists && oSig.Valid)
                 {
-                    string sScript = GetScriptAsync(oSig.CustomerID, filename).Result;
+                    bool bSign = false;
+                    if (sign != "0")
+                        bSign = true;
+
+                    string sScript = GetScriptAsync(oSig.CustomerID, filename, bSign, customername).Result;
 
                     if (string.IsNullOrEmpty(sScript))
-                        sScript = GetScriptAsync("DEMO", filename).Result;
+                        sScript = GetScriptAsync("DEMO", filename, bSign, customername).Result;
 
                     if (!string.IsNullOrEmpty(sScript))
                     {
-                        //replace %ENDPOINTURL% with real Endpoint from Certificate...
-                        sScript = sScript.Replace("%ENDPOINTURL%", oSig.EndpointURL.Replace("/chat", ""));
+                        //replace %ENDPOINTURL% with real Endpoint from Certificate, but not in PS1...
+                        if(!filename.ToLower().EndsWith(".ps1"))
+                            sScript = sScript.Replace("%ENDPOINTURL%", oSig.EndpointURL.Replace("/chat", ""));
 
                         //only return script if hash does NOT match -> Client will use local cached script
                         if (!string.IsNullOrEmpty(hash))
@@ -496,7 +501,7 @@ namespace DevCDRServer.Controllers
             return Cert;
         }
 
-        private async Task<string> GetScriptAsync(string customerid, string filename)
+        private async Task<string> GetScriptAsync(string customerid, string filename, bool sign = false, string customername = "")
         {
             string Res = "";
             if (string.IsNullOrEmpty(filename))
@@ -523,7 +528,14 @@ namespace DevCDRServer.Controllers
 
                     using (HttpClient client = new HttpClient())
                     {
-                        Res = await client.GetStringAsync($"{sURL}&customerid={customerid}&file={filename}");
+                        if (sign)
+                        {
+                            Res = await client.GetStringAsync($"{sURL}&customerid={customerid}&file={filename}&sign=1&customername={customername}");
+                        }
+                        else
+                        {
+                            Res = await client.GetStringAsync($"{sURL}&customerid={customerid}&file={filename}&sign=0");
+                        }
 
                         if (!string.IsNullOrEmpty(Res))
                         {

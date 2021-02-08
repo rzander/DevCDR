@@ -521,7 +521,11 @@ namespace DevCDRServer
 
                     if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
                     {
-                        await setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
+                        try
+                        {
+                            await setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
+                        }
+                        catch { }
                     }
 
                     AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
