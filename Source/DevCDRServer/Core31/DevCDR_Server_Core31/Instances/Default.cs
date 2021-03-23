@@ -616,6 +616,9 @@ namespace DevCDRServer
                 if (string.IsNullOrEmpty(J1.GetValue("Hostname").Value<string>()))
                     return;
 
+                if (string.IsNullOrEmpty(J1.GetValue("id").Value<string>()))
+                    return;
+
                 if (jData.SelectTokens("[?(@.id == '" + J1.GetValue("id") + "')]").Count() == 0) //Prevent Duplicates
                 {
                     J1.Add("ConnectionId", Context.ConnectionId);
