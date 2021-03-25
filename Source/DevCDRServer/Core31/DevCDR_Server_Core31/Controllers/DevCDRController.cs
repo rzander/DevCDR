@@ -891,7 +891,9 @@ namespace DevCDRServer.Controllers
         public ActionResult RegisterDevice()
         {
             string data = "";
-            string signature = Request.Query["signature"].ToString();
+            string signature = Request.Query["signature"];
+            string appid = Request.Query["appid"];
+            string tenantid = Request.Query["tenantid"];
 
             X509AgentCert oSig = new X509AgentCert(signature);
             try
@@ -936,9 +938,17 @@ namespace DevCDRServer.Controllers
                         {
                             StringContent oData = new StringContent(sNewData, Encoding.UTF8, "application/json");
 
-                            var oPost = client.PostAsync($"{sURL}&customerid={oSig.CustomerID}", oData);
-                            oPost.Wait(30000);
-                            return new OkObjectResult(oPost.Result.Content.ReadAsStringAsync().Result);
+                            if (string.IsNullOrEmpty(tenantid) || string.IsNullOrEmpty(appid))
+                            {
+                                var oPost = client.PostAsync($"{sURL}&customerid={oSig.CustomerID}", oData);
+                                oPost.Wait(30000);
+                                return new OkObjectResult(oPost.Result.Content.ReadAsStringAsync().Result);
+                            }else
+                            {
+                                var oPost = client.PostAsync($"{sURL}&customerid={oSig.CustomerID}&tenantid={ tenantid }&appid={ appid }", oData);
+                                oPost.Wait(30000);
+                                return new OkObjectResult(oPost.Result.Content.ReadAsStringAsync().Result);
+                            }
                         }
                     }
                 }
