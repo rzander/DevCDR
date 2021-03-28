@@ -25,7 +25,7 @@
     },
     "dependencies": {
         "jquery": ">=1.7",
-        "datatables.net": "1.10.21"
+        "datatables.net": "1.10.24"
     },
     "repository": {
         "type": "git",
