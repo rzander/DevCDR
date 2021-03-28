@@ -56,12 +56,12 @@
     },
     {
       "provider": "unpkg",
-      "library": "datatables.net@1.10.20",
+      "library": "datatables.net@1.10.24",
       "destination": "wwwroot/lib/datatables.net/"
     },
     {
       "provider": "unpkg",
-      "library": "datatables.net-jqui@1.10.20",
+      "library": "datatables.net-jqui@1.10.24",
       "destination": "wwwroot/lib/datatables.net-jqui/"
     },
     {
