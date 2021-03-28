@@ -52,7 +52,7 @@
     },
     {
       "provider": "unpkg",
-      "library": "datatables.net-select-jqui@1.3.1",
+      "library": "datatables.net-select-jqui@1.3.3",
       "destination": "wwwroot/lib/datatables.net-select-jqui/"
     },
     {
@@ -62,7 +62,7 @@
     },
     {
       "provider": "unpkg",
-      "library": "datatables.net-select@1.3.1",
+      "library": "datatables.net-select@1.3.3",
       "destination": "wwwroot/lib/datatables.net-select/"
     },
     {
@@ -90,7 +90,7 @@
       "destination": "wwwroot/lib/datatables.net/"
     },
     {
-      "library": "datatables.net-jqui@1.10.22",
+      "library": "datatables.net-jqui@1.10.24",
       "destination": "wwwroot/lib/datatables.net-jqui/"
     },
     {
