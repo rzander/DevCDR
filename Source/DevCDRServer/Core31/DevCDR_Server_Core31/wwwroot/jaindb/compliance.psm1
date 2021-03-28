@@ -195,12 +195,12 @@ function Test-DevCDRAgent($AgentVersion = "2.0.1.51") {
     }
 }
 
-function Test-ROMAWOAgent($AgentVersion = "2.1.0.0") {
+function Test-ROMAWOAgent($AgentVersion = "2.1.1.1") {
     <#
         .Description
         Install or Update ROMAWO if required
     #>
-    $fix = "1.0.0.0"
+    $fix = "1.0.0.2"
 
     if ([version](get-item "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe").VersionInfo.FileVersion -lt [version]($AgentVersion)) {
         [xml]$a = Get-Content "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe.config"
@@ -225,7 +225,6 @@ function Test-ROMAWOAgent($AgentVersion = "2.1.0.0") {
         }
     }
 
-
     #Add Scheduled-Task to repair Agent 
     if ((Get-ScheduledTask ROMAWO -ea SilentlyContinue).Description -ne "ROMAWO Agent fix $($fix)") {
         if (Test-Logging) {
@@ -239,42 +238,15 @@ function Test-ROMAWOAgent($AgentVersion = "2.1.0.0") {
         }
         catch { }
 
-        [xml]$a = Get-Content "$($env:ProgramFiles)\ROMAWO Agent\ROMAWOAgent.exe.config"
-        $customerId = ($a.configuration.applicationSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'CustomerID' }).value
-        $ep = ($a.configuration.userSettings."DevCDRAgent.Properties.Settings".setting | Where-Object { $_.name -eq 'Endpoint' }).value
-        if ($customerId) {
-            if ($ep) {
-                $arg = "if(-not (get-process ROMAWOAgent -ea SilentlyContinue)) { `"&msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi CUSTOMER=$($customerId) ENDPOINT=$($ep) /qn REBOOT=REALLYSUPPRESS`" }"
-                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
-                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
-                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
-            }
-            else {
-                $arg = "if(-not (get-process ROMAWOAgent -ea SilentlyContinue)) { `"&msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi CUSTOMER=$($customerId) /qn REBOOT=REALLYSUPPRESS`" }"
-                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
-                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
-                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
-            }
-            Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "ROMAWO" -Description "ROMAWO Agent fix $($fix)" -User "System" -TaskPath "\ROMAWO" -Force
-            Get-ScheduledTask DevCDR | Unregister-ScheduledTask -Confirm:$False
-        }
-        else {
-            if ($ep) {
-                $arg = "if(-not (get-process ROMAWOAgent -ea SilentlyContinue)) { `"&msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi ENDPOINT=$($ep) /qn REBOOT=REALLYSUPPRESS`" }"
-                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
-                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
-                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
-            }
-            else {
-                $arg = "if(-not (get-process ROMAWOAgent -ea SilentlyContinue)) { `"&msiexec -i https://cdnromawo.azureedge.net/rest/v2/GetFile/ROMAWOAgent/ROMAWOAgent.msi /qn REBOOT=REALLYSUPPRESS`" }"
-                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
-                $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
-                $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
-            }
-            #Do not add fix Version as the Task has to be recreated with customerID and EP
-            Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "ROMAWO" -Description "ROMAWO Agent fix" -User "System" -TaskPath "\ROMAWO" -Force
-            Get-ScheduledTask DevCDR | Unregister-ScheduledTask -Confirm:$False
-        }
+
+        $arg = "-ExecutionPolicy bypass -File $env:ProgramData\ROMAWO\installAgent.ps1"
+        $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $arg
+        $trigger = New-ScheduledTaskTrigger -Daily -At 11:25am -RandomDelay 00:25:00
+        $Stset = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration 00:02:00 -IdleWaitTimeout 02:30:00 -WakeToRun
+            
+        #Do not add fix Version as the Task has to be recreated with customerID and EP
+        Register-ScheduledTask -Action $action -Settings $Stset -Trigger $trigger -TaskName "ROMAWO" -Description "ROMAWO Agent fix $($fix)" -User "System" -TaskPath "\ROMAWO" -Force
+        Get-ScheduledTask DevCDR -ea SilentlyContinue | Unregister-ScheduledTask -Confirm:$False
     }
 
     if ($null -eq $global:chk) { $global:chk = @{ } }
@@ -638,6 +610,7 @@ function Update-Software {
     #Find Software Updates
     $updates = Find-Package -ProviderName RuckZuck -Updates | Select-Object PackageFilename | Sort-Object { Get-Random }
     $i = 0
+
     #Update only managed Software
     $SWList | ForEach-Object { 
         if ($updates.PackageFilename -contains $_) { 
@@ -646,10 +619,13 @@ function Update-Software {
             }
             "Updating: " + $_ ;
             Install-Package -ProviderName RuckZuck "$($_)" -ea SilentlyContinue
+            
+            #With ROMAWO Agent 2.1.1.1 to prevent installation loops if another installationis running
+            #&"$($env:ProgramFiles)\zander tools\RZGet.exe" update --noretry "$($_)"
         }
         else { $i++ }
     }
-
+    
     if ($null -eq $global:chk) { $global:chk = @{ } }
     if ($global:chk.ContainsKey("SoftwareUpdates")) { $global:chk.Remove("SoftwareUpdates") }
     if ($updates) { $global:chk.Add("SoftwareUpdates", $updates.PackageFilename.count) } else { $global:chk.Add("SoftwareUpdates", 0) }
@@ -944,8 +920,8 @@ Function Test-WU {
 }
 
 Function Test-CPU($LessThan = 50) {
-  $average =  (Get-WmiObject Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
-  if($average -le $LessThan) { return $true } else  { return $false }
+    $average = (Get-WmiObject Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
+    if ($average -le $LessThan) { return $true } else { return $false }
 }
 
 Function Test-AppLocker {
@@ -2209,8 +2185,8 @@ function SetID {
 # SIG # Begin signature block
 # MIIOEgYJKoZIhvcNAQcCoIIOAzCCDf8CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU/DgzYDJU2AtnftTpCi5Q2HSq
-# zrOgggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUdtMNUboZg3WkME/l8tUw7LnW
+# X/2gggtIMIIFYDCCBEigAwIBAgIRANsn6eS1hYK93tsNS/iNfzcwDQYJKoZIhvcN
 # AQELBQAwfTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3Rl
 # cjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQx
 # IzAhBgNVBAMTGkNPTU9ETyBSU0EgQ29kZSBTaWduaW5nIENBMB4XDTE4MDUyMjAw
@@ -2275,12 +2251,12 @@ function SetID {
 # VQQKExFDT01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2Rl
 # IFNpZ25pbmcgQ0ECEQDbJ+nktYWCvd7bDUv4jX83MAkGBSsOAwIaBQCgeDAYBgor
 # BgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEE
-# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTC
-# gVlFjEF5obzpnBu8yiGRWUWKzjANBgkqhkiG9w0BAQEFAASCAQCu5lEiIuEtpMo6
-# rpBclb2M5EohtbMzzD8iWtUja8Lxe1H/RtkcasLi/GURkbowgk4zMMA7s1m5BFLV
-# KeDxeg+Z3Abl6BLHFfrF57Wb8tU4L3T1a7IUGyTNDomPvLP7KIJCCMGkLaesr8uW
-# dQsv7I3vaUYwaJFPA0UPe3qbmINjmWGBmBKaeltiwflLcn/CuRor+pCtcaCFjbnC
-# w8PULr3Bc9ORiOEU1WPw3st6rpZKbF7Q2bz84Crj1VX/1eIveVHGGqlAHOjNEPMt
-# BSSPDHy7rBXZk4Y0MEpWTpUavo59j7ddOODcDEh8zBzOckg63g5Zitqf4fgxMsls
-# 6X18z69t
+# MBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSQ
+# Wvzku/PumvkSXpO47cC38dH0FTANBgkqhkiG9w0BAQEFAASCAQBWbtsyAk+8Prl0
+# 56Aqg8gIoOtTpOhU80ROL4v+EzB9Nty8uopz6Pxw/Ce5XvVA4NKljOYjhodjZqzr
+# 7pwnVp4aj+KBx0iQaZx3oycKWdQfTk0wW6FjY+OCm0LrM6OY8k/xSkTg5KJ5ASQr
+# zGdtyWXIhpd1AX6XVmhGIkfWcG0PQa9cp/NJd6d8IegYDhaFZu3x8dV8xqjSiOOv
+# W6P2XkryqwqrnCJbGp1MK6/bBOtqKE8OQ3vOaWLEE1ld4ZCMzjuWSK+6tItRJ7eV
+# TEQhjdY21WSIF8JcGge/O+Ls29lbJNrcMWjpuPxS3LdrATyp1ue2qlyvwqMhGdrq
+# cp56OsRx
 # SIG # End signature block

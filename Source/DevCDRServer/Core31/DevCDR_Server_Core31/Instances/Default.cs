@@ -521,7 +521,11 @@ namespace DevCDRServer
 
                     if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
                     {
-                        await setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
+                        try
+                        {
+                            await setStatusAsync(Environment.GetEnvironmentVariable("INSTANCENAME") ?? "Default", J1.GetValue("id").ToString(), J1.ToString());
+                        }
+                        catch { }
                     }
 
                     AzureLog.PostAsync(new { Computer = J1.GetValue("Hostname"), EventID = 3000, Description = J1.GetValue("ScriptResult").ToString() });
@@ -610,6 +614,9 @@ namespace DevCDRServer
             try
             {
                 if (string.IsNullOrEmpty(J1.GetValue("Hostname").Value<string>()))
+                    return;
+
+                if (string.IsNullOrEmpty(J1.GetValue("id").Value<string>()))
                     return;
 
                 if (jData.SelectTokens("[?(@.id == '" + J1.GetValue("id") + "')]").Count() == 0) //Prevent Duplicates

@@ -55,7 +55,7 @@
             deferRender: true,
             "columns": [
                 { "data": "Hostname" },
-                { "data": "Internal IP" },
+                { "data": "Internal IP", "defaultContent": "" },
                 {
                     "data": "Last Reboot",
                     "render": function (data) {
@@ -63,17 +63,17 @@
                         return date.getFullYear() + '-' + (date.getMonth() + 1).pad(2) + '-' + date.getDate().pad(2) + ' ' + date.getHours().pad(2) + ':' + date.getMinutes().pad(2) + ':' + date.getSeconds().pad(2);
                     }
                 },
-                { "data": "Reboot Pending" },
-                { "data": "Users Online" },
-                { "data": "OS" },
-                { "data": "Version" },
-                { "data": "Arch" },
-                { "data": "Lang" },
+                { "data": "Reboot Pending", "defaultContent": "" },
+                { "data": "Users Online", "defaultContent": "" },
+                { "data": "OS", "defaultContent": "" },
+                { "data": "Version", "defaultContent": "" },
+                { "data": "Arch", "defaultContent": "" },
+                { "data": "Lang", "defaultContent": "" },
                 { "data": "ScriptResult", "defaultContent": ""  },
-                { "data": "Groups", "visible": false },
-                { "data": "User", "visible": false },
+                { "data": "Groups", "visible": false, "defaultContent": "" },
+                { "data": "User", "visible": false, "defaultContent": "" },
                 { "data": "id", "visible": false },
-                { "data": "Customer", "visible": false }
+                { "data": "Customer", "visible": false, "defaultContent": "" }
             ],
             rowId: 'id',
             select: true,

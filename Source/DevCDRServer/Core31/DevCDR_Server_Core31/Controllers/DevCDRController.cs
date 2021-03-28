@@ -253,7 +253,7 @@ namespace DevCDRServer.Controllers
 
         //Get a File and authenticate with signature
         [AllowAnonymous]
-        public ActionResult GetFile(string filename, string signature)
+        public ActionResult GetFile(string filename, string signature, string hash = "", string sign = "0", string customername = "")
         {
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("fnDevCDR")))
             {
@@ -277,15 +277,42 @@ namespace DevCDRServer.Controllers
 
                 if (oSig.Exists && oSig.Valid)
                 {
-                    string sScript = GetScriptAsync(oSig.CustomerID, filename).Result;
+                    bool bSign = false;
+                    if (sign != "0")
+                        bSign = true;
+
+                    string sScript = GetScriptAsync(oSig.CustomerID, filename, bSign, customername).Result;
 
                     if (string.IsNullOrEmpty(sScript))
-                        sScript = GetScriptAsync("DEMO", filename).Result;
+                        sScript = GetScriptAsync("DEMO", filename, bSign, customername).Result;
 
                     if (!string.IsNullOrEmpty(sScript))
                     {
-                        //replace %ENDPOINTURL% with real Endpoint from Certificate...
-                        sScript = sScript.Replace("%ENDPOINTURL%", oSig.EndpointURL.Replace("/chat", ""));
+                        //replace %ENDPOINTURL% with real Endpoint from Certificate, but not in PS1...
+                        if(!filename.ToLower().EndsWith(".ps1"))
+                            sScript = sScript.Replace("%ENDPOINTURL%", oSig.EndpointURL.Replace("/chat", ""));
+
+                        //only return script if hash does NOT match -> Client will use local cached script
+                        if (!string.IsNullOrEmpty(hash))
+                        {
+                            //Get MD5 Hash
+                            string FileHash = "";
+                            using (var md5 = System.Security.Cryptography.MD5.Create())
+                            {
+                                FileHash = BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(sScript))).Replace("-", "").ToLower();
+                            }
+
+                            //Do NOT return script if hash does match;
+                            if (hash.ToLower() == FileHash.ToLower())
+                            {
+                                return new ContentResult()
+                                {
+                                    Content = "",
+                                    ContentType = "text/plain"
+                                };
+                            }
+                        }
+
                         return new ContentResult()
                         {
                             Content = sScript,
@@ -474,7 +501,7 @@ namespace DevCDRServer.Controllers
             return Cert;
         }
 
-        private async Task<string> GetScriptAsync(string customerid, string filename)
+        private async Task<string> GetScriptAsync(string customerid, string filename, bool sign = false, string customername = "")
         {
             string Res = "";
             if (string.IsNullOrEmpty(filename))
@@ -501,7 +528,14 @@ namespace DevCDRServer.Controllers
 
                     using (HttpClient client = new HttpClient())
                     {
-                        Res = await client.GetStringAsync($"{sURL}&customerid={customerid}&file={filename}");
+                        if (sign)
+                        {
+                            Res = await client.GetStringAsync($"{sURL}&customerid={customerid}&file={filename}&sign=1&customername={customername}");
+                        }
+                        else
+                        {
+                            Res = await client.GetStringAsync($"{sURL}&customerid={customerid}&file={filename}&sign=0");
+                        }
 
                         if (!string.IsNullOrEmpty(Res))
                         {
@@ -857,7 +891,9 @@ namespace DevCDRServer.Controllers
         public ActionResult RegisterDevice()
         {
             string data = "";
-            string signature = Request.Query["signature"].ToString();
+            string signature = Request.Query["signature"];
+            string appid = Request.Query["appid"];
+            string tenantid = Request.Query["tenantid"];
 
             X509AgentCert oSig = new X509AgentCert(signature);
             try
@@ -902,9 +938,17 @@ namespace DevCDRServer.Controllers
                         {
                             StringContent oData = new StringContent(sNewData, Encoding.UTF8, "application/json");
 
-                            var oPost = client.PostAsync($"{sURL}&customerid={oSig.CustomerID}", oData);
-                            oPost.Wait(30000);
-                            return new OkObjectResult(oPost.Result.Content.ReadAsStringAsync().Result);
+                            if (string.IsNullOrEmpty(tenantid) || string.IsNullOrEmpty(appid))
+                            {
+                                var oPost = client.PostAsync($"{sURL}&customerid={oSig.CustomerID}", oData);
+                                oPost.Wait(30000);
+                                return new OkObjectResult(oPost.Result.Content.ReadAsStringAsync().Result);
+                            }else
+                            {
+                                var oPost = client.PostAsync($"{sURL}&customerid={oSig.CustomerID}&tenantid={ tenantid }&appid={ appid }", oData);
+                                oPost.Wait(30000);
+                                return new OkObjectResult(oPost.Result.Content.ReadAsStringAsync().Result);
+                            }
                         }
                     }
                 }
