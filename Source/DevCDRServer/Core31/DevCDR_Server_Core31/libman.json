@@ -86,7 +86,7 @@
       "destination": "wwwroot/lib/font-awesome/"
     },
     {
-      "library": "datatables.net@1.10.22",
+      "library": "datatables.net@1.10.24",
       "destination": "wwwroot/lib/datatables.net/"
     },
     {
