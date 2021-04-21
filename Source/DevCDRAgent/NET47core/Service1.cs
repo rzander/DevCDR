@@ -359,7 +359,7 @@ namespace DevCDRAgent
             {
                 try
                 {
-                 connection.DisposeAsync().Wait(1000);
+                 connection.DisposeAsync();
                 }
                 catch { }
             }
@@ -377,7 +377,7 @@ namespace DevCDRAgent
                         await connection.SendAsync("Init", Hostname);
                     else
                     {
-                        await connection.SendAsync("InitCert", Hostname, xAgent.Signature);
+                        await connection.SendAsync("Init", Hostname);
                     }
                 }
                 catch {
@@ -1934,150 +1934,9 @@ namespace DevCDRAgent
                     }
                 }
 
-                xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID.Trim());
-
-                if (string.IsNullOrEmpty(Properties.Settings.Default.CustomerID.Trim()))
-                {
-                    if (xAgent.Exists && xAgent.Valid && !string.IsNullOrEmpty(xAgent.Signature))
-                    {
-                        Properties.Settings.Default.AgentSignature = xAgent.Signature;
-                        Hostname = Environment.MachineName + "_ORPHANED";
-                    }
-                }
+                //xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID.Trim());
 
                 //initial initialization...
-                if (!string.IsNullOrEmpty(Properties.Settings.Default.CustomerID.Trim())) //CustomerID is required !!!
-                {
-                    if (!string.IsNullOrEmpty(Properties.Settings.Default.HardwareID))
-                    {
-                        xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID.Trim());
-
-                        if (xAgent.Certificate == null)
-                        {
-                            //request machine cert...
-                            if ((DateTime.Now - tLastCertReq).TotalMinutes >= 2)
-                            {
-                                Thread.Sleep(2000);
-                                Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate.... ");
-                                Trace.WriteLine(DateTime.Now.ToString() + "\t CustomerID: " + Properties.Settings.Default.CustomerID.Trim());
-                                Trace.WriteLine(DateTime.Now.ToString() + "\t DeviceID: " + Properties.Settings.Default.HardwareID);
-                                connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(30000); //MachineCert
-                                tLastCertReq = DateTime.Now;
-                                Trace.WriteLine(DateTime.Now.ToString() + "\t Machine Certificate requested.... ");
-                                Thread.Sleep(30000);
-                            }
-                            else
-                            {
-                                Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate skipped.... ");
-                            }
-                            Thread.Sleep(5000);
-                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID.Trim());
-
-                            if (xAgent.Exists && xAgent.Valid)
-                            {
-                                if (!string.IsNullOrEmpty(xAgent.Signature))
-                                {
-                                    if (Properties.Settings.Default.AgentSignature != xAgent.Signature)
-                                    {
-                                        Properties.Settings.Default.AgentSignature = xAgent.Signature;
-                                        Properties.Settings.Default.Endpoint = xAgent.EndpointURL;
-                                        Properties.Settings.Default.Save();
-                                    }
-                                }
-                            }
-                        }
-
-                        if (xAgent.Certificate != null && !xAgent.Expired)
-                        {
-                            if (xAgent.Exists && xAgent.Valid && xAgent.HasPrivateKey && !string.IsNullOrEmpty(xAgent.Signature))
-                            {
-                                if (Properties.Settings.Default.AgentSignature != xAgent.Signature)
-                                {
-                                    lock (_locker)
-                                    {
-                                        Trace.WriteLine(DateTime.Now.ToString() + "\t Updating Signature... ");
-                                        Properties.Settings.Default.AgentSignature = xAgent.Signature;
-                                        Properties.Settings.Default.Save();
-                                        Properties.Settings.Default.Reload();
-                                    }
-                                }
-
-                                if (!string.IsNullOrEmpty(xAgent.EndpointURL))
-                                {
-                                    if (Uri != xAgent.EndpointURL)
-                                    {
-                                        Uri = xAgent.EndpointURL;
-                                        Trace.WriteLine(DateTime.Now.ToString() + "\t Endpoint URL to:" + xAgent.EndpointURL);
-                                        Properties.Settings.Default.Endpoint = xAgent.EndpointURL;
-                                        Properties.Settings.Default.Save();
-                                    }
-                                }
-
-                                if (!string.IsNullOrEmpty(xAgent.FallbackURL))
-                                {
-                                    if (Properties.Settings.Default.FallbackEndpoint != xAgent.FallbackURL)
-                                    {
-                                        Trace.WriteLine(DateTime.Now.ToString() + "\t Fallback URL to:" + xAgent.FallbackURL);
-                                        Properties.Settings.Default.FallbackEndpoint = xAgent.FallbackURL;
-                                        Properties.Settings.Default.Save();
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                try
-                                {
-                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Certificate is valid:" + xAgent.Valid.ToString());
-                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Certificate has PrivateKey:" + xAgent.HasPrivateKey.ToString());
-                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Signature:" + xAgent.Signature);
-                                    Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + xAgent.Certificate.Issuer.Split('=')[1]);
-                                    connection.InvokeAsync("GetCert", xAgent.Certificate.Issuer.Split('=')[1], false).Wait(1000); //request issuer cert
-                                    Thread.Sleep(1500);
-
-                                    //Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Public Key for:" + Properties.Settings.Default.RootCA);
-                                    //connection.InvokeAsync("GetCert", Properties.Settings.Default.RootCA, false).Wait(1000); //request root cert
-                                    //Thread.Sleep(1500);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Trace.TraceError(DateTime.Now.ToString() + "\t Error: " + ex.Message);
-                                }
-
-                                Trace.WriteLine(DateTime.Now.ToString() + "\t Clearing Signature... ");
-                                Properties.Settings.Default.AgentSignature = "";
-                                Properties.Settings.Default.Save();
-                            }
-                        }
-                        else
-                        {
-                            //request machine cert...
-                            //Thread.Sleep(5000);
-                            if ((DateTime.Now - tLastCertReq).TotalMinutes >= 5)
-                            {
-                                Trace.WriteLine(DateTime.Now.ToString() + "\t Requesting Machine Certificate... ");
-                                connection.InvokeAsync("GetMachineCert", Properties.Settings.Default.CustomerID.Trim(), Properties.Settings.Default.HardwareID).Wait(30000); //MachineCert
-                                tLastCertReq = DateTime.Now;
-                                return;
-                            }
-
-                            xAgent = new X509AgentCert(Properties.Settings.Default.HardwareID, Properties.Settings.Default.CustomerID.Trim());
-
-                            if (xAgent.Exists && xAgent.Valid)
-                            {
-                                if (!string.IsNullOrEmpty(xAgent.Signature))
-                                {
-                                    if (Properties.Settings.Default.AgentSignature != xAgent.Signature)
-                                    {
-                                        Properties.Settings.Default.AgentSignature = xAgent.Signature;
-                                        Properties.Settings.Default.Endpoint = xAgent.EndpointURL;
-                                        Properties.Settings.Default.Save();
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
                 if (string.IsNullOrEmpty(Properties.Settings.Default.AgentSignature.Trim() + Properties.Settings.Default.CustomerID.Trim()))
                 {
                     Trace.WriteLine(DateTime.Now.ToString() + "\t AgentSignature and CustomerID missing... Starting legacy mode.");
@@ -2692,7 +2551,7 @@ namespace DevCDRAgent
                 Thread.Sleep(1000);
 
                 connection.StopAsync().Wait(3000);
-                connection.DisposeAsync().Wait(1000);
+                connection.DisposeAsync();
             }
             catch { }
 

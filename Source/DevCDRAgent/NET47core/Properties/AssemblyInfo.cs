@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Zander - Tools")]
 [assembly: AssemblyProduct("DevCDR Agent Core")]
-[assembly: AssemblyCopyright("Copyright ©  2020 by Roger Zander")]
+[assembly: AssemblyCopyright("Copyright ©  2021 by Roger Zander")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -33,4 +33,4 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("2.0.1.*")]
-[assembly: AssemblyFileVersion("2.0.1.51")]
+[assembly: AssemblyFileVersion("2.0.1.52")]
