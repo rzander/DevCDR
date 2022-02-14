@@ -1,16 +1,16 @@
 # Device Commander (DevCDR)
+
+---
+**NOTE**  
+DevCDR is end of live. There will be no further updates.  
+This solution will continue in a commercial form as https://romawo.com/  
+
+---
 is a lightweight Client/Server Management tool for Windows published under the Open-Source License "GNU General Public License v3.0".
 The Web-based Admin console allows to trigger actions against a single or multiple clients. Just mark the clients and select an activity from the right click menu or a custom PowerShell script.
 
 Summary: https://rzander.azurewebsites.net/device-commander/
 
-Get a free instance:
-
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Frzander%2FDevCDR%2FServerCore31%2Fazuredeploy.json)
-
-<a href="https://azuredeploy.net/?repository=https://github.com/rzander/devcdr/tree/ServerCore31" target="_blank">
-    <img src="http://azuredeploy.net/deploybutton.png"/>
-</a>
 
 > Installation Manual on [Wiki](https://github.com/rzander/DevCDR/wiki/Deploy-to-Azure)
 
