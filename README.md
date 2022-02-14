@@ -52,11 +52,6 @@ Another Options is the preconfigured Docker image available at: https://hub.dock
 or just run:
 `docker pull zanderr/devcdr_server_core`
 
-# DEMO
-https://devcdr.azurewebsites.net/ 
 
-The default view is in Read-Only mode, so you will not be able to trigger something on my machines :-)
-## Test Instance
-https://devcdr.azurewebsites.net/DevCDR/Default
-You have to install an Agent in this Test-Instance (click the "Agent" button on the Web-Site to get the installation command).
+
 
