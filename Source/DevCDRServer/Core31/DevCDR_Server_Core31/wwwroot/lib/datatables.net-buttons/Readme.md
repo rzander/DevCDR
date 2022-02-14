@@ -17,9 +17,15 @@ For inclusion of this library using a standard `<script>` tag, rather than using
 npm install datatables.net-buttons
 ```
 
+ES3 Syntax
 ```
 var $ = require( 'jquery' );
 require( 'datatables.net-buttons' )( window, $ );
+```
+
+ES6 Syntax
+```
+import 'datatables.net-buttons'
 ```
 
 ### bower
@@ -32,8 +38,7 @@ bower install --save datatables.net-buttons
 
 ## Documentation
 
-Full documentation of the DataTables options, API and plug-in interface are available on the DOCS_LINK. The site also contains information on the wide variety of plug-ins that are available for DataTables, which can be used to enhance and customise your table even further.
-
+Full documentation and examples for Buttons can be found [on the website](https://datatables.net/extensions/buttons).
 
 ## Bug / Support
 

@@ -1,15 +1,15 @@
-/*! DataTables 1.10.24
- * ©2008-2021 SpryMedia Ltd - datatables.net/license
+/*! DataTables 1.10.13
+ * ©2008-2016 SpryMedia Ltd - datatables.net/license
  */
 
 /**
  * @summary     DataTables
  * @description Paginate, search and order HTML tables
- * @version     1.10.24
+ * @version     1.10.13
  * @file        jquery.dataTables.js
  * @author      SpryMedia Ltd
  * @contact     www.datatables.net
- * @copyright   Copyright 2008-2021 SpryMedia Ltd.
+ * @copyright   Copyright 2008-2016 SpryMedia Ltd.
  *
  * This source file is free software, available under the following license:
  *   MIT license - http://datatables.net/license
@@ -251,7 +251,7 @@
 			var api = this.api( true );
 		
 			/* Check if we want to add multiple rows or not */
-			var rows = Array.isArray(data) && ( Array.isArray(data[0]) || $.isPlainObject(data[0]) ) ?
+			var rows = $.isArray(data) && ( $.isArray(data[0]) || $.isPlainObject(data[0]) ) ?
 				api.rows.add( data ) :
 				api.row.add( data );
 		
@@ -898,7 +898,7 @@
 			_fnCamelToHungarian( defaults.column, defaults.column, true );
 			
 			/* Setting up the initialisation object */
-			_fnCamelToHungarian( defaults, $.extend( oInit, $this.data() ), true );
+			_fnCamelToHungarian( defaults, $.extend( oInit, $this.data() ) );
 			
 			
 			
@@ -909,11 +909,8 @@
 				var s = allSettings[i];
 			
 				/* Base check on table node */
-				if (
-					s.nTable == this ||
-					(s.nTHead && s.nTHead.parentNode == this) ||
-					(s.nTFoot && s.nTFoot.parentNode == this)
-				) {
+				if ( s.nTable == this || s.nTHead.parentNode == this || (s.nTFoot && s.nTFoot.parentNode == this) )
+				{
 					var bRetrieve = oInit.bRetrieve !== undefined ? oInit.bRetrieve : defaults.bRetrieve;
 					var bDestroy = oInit.bDestroy !== undefined ? oInit.bDestroy : defaults.bDestroy;
 			
@@ -970,12 +967,16 @@
 			
 			// Backwards compatibility, before we apply all the defaults
 			_fnCompatOpts( oInit );
-			_fnLanguageCompat( oInit.oLanguage );
+			
+			if ( oInit.oLanguage )
+			{
+				_fnLanguageCompat( oInit.oLanguage );
+			}
 			
 			// If the length menu is given, but the init display length is not, use the length menu
 			if ( oInit.aLengthMenu && ! oInit.iDisplayLength )
 			{
-				oInit.iDisplayLength = Array.isArray( oInit.aLengthMenu[0] ) ?
+				oInit.iDisplayLength = $.isArray( oInit.aLengthMenu[0] ) ?
 					oInit.aLengthMenu[0][0] : oInit.aLengthMenu[0];
 			}
 			
@@ -1022,7 +1023,8 @@
 				[ "iCookieDuration", "iStateDuration" ], // backwards compat
 				[ "oSearch", "oPreviousSearch" ],
 				[ "aoSearchCols", "aoPreSearchCols" ],
-				[ "iDisplayLength", "_iDisplayLength" ]
+				[ "iDisplayLength", "_iDisplayLength" ],
+				[ "bJQueryUI", "bJUI" ]
 			] );
 			_fnMap( oSettings.oScroll, oInit, [
 				[ "sScrollX", "sX" ],
@@ -1052,7 +1054,31 @@
 			
 			var oClasses = oSettings.oClasses;
 			
-			$.extend( oClasses, DataTable.ext.classes, oInit.oClasses );
+			// @todo Remove in 1.11
+			if ( oInit.bJQueryUI )
+			{
+				/* Use the JUI classes object for display. You could clone the oStdClasses object if
+				 * you want to have multiple tables with multiple independent classes
+				 */
+				$.extend( oClasses, DataTable.ext.oJUIClasses, oInit.oClasses );
+			
+				if ( oInit.sDom === defaults.sDom && defaults.sDom === "lfrtip" )
+				{
+					/* Set the DOM to use a layout suitable for jQuery UI's theming */
+					oSettings.sDom = '<"H"lfr>t<"F"ip>';
+				}
+			
+				if ( ! oSettings.renderer ) {
+					oSettings.renderer = 'jqueryui';
+				}
+				else if ( $.isPlainObject( oSettings.renderer ) && ! oSettings.renderer.header ) {
+					oSettings.renderer.header = 'jqueryui';
+				}
+			}
+			else
+			{
+				$.extend( oClasses, DataTable.ext.classes, oInit.oClasses );
+			}
 			$this.addClass( oClasses.sTable );
 			
 			
@@ -1066,7 +1092,7 @@
 			if ( oInit.iDeferLoading !== null )
 			{
 				oSettings.bDeferLoading = true;
-				var tmp = Array.isArray( oInit.iDeferLoading );
+				var tmp = $.isArray( oInit.iDeferLoading );
 				oSettings._iRecordsDisplay = tmp ? oInit.iDeferLoading[0] : oInit.iDeferLoading;
 				oSettings._iRecordsTotal = tmp ? oInit.iDeferLoading[1] : oInit.iDeferLoading;
 			}
@@ -1088,8 +1114,6 @@
 						_fnLanguageCompat( json );
 						_fnCamelToHungarian( defaults.oLanguage, json );
 						$.extend( true, oLanguage, json );
-			
-						_fnCallbackFire( oSettings, null, 'i18n', [oSettings]);
 						_fnInitialise( oSettings );
 					},
 					error: function () {
@@ -1098,9 +1122,6 @@
 					}
 				} );
 				bInitHandedOff = true;
-			}
-			else {
-				_fnCallbackFire( oSettings, null, 'i18n', [oSettings]);
 			}
 			
 			/*
@@ -1339,7 +1360,7 @@
 	var _api_registerPlural; // DataTable.Api.registerPlural
 	
 	var _re_dic = {};
-	var _re_new_lines = /[\r\n\u2028]/g;
+	var _re_new_lines = /[\r\n]/g;
 	var _re_html = /<.*?>/g;
 	
 	// This is not strict ISO8601 - Date.parse() is quite lax, although
@@ -1358,10 +1379,8 @@
 	// - fr - Swiss Franc
 	// - kr - Swedish krona, Norwegian krone and Danish krone
 	// - \u2009 is thin space and \u202F is narrow no-break space, both used in many
-	// - Ƀ - Bitcoin
-	// - Ξ - Ethereum
 	//   standards as thousands separators.
-	var _re_formatted_numeric = /['\u00A0,$£€¥%\u2009\u202F\u20BD\u20a9\u20BArfkɃΞ]/gi;
+	var _re_formatted_numeric = /[',$£€¥%\u2009\u202F\u20BD\u20a9\u20BArfk]/gi;
 	
 	
 	var _empty = function ( d ) {
@@ -1522,35 +1541,6 @@
 	
 	
 	/**
-	 * Determine if all values in the array are unique. This means we can short
-	 * cut the _unique method at the cost of a single loop. A sorted array is used
-	 * to easily check the values.
-	 *
-	 * @param  {array} src Source array
-	 * @return {boolean} true if all unique, false otherwise
-	 * @ignore
-	 */
-	var _areAllUnique = function ( src ) {
-		if ( src.length < 2 ) {
-			return true;
-		}
-	
-		var sorted = src.slice().sort();
-		var last = sorted[0];
-	
-		for ( var i=1, ien=sorted.length ; i<ien ; i++ ) {
-			if ( sorted[i] === last ) {
-				return false;
-			}
-	
-			last = sorted[i];
-		}
-	
-		return true;
-	};
-	
-	
-	/**
 	 * Find the unique elements in a source array.
 	 *
 	 * @param  {array} src Source array
@@ -1559,10 +1549,6 @@
 	 */
 	var _unique = function ( src )
 	{
-		if ( _areAllUnique( src ) ) {
-			return src.slice();
-		}
-	
 		// A faster unique method is to use object keys to identify used values,
 		// but this doesn't work with arrays or objects, which we must also
 		// consider. See jsperf.com/compare-array-unique-versions/4 for more
@@ -1589,36 +1575,6 @@
 		return out;
 	};
 	
-	// Surprisingly this is faster than [].concat.apply
-	// https://jsperf.com/flatten-an-array-loop-vs-reduce/2
-	var _flatten = function (out, val) {
-		if (Array.isArray(val)) {
-			for (var i=0 ; i<val.length ; i++) {
-				_flatten(out, val[i]);
-			}
-		}
-		else {
-			out.push(val);
-		}
-	  
-		return out;
-	}
-	
-	// Array.isArray polyfill.
-	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/isArray
-	if (! Array.isArray) {
-	    Array.isArray = function(arg) {
-	        return Object.prototype.toString.call(arg) === '[object Array]';
-	    };
-	}
-	
-	// .trim() polyfill
-	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/trim
-	if (!String.prototype.trim) {
-	  String.prototype.trim = function () {
-	    return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, '');
-	  };
-	}
 	
 	/**
 	 * DataTables utility methods
@@ -1766,43 +1722,33 @@
 	 */
 	function _fnLanguageCompat( lang )
 	{
-		// Note the use of the Hungarian notation for the parameters in this method as
-		// this is called after the mapping of camelCase to Hungarian
 		var defaults = DataTable.defaults.oLanguage;
+		var zeroRecords = lang.sZeroRecords;
 	
-		// Default mapping
-		var defaultDecimal = defaults.sDecimal;
-		if ( defaultDecimal ) {
-			_addNumericSort( defaultDecimal );
+		/* Backwards compatibility - if there is no sEmptyTable given, then use the same as
+		 * sZeroRecords - assuming that is given.
+		 */
+		if ( ! lang.sEmptyTable && zeroRecords &&
+			defaults.sEmptyTable === "No data available in table" )
+		{
+			_fnMap( lang, lang, 'sZeroRecords', 'sEmptyTable' );
 		}
 	
-		if ( lang ) {
-			var zeroRecords = lang.sZeroRecords;
+		/* Likewise with loading records */
+		if ( ! lang.sLoadingRecords && zeroRecords &&
+			defaults.sLoadingRecords === "Loading..." )
+		{
+			_fnMap( lang, lang, 'sZeroRecords', 'sLoadingRecords' );
+		}
 	
-			// Backwards compatibility - if there is no sEmptyTable given, then use the same as
-			// sZeroRecords - assuming that is given.
-			if ( ! lang.sEmptyTable && zeroRecords &&
-				defaults.sEmptyTable === "No data available in table" )
-			{
-				_fnMap( lang, lang, 'sZeroRecords', 'sEmptyTable' );
-			}
+		// Old parameter name of the thousands separator mapped onto the new
+		if ( lang.sInfoThousands ) {
+			lang.sThousands = lang.sInfoThousands;
+		}
 	
-			// Likewise with loading records
-			if ( ! lang.sLoadingRecords && zeroRecords &&
-				defaults.sLoadingRecords === "Loading..." )
-			{
-				_fnMap( lang, lang, 'sZeroRecords', 'sLoadingRecords' );
-			}
-	
-			// Old parameter name of the thousands separator mapped onto the new
-			if ( lang.sInfoThousands ) {
-				lang.sThousands = lang.sInfoThousands;
-			}
-	
-			var decimal = lang.sDecimal;
-			if ( decimal && defaultDecimal !== decimal ) {
-				_addNumericSort( decimal );
-			}
+		var decimal = lang.sDecimal;
+		if ( decimal ) {
+			_addNumericSort( decimal );
 		}
 	}
 	
@@ -1876,7 +1822,7 @@
 	
 		// orderData can be given as an integer
 		var dataSort = init.aDataSort;
-		if ( typeof dataSort === 'number' && ! Array.isArray( dataSort ) ) {
+		if ( dataSort && ! $.isArray( dataSort ) ) {
 			init.aDataSort = [ dataSort ];
 		}
 	}
@@ -2059,7 +2005,7 @@
 			_fnCompatCols( oOptions );
 	
 			// Map camel case parameters to their Hungarian counterparts
-			_fnCamelToHungarian( DataTable.defaults.column, oOptions, true );
+			_fnCamelToHungarian( DataTable.defaults.column, oOptions );
 	
 			/* Backwards compatibility for mDataProp */
 			if ( oOptions.mDataProp !== undefined && !oOptions.mData )
@@ -2077,9 +2023,6 @@
 			if ( oOptions.className && ! oOptions.sClass )
 			{
 				oOptions.sClass = oOptions.className;
-			}
-			if ( oOptions.sClass ) {
-				th.addClass( oOptions.sClass );
 			}
 	
 			$.extend( oCol, oOptions );
@@ -2360,7 +2303,7 @@
 					def.targets :
 					def.aTargets;
 	
-				if ( ! Array.isArray( aTargets ) )
+				if ( ! $.isArray( aTargets ) )
 				{
 					aTargets = [ aTargets ];
 				}
@@ -2679,7 +2622,7 @@
 							innerSrc = a.join('.');
 	
 							// Traverse each entry in the array getting the properties requested
-							if ( Array.isArray( data ) ) {
+							if ( $.isArray( data ) ) {
 								for ( var j=0, jLen=data.length ; j<jLen ; j++ ) {
 									out.push( fetchData( data[j], type, innerSrc ) );
 								}
@@ -2767,11 +2710,6 @@
 	
 				for ( var i=0, iLen=a.length-1 ; i<iLen ; i++ )
 				{
-					// Protect against prototype pollution
-					if (a[i] === '__proto__' || a[i] === 'constructor') {
-						throw new Error('Cannot set prototype values');
-					}
-	
 					// Check if we are dealing with an array notation request
 					arrayNotation = a[i].match(__reArray);
 					funcNotation = a[i].match(__reFn);
@@ -2787,7 +2725,7 @@
 						innerSrc = b.join('.');
 	
 						// Traverse each entry in the array setting the properties requested
-						if ( Array.isArray( val ) )
+						if ( $.isArray( val ) )
 						{
 							for ( var j=0, jLen=val.length ; j<jLen ; j++ )
 							{
@@ -3034,7 +2972,7 @@
 		var cellProcess = function ( cell ) {
 			if ( colIdx === undefined || colIdx === i ) {
 				col = columns[i];
-				contents = (cell.innerHTML).trim();
+				contents = $.trim(cell.innerHTML);
 	
 				if ( col && col._bAttrSrc ) {
 					var setter = _fnSetObjectDataFn( col.mData._ );
@@ -3118,7 +3056,7 @@
 			rowData = row._aData,
 			cells = [],
 			nTr, nTd, oCol,
-			i, iLen, create;
+			i, iLen;
 	
 		if ( row.nTr === null )
 		{
@@ -3139,9 +3077,8 @@
 			for ( i=0, iLen=oSettings.aoColumns.length ; i<iLen ; i++ )
 			{
 				oCol = oSettings.aoColumns[i];
-				create = nTrIn ? false : true;
 	
-				nTd = create ? document.createElement( oCol.sCellType ) : anTds[i];
+				nTd = nTrIn ? anTds[i] : document.createElement( oCol.sCellType );
 				nTd._DT_CellIndex = {
 					row: iRow,
 					column: i
@@ -3150,9 +3087,9 @@
 				cells.push( nTd );
 	
 				// Need to create the HTML if new, or if a rendering function is defined
-				if ( create || ((oCol.mRender || oCol.mData !== i) &&
+				if ( (!nTrIn || oCol.mRender || oCol.mData !== i) &&
 					 (!$.isPlainObject(oCol.mData) || oCol.mData._ !== i+'.display')
-				)) {
+				) {
 					nTd.innerHTML = _fnGetCellData( oSettings, iRow, i, 'display' );
 				}
 	
@@ -3180,8 +3117,12 @@
 				}
 			}
 	
-			_fnCallbackFire( oSettings, 'aoRowCreatedCallback', null, [nTr, rowData, iRow, cells] );
+			_fnCallbackFire( oSettings, 'aoRowCreatedCallback', null, [nTr, rowData, iRow] );
 		}
+	
+		// Remove once webkit bug 131819 and Chromium bug 365619 have been resolved
+		// and deployed
+		row.nTr.setAttribute( 'role', 'row' );
 	}
 	
 	
@@ -3280,11 +3221,11 @@
 		}
 		
 		/* ARIA role for the rows */
-		$(thead).children('tr').attr('role', 'row');
+	 	$(thead).find('>tr').attr('role', 'row');
 	
 		/* Deal with the footer - add classes if required */
-		$(thead).children('tr').children('th, td').addClass( classes.sHeaderTH );
-		$(tfoot).children('tr').children('th, td').addClass( classes.sFooterTH );
+		$(thead).find('>tr>th, >tr>td').addClass( classes.sHeaderTH );
+		$(tfoot).find('>tr>th, >tr>td').addClass( classes.sFooterTH );
 	
 		// Cache the footer cells. Note that we only take the cells from the first
 		// row in the footer. If there is more than one row the user wants to
@@ -3501,7 +3442,7 @@
 				// iRowCount and j are not currently documented. Are they at all
 				// useful?
 				_fnCallbackFire( oSettings, 'aoRowCallback', null,
-					[nRow, aoData._aData, iRowCount, j, iDataIndex] );
+					[nRow, aoData._aData, iRowCount, j] );
 	
 				anRows.push( nRow );
 				iRowCount++;
@@ -3870,7 +3811,7 @@
 	
 		// Convert to object based for 1.10+ if using the old array scheme which can
 		// come from server-side processing or serverParams
-		if ( data && Array.isArray(data) ) {
+		if ( data && $.isArray(data) ) {
 			var tmp = {};
 			var rbracket = /(.*?)\[\]$/;
 	
@@ -3905,12 +3846,12 @@
 		{
 			ajaxData = ajax.data;
 	
-			var newData = typeof ajaxData === 'function' ?
+			var newData = $.isFunction( ajaxData ) ?
 				ajaxData( data, oSettings ) :  // fn can manipulate data or return
 				ajaxData;                      // an object object or array to merge
 	
 			// If the function returned something, use that alone
-			data = typeof ajaxData === 'function' && newData ?
+			data = $.isFunction( ajaxData ) && newData ?
 				newData :
 				$.extend( true, data, newData );
 	
@@ -3974,7 +3915,7 @@
 				url: ajax || oSettings.sAjaxSource
 			} ) );
 		}
-		else if ( typeof ajax === 'function' )
+		else if ( $.isFunction( ajax ) )
 		{
 			// Is a function - let the caller define what needs to be done
 			oSettings.jqXHR = ajax.call( instance, data, callback, oSettings );
@@ -4148,7 +4089,7 @@
 		var recordsTotal    = compat( 'iTotalRecords',        'recordsTotal' );
 		var recordsFiltered = compat( 'iTotalDisplayRecords', 'recordsFiltered' );
 	
-		if ( draw !== undefined ) {
+		if ( draw ) {
 			// Protect against out of sequence returns
 			if ( draw*1 < settings.iDraw ) {
 				return;
@@ -4263,14 +4204,6 @@
 					_fnThrottle( searchFn, searchDelay ) :
 					searchFn
 			)
-			.on( 'mouseup', function(e) {
-				// Edge fix! Edge 17 does not trigger anything other than mouse events when clicking
-				// on the clear icon (Edge bug 17584515). This is safe in other browsers as `searchFn`
-				// checks the value to see if it has changed. In other browsers it won't have.
-				setTimeout( function () {
-					searchFn.call(jqFilter[0]);
-				}, 10);
-			} )
 			.on( 'keypress.DT', function(e) {
 				/* Prevent form submission */
 				if ( e.keyCode == 13 ) {
@@ -4451,7 +4384,6 @@
 			// New search - start from the master array
 			if ( invalidated ||
 				 force ||
-				 regex ||
 				 prevSearch.length > input.length ||
 				 input.indexOf(prevSearch) !== 0 ||
 				 settings.bSorted // On resort, the display master needs to be
@@ -4575,7 +4507,7 @@
 					}
 	
 					if ( cellData.replace ) {
-						cellData = cellData.replace(/[\r\n\u2028]/g, '');
+						cellData = cellData.replace(/[\r\n]/g, '');
 					}
 	
 					filterData.push( cellData );
@@ -4855,7 +4787,7 @@
 			classes  = settings.oClasses,
 			tableId  = settings.sTableId,
 			menu     = settings.aLengthMenu,
-			d2       = Array.isArray( menu[0] ),
+			d2       = $.isArray( menu[0] ),
 			lengths  = d2 ? menu[0] : menu,
 			language = d2 ? menu[1] : menu;
 	
@@ -4866,12 +4798,7 @@
 		} );
 	
 		for ( var i=0, ien=lengths.length ; i<ien ; i++ ) {
-			select[0][ i ] = new Option(
-				typeof language[i] === 'number' ?
-					settings.fnFormatNumber( language[i] ) :
-					language[i],
-				lengths[i]
-			);
+			select[0][ i ] = new Option( language[i], lengths[i] );
 		}
 	
 		var div = $('<div><label/></div>').addClass( classes.sLength );
@@ -5205,10 +5132,10 @@
 			} );
 		}
 	
-		$(scrollBody).css('max-height', scrollY);
-		if (! scroll.bCollapse) {
-			$(scrollBody).css('height', scrollY);
-		}
+		$(scrollBody).css(
+			scrollY && scroll.bCollapse ? 'max-height' : 'height', 
+			scrollY
+		);
 	
 		settings.nScrollHead = scrollHead;
 		settings.nScrollBody = scrollBody;
@@ -5417,18 +5344,14 @@
 		// both match, but we want to hide it completely. We want to also fix their
 		// width to what they currently are
 		_fnApplyToChildren( function(nSizer, i) {
-			nSizer.innerHTML = '<div class="dataTables_sizing">'+headerContent[i]+'</div>';
-			nSizer.childNodes[0].style.height = "0";
-			nSizer.childNodes[0].style.overflow = "hidden";
+			nSizer.innerHTML = '<div class="dataTables_sizing" style="height:0;overflow:hidden;">'+headerContent[i]+'</div>';
 			nSizer.style.width = headerWidths[i];
 		}, headerSrcEls );
 	
 		if ( footer )
 		{
 			_fnApplyToChildren( function(nSizer, i) {
-				nSizer.innerHTML = '<div class="dataTables_sizing">'+footerContent[i]+'</div>';
-				nSizer.childNodes[0].style.height = "0";
-				nSizer.childNodes[0].style.overflow = "hidden";
+				nSizer.innerHTML = '<div class="dataTables_sizing" style="height:0;overflow:hidden;">'+footerContent[i]+'</div>';
 				nSizer.style.width = footerWidths[i];
 			}, footerSrcEls );
 		}
@@ -5503,7 +5426,7 @@
 		table.children('colgroup').insertBefore( table.children('thead') );
 	
 		/* Adjust the position of the header in case we loose the y-scrollbar */
-		divBody.trigger('scroll');
+		divBody.scroll();
 	
 		// If sorting or filtering has occurred, jump the scrolling back to the top
 		// only if we aren't holding the position
@@ -5901,7 +5824,7 @@
 			fixedObj = $.isPlainObject( fixed ),
 			nestedSort = [],
 			add = function ( a ) {
-				if ( a.length && ! Array.isArray( a[0] ) ) {
+				if ( a.length && ! $.isArray( a[0] ) ) {
 					// 1D array
 					nestedSort.push( a );
 				}
@@ -5913,7 +5836,7 @@
 	
 		// Build the sort array, with pre-fix and post-fix options if they have been
 		// specified
-		if ( Array.isArray( fixed ) ) {
+		if ( $.isArray( fixed ) ) {
 			add( fixed );
 		}
 	
@@ -6388,7 +6311,7 @@
 	
 			// Allow custom and plug-in manipulation functions to alter the saved data set and
 			// cancelling of loading by returning false
-			var abStateLoad = _fnCallbackFire( settings, 'aoStateLoadParams', 'stateLoadParams', [settings, s] );
+			var abStateLoad = _fnCallbackFire( settings, 'aoStateLoadParams', 'stateLoadParams', [settings, state] );
 			if ( $.inArray( false, abStateLoad ) !== -1 ) {
 				callback();
 				return;
@@ -6408,7 +6331,7 @@
 			}
 	
 			// Store the saved state so it might be accessed at any time
-			settings.oLoadedState = $.extend( true, {}, s );
+			settings.oLoadedState = $.extend( true, {}, state );
 	
 			// Restore key features - todo - for 1.11 this needs to be done by
 			// subscribed events
@@ -6437,7 +6360,7 @@
 			}
 	
 			// Columns
-			//
+			// 
 			if ( s.columns ) {
 				for ( i=0, ien=s.columns.length ; i<ien ; i++ ) {
 					var col = s.columns[i];
@@ -6454,9 +6377,9 @@
 				}
 			}
 	
-			_fnCallbackFire( settings, 'aoStateLoaded', 'stateLoaded', [settings, s] );
+			_fnCallbackFire( settings, 'aoStateLoaded', 'stateLoaded', [settings, state] );
 			callback();
-		};
+		}
 	
 		if ( ! settings.oFeatures.bStateSave ) {
 			callback();
@@ -6542,9 +6465,9 @@
 	 */
 	function _fnMap( ret, src, name, mappedName )
 	{
-		if ( Array.isArray( name ) ) {
+		if ( $.isArray( name ) ) {
 			$.each( name, function (i, val) {
-				if ( Array.isArray( val ) ) {
+				if ( $.isArray( val ) ) {
 					_fnMap( ret, src, val[0], val[1] );
 				}
 				else {
@@ -6596,7 +6519,7 @@
 					}
 					$.extend( true, out[prop], val );
 				}
-				else if ( breakRefs && prop !== 'data' && prop !== 'aaData' && Array.isArray(val) ) {
+				else if ( breakRefs && prop !== 'data' && prop !== 'aaData' && $.isArray(val) ) {
 					out[prop] = val.slice();
 				}
 				else {
@@ -6622,7 +6545,7 @@
 	{
 		$(n)
 			.on( 'click.DT', oData, function (e) {
-					$(n).trigger('blur'); // Remove focus outline for mouse users
+					n.blur(); // Remove focus outline for mouse users
 					fn(e);
 				} )
 			.on( 'keypress.DT', oData, function (e){
@@ -6936,11 +6859,11 @@
 		var ctxSettings = function ( o ) {
 			var a = _toSettings( o );
 			if ( a ) {
-				settings.push.apply( settings, a );
+				settings = settings.concat( a );
 			}
 		};
 	
-		if ( Array.isArray( context ) ) {
+		if ( $.isArray( context ) ) {
 			for ( var i=0, ien=context.length ; i<ien ; i++ ) {
 				ctxSettings( context[i] );
 			}
@@ -7186,11 +7109,6 @@
 		shift:   __arrayProto.shift,
 	
 	
-		slice: function () {
-			return new _Api( this.context, this );
-		},
-	
-	
 		sort:    __arrayProto.sort, // ? name - order?
 	
 	
@@ -7234,7 +7152,8 @@
 	
 		var
 			i, ien,
-			struct,
+			j, jen,
+			struct, inner,
 			methodScoping = function ( scope, fn, struc ) {
 				return function () {
 					var ret = fn.apply( scope, arguments );
@@ -7249,9 +7168,9 @@
 			struct = ext[i];
 	
 			// Value
-			obj[ struct.name ] = struct.type === 'function' ?
+			obj[ struct.name ] = typeof struct.val === 'function' ?
 				methodScoping( scope, struct.val, struct ) :
-				struct.type === 'object' ?
+				$.isPlainObject( struct.val ) ?
 					{} :
 					struct.val;
 	
@@ -7298,7 +7217,7 @@
 	
 	_Api.register = _api_register = function ( name, val )
 	{
-		if ( Array.isArray( name ) ) {
+		if ( $.isArray( name ) ) {
 			for ( var j=0, jen=name.length ; j<jen ; j++ ) {
 				_Api.register( name[j], val );
 			}
@@ -7332,19 +7251,13 @@
 					name:      key,
 					val:       {},
 					methodExt: [],
-					propExt:   [],
-					type:      'object'
+					propExt:   []
 				};
 				struct.push( src );
 			}
 	
 			if ( i === ien-1 ) {
 				src.val = val;
-				src.type = typeof val === 'function' ?
-					'function' :
-					$.isPlainObject( val ) ?
-						'object' :
-						'other';
 			}
 			else {
 				struct = method ?
@@ -7353,6 +7266,7 @@
 			}
 		}
 	};
+	
 	
 	_Api.registerPlural = _api_registerPlural = function ( pluralName, singularName, val ) {
 		_Api.register( pluralName, val );
@@ -7368,7 +7282,7 @@
 				// New API instance returned, want the value from the first item
 				// in the returned array for the singular result.
 				return ret.length ?
-					Array.isArray( ret[0] ) ?
+					$.isArray( ret[0] ) ?
 						new _Api( ret.context, ret[0] ) : // Array results are 'enhanced'
 						ret[0] :
 					undefined;
@@ -7391,12 +7305,6 @@
 	 */
 	var __table_selector = function ( selector, a )
 	{
-		if ( Array.isArray(selector) ) {
-			return $.map( selector, function (item) {
-				return __table_selector(item, a);
-			} );
-		}
-	
 		// Integer is used to pick out a table by index
 		if ( typeof selector === 'number' ) {
 			return [ a[ selector ] ];
@@ -7432,7 +7340,7 @@
 	 */
 	_api_register( 'tables()', function ( selector ) {
 		// A new instance is created if there was a selector specified
-		return selector !== undefined && selector !== null ?
+		return selector ?
 			new _Api( __table_selector( selector, this.context ) ) :
 			this;
 	} );
@@ -7780,7 +7688,7 @@
 				[ selector[i] ];
 	
 			for ( j=0, jen=a.length ; j<jen ; j++ ) {
-				res = selectFn( typeof a[j] === 'string' ? (a[j]).trim() : a[j] );
+				res = selectFn( typeof a[j] === 'string' ? $.trim(a[j]) : a[j] );
 	
 				if ( res && res.length ) {
 					out = out.concat( res );
@@ -7872,26 +7780,13 @@
 			}
 		}
 		else if ( order == 'current' || order == 'applied' ) {
-			if ( search == 'none') {
-				a = displayMaster.slice();
-			}
-			else if ( search == 'applied' ) {
-				a = displayFiltered.slice();
-			}
-			else if ( search == 'removed' ) {
-				// O(n+m) solution by creating a hash map
-				var displayFilteredMap = {};
-	
-				for ( var i=0, ien=displayFiltered.length ; i<ien ; i++ ) {
-					displayFilteredMap[displayFiltered[i]] = null;
-				}
-	
-				a = $.map( displayMaster, function (el) {
-					return ! displayFilteredMap.hasOwnProperty(el) ?
-						el :
-						null;
-				} );
-			}
+			a = search == 'none' ?
+				displayMaster.slice() :                      // no search
+				search == 'applied' ?
+					displayFiltered.slice() :                // applied search
+					$.map( displayMaster, function (el, i) { // removed search
+						return $.inArray( el, displayFiltered ) === -1 ? el : null;
+					} );
 		}
 		else if ( order == 'index' || order == 'original' ) {
 			for ( i=0, ien=settings.aoData.length ; i<ien ; i++ ) {
@@ -7924,13 +7819,14 @@
 	 * {array}     - jQuery array of nodes, or simply an array of TR nodes
 	 *
 	 */
+	
+	
 	var __row_selector = function ( settings, selector, opts )
 	{
 		var rows;
 		var run = function ( sel ) {
 			var selInt = _intVal( sel );
 			var i, ien;
-			var aoData = settings.aoData;
 	
 			// Short cut - selector is a number and no options provided (default is
 			// all records, so no need to check if the index is in there, since it
@@ -7955,26 +7851,23 @@
 			// Selector - function
 			if ( typeof sel === 'function' ) {
 				return $.map( rows, function (idx) {
-					var row = aoData[ idx ];
+					var row = settings.aoData[ idx ];
 					return sel( idx, row._aData, row.nTr ) ? idx : null;
 				} );
 			}
 	
+			// Get nodes in the order from the `rows` array with null values removed
+			var nodes = _removeEmpty(
+				_pluck_order( settings.aoData, rows, 'nTr' )
+			);
+	
 			// Selector - node
 			if ( sel.nodeName ) {
-				var rowIdx = sel._DT_RowIndex;  // Property added by DT for fast lookup
-				var cellIdx = sel._DT_CellIndex;
-	
-				if ( rowIdx !== undefined ) {
-					// Make sure that the row is actually still present in the table
-					return aoData[ rowIdx ] && aoData[ rowIdx ].nTr === sel ?
-						[ rowIdx ] :
-						[];
+				if ( sel._DT_RowIndex !== undefined ) {
+					return [ sel._DT_RowIndex ]; // Property added by DT for fast lookup
 				}
-				else if ( cellIdx ) {
-					return aoData[ cellIdx.row ] && aoData[ cellIdx.row ].nTr === sel.parentNode ?
-						[ cellIdx.row ] :
-						[];
+				else if ( sel._DT_CellIndex ) {
+					return [ sel._DT_CellIndex.row ];
 				}
 				else {
 					var host = $(sel).closest('*[data-dt-row]');
@@ -8003,11 +7896,6 @@
 				// need to fall through to jQuery in case there is DOM id that
 				// matches
 			}
-			
-			// Get nodes in the order from the `rows` array with null values removed
-			var nodes = _removeEmpty(
-				_pluck_order( settings.aoData, rows, 'nTr' )
-			);
 	
 			// Selector - jQuery selector string, array of nodes or jQuery object/
 			// As jQuery's .filter() allows jQuery objects to be passed in filter,
@@ -8127,11 +8015,6 @@
 			_fnDeleteIndex( settings.aiDisplay, row );
 			_fnDeleteIndex( that[ thatIdx ], row, false ); // maintain local indexes
 	
-			// For server-side processing tables - subtract the deleted row from the count
-			if ( settings._iRecordsDisplay > 0 ) {
-				settings._iRecordsDisplay--;
-			}
-	
 			// Check for an 'overflow' they case for displaying the table
 			_fnLengthOverflow( settings );
 	
@@ -8202,13 +8085,7 @@
 		}
 	
 		// Set
-		var row = ctx[0].aoData[ this[0] ];
-		row._aData = data;
-	
-		// If the DOM has an id, and the data source is an array
-		if ( Array.isArray( data ) && row.nTr && row.nTr.id ) {
-			_fnSetObjectDataFn( ctx[0].rowId )( data, row.nTr.id );
-		}
+		ctx[0].aoData[ this[0] ]._aData = data;
 	
 		// Automatically invalidate
 		_fnInvalidate( ctx[0], this[0], 'data' );
@@ -8252,7 +8129,7 @@
 		var rows = [];
 		var addRow = function ( r, k ) {
 			// Recursion to allow for arrays of jQuery objects
-			if ( Array.isArray( r ) || r instanceof $ ) {
+			if ( $.isArray( r ) || r instanceof $ ) {
 				for ( var i=0, ien=r.length ; i<ien ; i++ ) {
 					addRow( r[i], k );
 				}
@@ -8266,7 +8143,7 @@
 			}
 			else {
 				// Otherwise create a row with a wrapper
-				var created = $('<tr><td></td></tr>').addClass( k );
+				var created = $('<tr><td/></tr>').addClass( k );
 				$('td', created)
 					.addClass( k )
 					.html( r )
@@ -8631,6 +8508,10 @@
 	
 		// Common actions
 		col.bVisible = vis;
+		_fnDrawHead( settings, settings.aoHeader );
+		_fnDrawHead( settings, settings.aoFooter );
+	
+		_fnSaveState( settings );
 	};
 	
 	
@@ -8694,7 +8575,6 @@
 	} );
 	
 	_api_registerPlural( 'columns().visible()', 'column().visible()', function ( vis, calc ) {
-		var that = this;
 		var ret = this.iterator( 'column', function ( settings, column ) {
 			if ( vis === undefined ) {
 				return settings.aoColumns[ column ].bVisible;
@@ -8704,28 +8584,14 @@
 	
 		// Group the column visibility changes
 		if ( vis !== undefined ) {
-			this.iterator( 'table', function ( settings ) {
-				// Redraw the header after changes
-				_fnDrawHead( settings, settings.aoHeader );
-				_fnDrawHead( settings, settings.aoFooter );
-		
-				// Update colspan for no records display. Child rows and extensions will use their own
-				// listeners to do this - only need to update the empty table item here
-				if ( ! settings.aiDisplay.length ) {
-					$(settings.nTBody).find('td[colspan]').attr('colspan', _fnVisbleColumns(settings));
-				}
-		
-				_fnSaveState( settings );
+			// Second loop once the first is done for events
+			this.iterator( 'column', function ( settings, column ) {
+				_fnCallbackFire( settings, null, 'column-visibility', [settings, column, vis, calc] );
+			} );
 	
-				// Second loop once the first is done for events
-				that.iterator( 'column', function ( settings, column ) {
-					_fnCallbackFire( settings, null, 'column-visibility', [settings, column, vis, calc] );
-				} );
-	
-				if ( calc === undefined || calc ) {
-					that.columns.adjust();
-				}
-			});
+			if ( calc === undefined || calc ) {
+				this.columns.adjust();
+			}
 		}
 	
 		return ret;
@@ -8762,12 +8628,14 @@
 		return _selector_first( this.columns( selector, opts ) );
 	} );
 	
+	
+	
 	var __cell_selector = function ( settings, selector, opts )
 	{
 		var data = settings.aoData;
 		var rows = _selector_row_indexes( settings, opts );
 		var cells = _removeEmpty( _pluck_order( data, rows, 'anCells' ) );
-		var allCells = $(_flatten( [], cells ));
+		var allCells = $( [].concat.apply([], cells) );
 		var row;
 		var columns = settings.aoColumns.length;
 		var a, i, ien, j, o, host;
@@ -8808,10 +8676,7 @@
 			
 			// Selector - index
 			if ( $.isPlainObject( s ) ) {
-				// Valid cell index and its in the array of selectable rows
-				return s.column !== undefined && s.row !== undefined && $.inArray( s.row, rows ) !== -1 ?
-					[s] :
-					[];
+				return [s];
 			}
 	
 			// Selector - jQuery filtered cells
@@ -8874,20 +8739,13 @@
 			} );
 		}
 	
-		// The default built in options need to apply to row and columns
-		var internalOpts = opts ? {
-			page: opts.page,
-			order: opts.order,
-			search: opts.search
-		} : {};
-	
 		// Row + column selector
-		var columns = this.columns( columnSelector, internalOpts );
-		var rows = this.rows( rowSelector, internalOpts );
-		var i, ien, j, jen;
+		var columns = this.columns( columnSelector, opts );
+		var rows = this.rows( rowSelector, opts );
+		var a, i, ien, j, jen;
 	
-		var cellsNoOpts = this.iterator( 'table', function ( settings, idx ) {
-			var a = [];
+		var cells = this.iterator( 'table', function ( settings, idx ) {
+			a = [];
 	
 			for ( i=0, ien=rows[idx].length ; i<ien ; i++ ) {
 				for ( j=0, jen=columns[idx].length ; j<jen ; j++ ) {
@@ -8900,13 +8758,6 @@
 	
 			return a;
 		}, 1 );
-	
-		// There is currently only one extension which uses a cell selector extension
-		// It is a _major_ performance drag to run this if it isn't needed, so this is
-		// an extension specific check at the moment
-		var cells = opts && opts.selected ?
-			this.cells( cellsNoOpts, opts ) :
-			cellsNoOpts;
 	
 		$.extend( cells.selector, {
 			cols: columnSelector,
@@ -9039,7 +8890,7 @@
 			// Simple column / direction passed in
 			order = [ [ order, dir ] ];
 		}
-		else if ( order.length && ! Array.isArray( order[0] ) ) {
+		else if ( order.length && ! $.isArray( order[0] ) ) {
 			// Arguments passed in (list of 1D arrays)
 			order = Array.prototype.slice.call( arguments );
 		}
@@ -9075,7 +8926,7 @@
 				ctx[0].aaSortingFixed :
 				undefined;
 	
-			return Array.isArray( fixed ) ?
+			return $.isArray( fixed ) ?
 				{ pre: fixed } :
 				fixed;
 		}
@@ -9438,6 +9289,15 @@
 				classes.sSortableAsc+' '+classes.sSortableDesc+' '+classes.sSortableNone
 			);
 	
+			if ( settings.bJUI ) {
+				$('th span.'+classes.sSortIcon+ ', td span.'+classes.sSortIcon, thead).detach();
+				$('th, td', thead).each( function () {
+					var wrapper = $('div.'+classes.sSortJUIWrapper, this);
+					$(this).append( wrapper.contents() );
+					wrapper.detach();
+				} );
+			}
+	
 			// Add the TR elements back into the table in their original order
 			jqTbody.children().detach();
 			jqTbody.append( rows );
@@ -9535,7 +9395,7 @@
 	 *  @type string
 	 *  @default Version number
 	 */
-	DataTable.version = "1.10.24";
+	DataTable.version = "1.10.13";
 
 	/**
 	 * Private data store, containing all of the settings objects that are
@@ -9953,8 +9813,8 @@
 	 * version is still, internally the primary interface, but is is not documented
 	 * - hence the @name tags in each doc comment. This allows a Javascript function
 	 * to create a map from Hungarian notation to camel case (going the other direction
-	 * would require each property to be listed, which would add around 3K to the size
-	 * of DataTables, while this method is about a 0.5K hit).
+	 * would require each property to be listed, which would at around 3K to the size
+	 * of DataTables, while this method is about a 0.5K hit.
 	 *
 	 * Ultimately this does pave the way for Hungarian notation to be dropped
 	 * completely, but that is a massive amount of work and will break current
@@ -10462,6 +10322,26 @@
 		 *    } );
 		 */
 		"bInfo": true,
+	
+	
+		/**
+		 * Enable jQuery UI ThemeRoller support (required as ThemeRoller requires some
+		 * slightly different and additional mark-up from what DataTables has
+		 * traditionally used).
+		 *  @type boolean
+		 *  @default false
+		 *
+		 *  @dtopt Features
+		 *  @name DataTable.defaults.jQueryUI
+		 *
+		 *  @example
+		 *    $(document).ready( function() {
+		 *      $('#example').dataTable( {
+		 *        "jQueryUI": true
+		 *      } );
+		 *    } );
+		 */
+		"bJQueryUI": false,
 	
 	
 		/**
@@ -11053,9 +10933,7 @@
 						'DataTables_'+settings.sInstance+'_'+location.pathname
 					)
 				);
-			} catch (e) {
-				return {};
-			}
+			} catch (e) {}
 		},
 	
 	
@@ -12475,8 +12353,8 @@
 		 *          { "data": "engine" },
 		 *          { "data": "browser" },
 		 *          { "data": "platform.inner" },
-		 *          { "data": "details.0" },
-		 *          { "data": "details.1" }
+		 *          { "data": "platform.details.0" },
+		 *          { "data": "platform.details.1" }
 		 *        ]
 		 *      } );
 		 *    } );
@@ -13747,6 +13625,14 @@
 		"_iRecordsDisplay": 0,
 	
 		/**
+		 * Flag to indicate if jQuery UI marking and classes should be used.
+		 * Note that this parameter will be set by the initialisation routine. To
+		 * set a default use {@link DataTable.defaults}.
+		 *  @type boolean
+		 */
+		"bJUI": null,
+	
+		/**
 		 * The classes to use for the table
 		 *  @type object
 		 *  @default {}
@@ -14273,7 +14159,7 @@
 			 *    $.fn.dataTable.ext.type.detect.push(
 			 *      function ( data, settings ) {
 			 *        // Check the numeric part
-			 *        if ( ! data.substring(1).match(/[0-9]/) ) {
+			 *        if ( ! $.isNumeric( data.substring(1) ) ) {
 			 *          return null;
 			 *        }
 			 *
@@ -14487,8 +14373,8 @@
 		"sSortAsc": "sorting_asc",
 		"sSortDesc": "sorting_desc",
 		"sSortable": "sorting", /* Sortable in both directions */
-		"sSortableAsc": "sorting_desc_disabled",
-		"sSortableDesc": "sorting_asc_disabled",
+		"sSortableAsc": "sorting_asc_disabled",
+		"sSortableDesc": "sorting_desc_disabled",
 		"sSortableNone": "sorting_disabled",
 		"sSortColumn": "sorting_", /* Note that an int is postfixed for the sorting order */
 	
@@ -14521,6 +14407,59 @@
 		"sJUIHeader": "",
 		"sJUIFooter": ""
 	} );
+	
+	
+	(function() {
+	
+	// Reused strings for better compression. Closure compiler appears to have a
+	// weird edge case where it is trying to expand strings rather than use the
+	// variable version. This results in about 200 bytes being added, for very
+	// little preference benefit since it this run on script load only.
+	var _empty = '';
+	_empty = '';
+	
+	var _stateDefault = _empty + 'ui-state-default';
+	var _sortIcon     = _empty + 'css_right ui-icon ui-icon-';
+	var _headerFooter = _empty + 'fg-toolbar ui-toolbar ui-widget-header ui-helper-clearfix';
+	
+	$.extend( DataTable.ext.oJUIClasses, DataTable.ext.classes, {
+		/* Full numbers paging buttons */
+		"sPageButton":         "fg-button ui-button "+_stateDefault,
+		"sPageButtonActive":   "ui-state-disabled",
+		"sPageButtonDisabled": "ui-state-disabled",
+	
+		/* Features */
+		"sPaging": "dataTables_paginate fg-buttonset ui-buttonset fg-buttonset-multi "+
+			"ui-buttonset-multi paging_", /* Note that the type is postfixed */
+	
+		/* Sorting */
+		"sSortAsc":            _stateDefault+" sorting_asc",
+		"sSortDesc":           _stateDefault+" sorting_desc",
+		"sSortable":           _stateDefault+" sorting",
+		"sSortableAsc":        _stateDefault+" sorting_asc_disabled",
+		"sSortableDesc":       _stateDefault+" sorting_desc_disabled",
+		"sSortableNone":       _stateDefault+" sorting_disabled",
+		"sSortJUIAsc":         _sortIcon+"triangle-1-n",
+		"sSortJUIDesc":        _sortIcon+"triangle-1-s",
+		"sSortJUI":            _sortIcon+"carat-2-n-s",
+		"sSortJUIAscAllowed":  _sortIcon+"carat-1-n",
+		"sSortJUIDescAllowed": _sortIcon+"carat-1-s",
+		"sSortJUIWrapper":     "DataTables_sort_wrapper",
+		"sSortIcon":           "DataTables_sort_icon",
+	
+		/* Scrolling */
+		"sScrollHead": "dataTables_scrollHead "+_stateDefault,
+		"sScrollFoot": "dataTables_scrollFoot "+_stateDefault,
+	
+		/* Misc */
+		"sHeaderTH":  _stateDefault,
+		"sFooterTH":  _stateDefault,
+		"sJUIHeader": _headerFooter+" ui-corner-tl ui-corner-tr",
+		"sJUIFooter": _headerFooter+" ui-corner-bl ui-corner-br"
+	} );
+	
+	}());
+	
 	
 	
 	var extPagination = DataTable.ext.pager;
@@ -14600,8 +14539,7 @@
 				var btnDisplay, btnClass, counter=0;
 	
 				var attach = function( container, buttons ) {
-					var i, ien, node, button, tabIndex;
-					var disabledClass = classes.sPageButtonDisabled;
+					var i, ien, node, button;
 					var clickHandler = function ( e ) {
 						_fnPageChange( settings, e.data.action, true );
 					};
@@ -14609,15 +14547,14 @@
 					for ( i=0, ien=buttons.length ; i<ien ; i++ ) {
 						button = buttons[i];
 	
-						if ( Array.isArray( button ) ) {
+						if ( $.isArray( button ) ) {
 							var inner = $( '<'+(button.DT_el || 'div')+'/>' )
 								.appendTo( container );
 							attach( inner, button );
 						}
 						else {
 							btnDisplay = null;
-							btnClass = button;
-							tabIndex = settings.iTabIndex;
+							btnClass = '';
 	
 							switch ( button ) {
 								case 'ellipsis':
@@ -14626,42 +14563,30 @@
 	
 								case 'first':
 									btnDisplay = lang.sFirst;
-	
-									if ( page === 0 ) {
-										tabIndex = -1;
-										btnClass += ' ' + disabledClass;
-									}
+									btnClass = button + (page > 0 ?
+										'' : ' '+classes.sPageButtonDisabled);
 									break;
 	
 								case 'previous':
 									btnDisplay = lang.sPrevious;
-	
-									if ( page === 0 ) {
-										tabIndex = -1;
-										btnClass += ' ' + disabledClass;
-									}
+									btnClass = button + (page > 0 ?
+										'' : ' '+classes.sPageButtonDisabled);
 									break;
 	
 								case 'next':
 									btnDisplay = lang.sNext;
-	
-									if ( pages === 0 || page === pages-1 ) {
-										tabIndex = -1;
-										btnClass += ' ' + disabledClass;
-									}
+									btnClass = button + (page < pages-1 ?
+										'' : ' '+classes.sPageButtonDisabled);
 									break;
 	
 								case 'last':
 									btnDisplay = lang.sLast;
-	
-									if ( pages === 0 || page === pages-1 ) {
-										tabIndex = -1;
-										btnClass += ' ' + disabledClass;
-									}
+									btnClass = button + (page < pages-1 ?
+										'' : ' '+classes.sPageButtonDisabled);
 									break;
 	
 								default:
-									btnDisplay = settings.fnFormatNumber( button + 1 );
+									btnDisplay = button + 1;
 									btnClass = page === button ?
 										classes.sPageButtonActive : '';
 									break;
@@ -14673,7 +14598,7 @@
 										'aria-controls': settings.sTableId,
 										'aria-label': aria[ button ],
 										'data-dt-idx': counter,
-										'tabindex': tabIndex,
+										'tabindex': settings.iTabIndex,
 										'id': idx === 0 && typeof button === 'string' ?
 											settings.sTableId +'_'+ button :
 											null
@@ -14708,7 +14633,7 @@
 				attach( $(host).empty(), buttons );
 	
 				if ( activeEl !== undefined ) {
-					$(host).find( '[data-dt-idx='+activeEl+']' ).trigger('focus');
+					$(host).find( '[data-dt-idx='+activeEl+']' ).focus();
 				}
 			}
 		}
@@ -14870,8 +14795,7 @@
 	$.extend( _ext.type.order, {
 		// Dates
 		"date-pre": function ( d ) {
-			var ts = Date.parse( d );
-			return isNaN(ts) ? -Infinity : ts;
+			return Date.parse( d ) || -Infinity;
 		},
 	
 		// html
@@ -14929,6 +14853,7 @@
 	
 					cell
 						.removeClass(
+							column.sSortingClass +' '+
 							classes.sSortAsc +' '+
 							classes.sSortDesc
 						)
@@ -14993,11 +14918,7 @@
 	
 	var __htmlEscapeEntities = function ( d ) {
 		return typeof d === 'string' ?
-			d
-				.replace(/&/g, '&amp;')
-				.replace(/</g, '&lt;')
-				.replace(/>/g, '&gt;')
-				.replace(/"/g, '&quot;') :
+			d.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') :
 			d;
 	};
 	
@@ -15065,8 +14986,7 @@
 	
 		text: function () {
 			return {
-				display: __htmlEscapeEntities,
-				filter: __htmlEscapeEntities
+				display: __htmlEscapeEntities
 			};
 		}
 	};
@@ -15191,7 +15111,6 @@
 		_fnRenderer: _fnRenderer,
 		_fnDataSource: _fnDataSource,
 		_fnRowAttributes: _fnRowAttributes,
-		_fnExtend: _fnExtend,
 		_fnCalculateEnd: function () {} // Used by a lot of plug-ins, but redundant
 		                                // in 1.10, so this dead-end function is
 		                                // added to prevent errors
@@ -15304,7 +15223,7 @@
 
 	/**
 	 * Processing event, fired when DataTables is doing some kind of processing
-	 * (be it, order, search or anything else). It can be used to indicate to
+	 * (be it, order, searcg or anything else). It can be used to indicate to
 	 * the end user that there is something happening, or that something has
 	 * finished.
 	 *  @name DataTable#processing.dt
