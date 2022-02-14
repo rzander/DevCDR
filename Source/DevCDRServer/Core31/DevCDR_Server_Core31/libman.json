@@ -72,11 +72,6 @@
     },
     {
       "provider": "unpkg",
-      "library": "jquery-mousewheel@3.1.13",
-      "destination": "wwwroot/lib/jquery-mousewheel/"
-    },
-    {
-      "provider": "unpkg",
       "library": "bootstrap@4.5.0",
       "destination": "wwwroot/lib/bootstrap4/"
     },
@@ -110,6 +105,10 @@
       "provider": "unpkg",
       "library": "datatables.net-buttons@2.2.2",
       "destination": "wwwroot/lib/datatables.net-buttons/"
+    },
+    {
+      "library": "jquery-mousewheel@3.1.13",
+      "destination": "wwwroot/lib/jquery-mousewheel/"
     }
   ]
 }
